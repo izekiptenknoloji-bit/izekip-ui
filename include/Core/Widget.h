@@ -85,14 +85,17 @@ public:
     void SnapBackgroundColor(const Color& value);
     void AnimateBackgroundColorTo(const Color& target, float durationSeconds, const CubicBezier& easing);
 
-    void SnapWidth(float value);
-    void AnimateWidthTo(float target, float durationSeconds, const CubicBezier& easing);
+    void SnapWidth(Length value);
+    void AnimateWidthTo(Length target, float durationSeconds, const CubicBezier& easing);
 
-    void SnapHeight(float value);
-    void AnimateHeightTo(float target, float durationSeconds, const CubicBezier& easing);
+    void SnapHeight(Length value);
+    void AnimateHeightTo(Length target, float durationSeconds, const CubicBezier& easing);
 
     void SnapMargin(const BoxEdges& value);
     void AnimateMarginTo(const BoxEdges& target, float durationSeconds, const CubicBezier& easing);
+
+    void SnapOpacity(float value);
+    void AnimateOpacityTo(float target, float durationSeconds, const CubicBezier& easing);
 
     // Advances this widget's in-flight animations by deltaSeconds, writing interpolated
     // results into m_style (and, for width/height/margin, into the Yoga node). Does not
@@ -131,6 +134,7 @@ protected:
     std::optional<Animation<float>> m_widthAnim;
     std::optional<Animation<float>> m_heightAnim;
     std::optional<Animation<BoxEdges>> m_marginAnim;
+    std::optional<Animation<float>> m_opacityAnim;
 };
 
 // Clears IsHovered()/IsActive() across the whole subtree -- used before re-marking the

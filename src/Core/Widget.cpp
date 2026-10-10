@@ -58,22 +58,82 @@ Render::GradientDirection ToRenderGradientDirection(GradientDirection direction)
     }
     return Render::GradientDirection::ToRight;
 }
+
+// Resolves CSS-side gradient stops (percent positions, some possibly unset) into
+// IRenderer's normalized-[0,1]-position stops. A CSS gradient with more than 3 stops is
+// capped to its first 3 here -- the shader only carries 3 color slots (named scope cut,
+// see the CSS value-parser expansion plan's gradient section).
+std::vector<Render::GradientStop> ResolveGradientStops(const std::vector<GradientStop>& cssStops) {
+    std::vector<GradientStop> capped(cssStops.begin(),
+                                      cssStops.begin() + std::min<size_t>(cssStops.size(), 3));
+
+    std::vector<Render::GradientStop> resolved;
+    resolved.reserve(capped.size());
+    const size_t lastIndex = capped.size() - 1;
+    for (size_t i = 0; i < capped.size(); ++i) {
+        // Auto-spacing (no explicit percent): evenly distribute by index. This is a
+        // simplified version of CSS's full "interpolate between explicit neighbors"
+        // algorithm -- fine for the common case of a gradient with no mixed explicit/
+        // implicit positions.
+        const float position = capped[i].percentPosition ? (*capped[i].percentPosition / 100.0f)
+                                                            : (static_cast<float>(i) / static_cast<float>(lastIndex));
+        resolved.push_back(Render::GradientStop{capped[i].color, position});
+    }
+    return resolved;
+}
 } // namespace
 
 void Widget::OnPaint(Render::IRenderer& renderer) {
-    if (m_style.backgroundColor || m_style.background) {
-        Render::RectPaint paint;
-        paint.fill.color = m_style.background ? m_style.background->startColor : *m_style.backgroundColor;
-        if (m_style.background) {
-            paint.fill.gradientDirection = ToRenderGradientDirection(m_style.background->direction);
-            paint.fill.gradientEndColor = m_style.background->endColor;
-        }
-        paint.cornerRadius = m_style.borderRadius.value_or(0.0f);
+    if (m_style.backgroundColor || m_style.background || m_style.boxShadow || m_style.backdropFilter) {
+        const float cornerRadius = m_style.borderRadius.value_or(0.0f);
+
+        // Shadows are drawn first (so the element's own fill composites on top of them),
+        // back-to-front in reverse CSS list order -- CSS's first-listed shadow is the one
+        // nearest the element, i.e. the last one drawn. Each is its own DrawRect call with
+        // a fully transparent fill: ComputeRectDrawData's "fill OVER shadow" composite then
+        // reduces to just the shadow, so no shader change was needed for multiple shadows.
         if (m_style.boxShadow) {
-            paint.shadow = Render::RectShadow{m_style.boxShadow->offsetX, m_style.boxShadow->offsetY,
-                                               m_style.boxShadow->blurRadius, m_style.boxShadow->color};
+            const auto& shadows = *m_style.boxShadow;
+            const float opacity = m_style.opacity.value_or(1.0f);
+            for (auto it = shadows.rbegin(); it != shadows.rend(); ++it) {
+                Render::RectPaint shadowOnlyPaint;
+                shadowOnlyPaint.fill.color = Color{0.0f, 0.0f, 0.0f, 0.0f};
+                shadowOnlyPaint.cornerRadius = cornerRadius;
+                shadowOnlyPaint.shadow = Render::RectShadow{it->offsetX, it->offsetY, it->blurRadius,
+                                                             it->spreadRadius, it->color};
+                shadowOnlyPaint.opacity = opacity;
+                renderer.DrawRect(m_rect, shadowOnlyPaint);
+            }
         }
-        renderer.DrawRect(m_rect, paint);
+
+        // backdrop-filter next -- it samples/blurs whatever's already been painted behind
+        // this element (shadows included), then the element's own (usually translucent)
+        // fill right below composites on top of that blurred result, which is what
+        // actually produces the "glass" look.
+        if (m_style.backdropFilter) {
+            Render::BackdropBlurPaint blurPaint;
+            blurPaint.cornerRadius = cornerRadius;
+            blurPaint.filter.blurRadiusPx = m_style.backdropFilter->blurRadiusPx.value_or(0.0f);
+            blurPaint.filter.brightness = m_style.backdropFilter->brightness.value_or(1.0f);
+            blurPaint.filter.contrast = m_style.backdropFilter->contrast.value_or(1.0f);
+            blurPaint.filter.saturate = m_style.backdropFilter->saturate.value_or(1.0f);
+            blurPaint.filter.grayscale = m_style.backdropFilter->grayscale.value_or(0.0f);
+            renderer.DrawBackdropBlurRect(m_rect, blurPaint);
+        }
+
+        if (m_style.backgroundColor || m_style.background) {
+            Render::RectPaint paint;
+            if (m_style.background) {
+                paint.fill.color = m_style.background->stops.front().color;
+                paint.fill.gradientDirection = ToRenderGradientDirection(m_style.background->direction);
+                paint.fill.gradientStops = ResolveGradientStops(m_style.background->stops);
+            } else {
+                paint.fill.color = *m_style.backgroundColor;
+            }
+            paint.cornerRadius = cornerRadius;
+            paint.opacity = m_style.opacity.value_or(1.0f);
+            renderer.DrawRect(m_rect, paint);
+        }
     }
     for (auto& child : m_children) {
         child->OnPaint(renderer);
@@ -105,32 +165,43 @@ void Widget::AnimateBackgroundColorTo(const Color& target, float durationSeconds
     m_backgroundColorAnim = Animation<Color>{*m_style.backgroundColor, target, 0.0f, durationSeconds, easing};
 }
 
-void Widget::SnapWidth(float value) {
+void Widget::SnapWidth(Length value) {
     m_style.width = value;
-    YGNodeStyleSetWidth(m_yogaNode, value);
+    if (value.isPercent) {
+        YGNodeStyleSetWidthPercent(m_yogaNode, value.value);
+    } else {
+        YGNodeStyleSetWidth(m_yogaNode, value.value);
+    }
     m_widthAnim.reset();
 }
 
-void Widget::AnimateWidthTo(float target, float durationSeconds, const CubicBezier& easing) {
-    if (!m_style.width) {
+void Widget::AnimateWidthTo(Length target, float durationSeconds, const CubicBezier& easing) {
+    // Percent widths aren't animated -- interpolating would require re-resolving against
+    // the parent's size every tick, which this float-lerp animation system doesn't do.
+    // Snap instead (named scope cut).
+    if (!m_style.width || target.isPercent || m_style.width->isPercent) {
         SnapWidth(target);
         return;
     }
-    m_widthAnim = Animation<float>{*m_style.width, target, 0.0f, durationSeconds, easing};
+    m_widthAnim = Animation<float>{m_style.width->value, target.value, 0.0f, durationSeconds, easing};
 }
 
-void Widget::SnapHeight(float value) {
+void Widget::SnapHeight(Length value) {
     m_style.height = value;
-    YGNodeStyleSetHeight(m_yogaNode, value);
+    if (value.isPercent) {
+        YGNodeStyleSetHeightPercent(m_yogaNode, value.value);
+    } else {
+        YGNodeStyleSetHeight(m_yogaNode, value.value);
+    }
     m_heightAnim.reset();
 }
 
-void Widget::AnimateHeightTo(float target, float durationSeconds, const CubicBezier& easing) {
-    if (!m_style.height) {
+void Widget::AnimateHeightTo(Length target, float durationSeconds, const CubicBezier& easing) {
+    if (!m_style.height || target.isPercent || m_style.height->isPercent) {
         SnapHeight(target);
         return;
     }
-    m_heightAnim = Animation<float>{*m_style.height, target, 0.0f, durationSeconds, easing};
+    m_heightAnim = Animation<float>{m_style.height->value, target.value, 0.0f, durationSeconds, easing};
 }
 
 void Widget::SnapMargin(const BoxEdges& value) {
@@ -148,6 +219,19 @@ void Widget::AnimateMarginTo(const BoxEdges& target, float durationSeconds, cons
         return;
     }
     m_marginAnim = Animation<BoxEdges>{*m_style.margin, target, 0.0f, durationSeconds, easing};
+}
+
+void Widget::SnapOpacity(float value) {
+    m_style.opacity = value;
+    m_opacityAnim.reset();
+}
+
+void Widget::AnimateOpacityTo(float target, float durationSeconds, const CubicBezier& easing) {
+    if (!m_style.opacity) {
+        SnapOpacity(target);
+        return;
+    }
+    m_opacityAnim = Animation<float>{*m_style.opacity, target, 0.0f, durationSeconds, easing};
 }
 
 AnimationTickResult Widget::TickAnimations(float deltaSeconds) {
@@ -173,7 +257,7 @@ AnimationTickResult Widget::TickAnimations(float deltaSeconds) {
         const float t = anim.duration > 0.0f ? std::clamp(anim.elapsed / anim.duration, 0.0f, 1.0f) : 1.0f;
         const float eased = anim.easing.Evaluate(t);
         const float value = t >= 1.0f ? anim.to : Lerp(anim.from, anim.to, eased);
-        m_style.width = value;
+        m_style.width = Length{value, false}; // animated widths are always a definite px value
         YGNodeStyleSetWidth(m_yogaNode, value);
         result.layoutAffected = true;
         if (t >= 1.0f) {
@@ -189,7 +273,7 @@ AnimationTickResult Widget::TickAnimations(float deltaSeconds) {
         const float t = anim.duration > 0.0f ? std::clamp(anim.elapsed / anim.duration, 0.0f, 1.0f) : 1.0f;
         const float eased = anim.easing.Evaluate(t);
         const float value = t >= 1.0f ? anim.to : Lerp(anim.from, anim.to, eased);
-        m_style.height = value;
+        m_style.height = Length{value, false}; // animated heights are always a definite px value
         YGNodeStyleSetHeight(m_yogaNode, value);
         result.layoutAffected = true;
         if (t >= 1.0f) {
@@ -213,6 +297,20 @@ AnimationTickResult Widget::TickAnimations(float deltaSeconds) {
         result.layoutAffected = true;
         if (t >= 1.0f) {
             m_marginAnim.reset();
+        } else {
+            result.stillAnimating = true;
+        }
+    }
+
+    if (m_opacityAnim) {
+        auto& anim = *m_opacityAnim;
+        anim.elapsed += deltaSeconds;
+        const float t = anim.duration > 0.0f ? std::clamp(anim.elapsed / anim.duration, 0.0f, 1.0f) : 1.0f;
+        const float eased = anim.easing.Evaluate(t);
+        const float value = t >= 1.0f ? anim.to : Lerp(anim.from, anim.to, eased);
+        m_style.opacity = std::clamp(value, 0.0f, 1.0f);
+        if (t >= 1.0f) {
+            m_opacityAnim.reset();
         } else {
             result.stillAnimating = true;
         }

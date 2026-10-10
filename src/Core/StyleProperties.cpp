@@ -20,6 +20,7 @@ void StyleProperties::MergeFrom(const StyleProperties& higherPriority) {
     if (higherPriority.borderRadius) borderRadius = higherPriority.borderRadius;
     if (higherPriority.boxShadow) boxShadow = higherPriority.boxShadow;
     if (higherPriority.background) background = higherPriority.background;
+    if (higherPriority.backdropFilter) backdropFilter = higherPriority.backdropFilter;
 
     if (higherPriority.flexDirection) flexDirection = higherPriority.flexDirection;
     if (higherPriority.justifyContent) justifyContent = higherPriority.justifyContent;

@@ -27,6 +27,9 @@ public:
     void Present() override;
 
     void DrawRect(const Rect& rect, const RectPaint& paint) override;
+    void DrawTextQuad(const Rect& rect, const UVRect& atlasUV, const Color& color,
+                      float glyphScale, FontId fontId) override;
+    void DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPaint& paint) override;
 
     RendererBackend GetBackend() const override { return RendererBackend::D3D11; }
 
@@ -36,12 +39,29 @@ private:
     void CreateQuadGeometry();
     void CreateShaders();
     void CreateBlendState();
+    void CreateFontAtlasTexture();
+    void CreateBackdropScratchTexture();
 
     Microsoft::WRL::ComPtr<ID3D11Device> m_device;
     Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_context;
     Microsoft::WRL::ComPtr<IDXGISwapChain> m_swapChain;
+    Microsoft::WRL::ComPtr<ID3D11Texture2D> m_backBufferTexture; // kept for CopySubresourceRegion's source
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_renderTargetView;
     Microsoft::WRL::ComPtr<ID3D11BlendState> m_blendState;
+
+    // Backdrop-filter scratch texture: a GPU-to-GPU copy of whatever's been painted to
+    // the backbuffer so far, sampled by DrawBackdropBlurRect's blur shader. Viewport-sized,
+    // recreated alongside the render target in Resize().
+    Microsoft::WRL::ComPtr<ID3D11Texture2D> m_backdropScratchTexture;
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_backdropScratchSRV;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState> m_backdropSampler;
+
+    Microsoft::WRL::ComPtr<ID3D11Texture2D> m_fontAtlasTexture;
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_fontAtlasSRV;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState> m_fontAtlasSampler;
+    Microsoft::WRL::ComPtr<ID3D11Texture2D> m_fontAtlasTexture2;
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_fontAtlasSRV2;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState> m_fontAtlasSampler2;
 
     Microsoft::WRL::ComPtr<ID3D11VertexShader> m_vertexShader;
     Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pixelShader;

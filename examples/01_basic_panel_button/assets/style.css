@@ -1,3 +1,71 @@
+/* ---- Showcase chrome: structural layout only, NOT one of the demoed rule blocks below.
+   Deliberately uses id/class overrides on top of the type-selector `Panel {}` rule so the
+   chrome containers escape its 400x300 gray-box default -- a real demonstration of CSS
+   cascade/specificity in the engine's own test harness, not just the subjects it shows. */
+.showcase-root {
+    background-color: #1E1E1E;
+    width: 1200px;
+    height: 1650px;
+    padding: 20px;
+}
+
+.showcase-row {
+    flex-direction: row;
+    align-items: center;
+    background-color: #2A2A2A;
+    width: 1120px;
+    padding: 12px;
+    margin: 0px 0px 16px 0px;
+}
+
+#row1 { height: 340px; }
+#row2 { height: 195px; }
+#row3 { height: 85px; }
+#row4 { height: 95px; }
+#row5 { height: 85px; }
+#row6 { height: 95px; }
+#row7 { height: 85px; }
+#row8 { height: 100px; }
+#row9 { height: 110px; }
+#row10 { height: 115px; }
+#row11 { height: 115px; }
+
+/* Experiment: a typical "glassmorphism" rule -- translucent background-color (rgba),
+   border, border-radius, box-shadow all go through the parser packages just added.
+   backdrop-filter is real CSS syntax (lexbor parses it fine) but IzekipUI has no
+   framebuffer-sampling blur pass, so it's recognized-but-ignored (same "unknown
+   properties are ignored" path as always) -- this rule is the live test of that. */
+.glass-test {
+    background-color: rgba(255, 255, 255, 0.15);
+    border: 1px solid #FFFFFF66;
+    border-radius: 16px;
+    box-shadow: 0px 8px 32px #00000080;
+    backdrop-filter: blur(10px);
+    width: 220px;
+    height: 90px;
+}
+
+/* Shrinks the margin-demo Panel so a 50px margin is clearly visible without reproducing
+   the full 400x300 box twice in one row -- overrides Panel{}'s width/height via a class
+   (higher specificity than the bare type selector), margin itself stays untouched. */
+.compact-demo {
+    background-color: #4477AA;
+    width: 56px;
+    height: 56px;
+}
+
+/* Monospace code text to the right of each demo widget -- color/font-size override the
+   generic `Label {}` rule below (class beats type); the actual monospace glyph atlas is
+   selected in C++ via Label::SetFontFamily, there is no `font-family` CSS property. */
+.code-label {
+    color: #7FDBAA;
+    font-size: 13px;
+    margin: 0px 0px 0px 24px;
+}
+
+/* ---- Demoed rule blocks (unchanged from Phase 6) -- each one is shown verbatim as the
+   "code" text next to its own live demo widget in the showcase above. ---- */
+
 Panel {
     background-color: #CCCCCC;
     width: 400px;
@@ -37,4 +105,30 @@ Panel Button {
 
 .primary:active {
     box-shadow: 0px 2px 6px #00000055;
+}
+
+Label {
+    color: #222222;
+    font-size: 20px;
+}
+
+/* Opacity property: controls element transparency via alpha multiplier.
+   Animates smoothly via CSS transitions just like background-color. */
+.opacity-demo {
+    background-color: #FF6B6B;
+    width: 100px;
+    height: 100px;
+    opacity: 1.0;
+    transition: opacity 300ms ease-in-out;
+}
+
+.opacity-demo:hover {
+    opacity: 0.5;
+}
+
+.opacity-demo-low {
+    background-color: #4ECDC4;
+    width: 100px;
+    height: 100px;
+    opacity: 0.3;
 }

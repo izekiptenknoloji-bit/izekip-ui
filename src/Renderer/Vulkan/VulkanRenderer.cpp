@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 
+#include "Renderer/GlyphAtlas.h"
 #include "Renderer/RectDrawData.h"
 
 using namespace IzekipUI::Render::detail;
@@ -78,6 +79,7 @@ bool VulkanRenderer::Initialize(const RendererCreateInfo& info) {
     CreateSwapchain(m_width, m_height);
     CreateSwapchainImageViews();
     CreateRenderPass();
+    CreateRenderPassResume();
     CreateFramebuffers();
     CreateDescriptorSetLayoutAndPool();
     CreatePipeline();
@@ -86,6 +88,8 @@ bool VulkanRenderer::Initialize(const RendererCreateInfo& info) {
     CreateRenderFinishedSemaphores();
     CreateQuadVertexBuffer();
     CreateUniformRingBuffers();
+    CreateFontAtlasTexture();
+    CreateBackdropScratchImage();
 
     return true;
 }
@@ -309,6 +313,51 @@ void VulkanRenderer::CreateRenderPass() {
     VkCheck(vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &m_renderPass), "vkCreateRenderPass");
 }
 
+void VulkanRenderer::CreateRenderPassResume() {
+    // Identical to m_renderPass except loadOp=LOAD (preserve whatever's already in the
+    // attachment -- the whole point of resuming) and initialLayout=COLOR_ATTACHMENT_OPTIMAL
+    // (DrawBackdropBlurRect's barrier puts the swapchain image back in that layout before
+    // calling vkCmdBeginRenderPass with this render pass). Same format/sample-count as
+    // m_renderPass, so framebuffers created against m_renderPass remain usable here too --
+    // Vulkan render pass *compatibility* (and therefore framebuffer reuse) only depends on
+    // attachment format/sample-count/layout-in-reference, never load/store ops.
+    VkAttachmentDescription colorAttachment{};
+    colorAttachment.format = m_swapchainFormat;
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    VkAttachmentReference colorRef{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorRef;
+
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    VkRenderPassCreateInfo renderPassInfo{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
+    renderPassInfo.attachmentCount = 1;
+    renderPassInfo.pAttachments = &colorAttachment;
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
+
+    VkCheck(vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &m_renderPassResume),
+            "vkCreateRenderPass(resume)");
+}
+
 void VulkanRenderer::CreateFramebuffers() {
     m_swapchainFramebuffers.resize(m_swapchainImageViews.size());
     for (size_t i = 0; i < m_swapchainImageViews.size(); ++i) {
@@ -326,7 +375,14 @@ void VulkanRenderer::CreateFramebuffers() {
 }
 
 void VulkanRenderer::CreateDescriptorSetLayoutAndPool() {
-    VkDescriptorSetLayoutBinding bindings[2]{};
+    // RectShader.hlsl declares `Texture2D fontAtlasTex`/`fontAtlasTex2`/`backdropTex` and
+    // `SamplerState fontAtlasSampler`/`fontAtlasSampler2`/`backdropSampler` as independent
+    // HLSL resources (not combined sampler2Ds) -- dxc's default SPIR-V codegen for that
+    // pattern is separate descriptors (SAMPLED_IMAGE + SAMPLER) per texture/sampler pair,
+    // not COMBINED_IMAGE_SAMPLER. The layout below must match that, binding-for-binding
+    // (vk::binding(2,0)/(3,0) -> proportional font, (4,0)/(5,0) -> monospace font,
+    // (6,0)/(7,0) -> backdrop-blur scratch texture).
+    VkDescriptorSetLayoutBinding bindings[8]{};
     bindings[0].binding = 0;
     bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
     bindings[0].descriptorCount = 1;
@@ -337,17 +393,50 @@ void VulkanRenderer::CreateDescriptorSetLayoutAndPool() {
     bindings[1].descriptorCount = 1;
     bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
+    bindings[2].binding = 2;
+    bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    bindings[2].descriptorCount = 1;
+    bindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    bindings[3].binding = 3;
+    bindings[3].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    bindings[3].descriptorCount = 1;
+    bindings[3].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    bindings[4].binding = 4;
+    bindings[4].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    bindings[4].descriptorCount = 1;
+    bindings[4].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    bindings[5].binding = 5;
+    bindings[5].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    bindings[5].descriptorCount = 1;
+    bindings[5].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    bindings[6].binding = 6;
+    bindings[6].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    bindings[6].descriptorCount = 1;
+    bindings[6].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    bindings[7].binding = 7;
+    bindings[7].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    bindings[7].descriptorCount = 1;
+    bindings[7].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
     VkDescriptorSetLayoutCreateInfo layoutInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-    layoutInfo.bindingCount = 2;
+    layoutInfo.bindingCount = 8;
     layoutInfo.pBindings = bindings;
     VkCheck(vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayout),
             "vkCreateDescriptorSetLayout");
 
-    VkDescriptorPoolSize poolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 2};
+    VkDescriptorPoolSize poolSizes[3]{};
+    poolSizes[0] = {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 2};
+    poolSizes[1] = {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 3};
+    poolSizes[2] = {VK_DESCRIPTOR_TYPE_SAMPLER, 3};
     VkDescriptorPoolCreateInfo poolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
     poolInfo.maxSets = 1;
-    poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes = &poolSize;
+    poolInfo.poolSizeCount = 3;
+    poolInfo.pPoolSizes = poolSizes;
     VkCheck(vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool),
             "vkCreateDescriptorPool");
 
@@ -592,6 +681,305 @@ void VulkanRenderer::CreateUniformRingBuffers() {
     vkUpdateDescriptorSets(m_device, 2, writes, 0, nullptr);
 }
 
+void VulkanRenderer::CreateFontAtlasTexture() {
+    UploadFontAtlasTexture(GlyphAtlas::GetDefault(), m_fontAtlasImage, m_fontAtlasImageMemory,
+                            m_fontAtlasImageView, m_fontAtlasSampler, 2, 3);
+    UploadFontAtlasTexture(GlyphAtlas::GetMonospaceDefault(), m_fontAtlasImage2, m_fontAtlasImageMemory2,
+                            m_fontAtlasImageView2, m_fontAtlasSampler2, 4, 5);
+}
+
+void VulkanRenderer::UploadFontAtlasTexture(const GlyphAtlas& atlas, VkImage& outImage,
+                                             VkDeviceMemory& outMemory, VkImageView& outView,
+                                             VkSampler& outSampler, uint32_t imageBinding,
+                                             uint32_t samplerBinding) {
+    const uint32_t atlasWidth = atlas.GetAtlasWidth();
+    const uint32_t atlasHeight = atlas.GetAtlasHeight();
+    const VkDeviceSize imageSize = static_cast<VkDeviceSize>(atlasWidth) * atlasHeight;
+
+    // Staging buffer: host-visible, holds the raw atlas bytes before the GPU-side copy.
+    // This is the first staging-buffer upload in the codebase -- everything else so far
+    // (vertex buffer, uniform ring buffers) is HOST_VISIBLE directly, no staging needed.
+    VkBuffer stagingBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
+    {
+        VkBufferCreateInfo bufferInfo{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+        bufferInfo.size = imageSize;
+        bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        VkCheck(vkCreateBuffer(m_device, &bufferInfo, nullptr, &stagingBuffer),
+                "vkCreateBuffer(fontAtlasStaging)");
+
+        VkMemoryRequirements memReq{};
+        vkGetBufferMemoryRequirements(m_device, stagingBuffer, &memReq);
+        VkMemoryAllocateInfo allocInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+        allocInfo.allocationSize = memReq.size;
+        allocInfo.memoryTypeIndex = FindMemoryType(
+            memReq.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        VkCheck(vkAllocateMemory(m_device, &allocInfo, nullptr, &stagingMemory),
+                "vkAllocateMemory(fontAtlasStaging)");
+        vkBindBufferMemory(m_device, stagingBuffer, stagingMemory, 0);
+
+        void* mapped = nullptr;
+        vkMapMemory(m_device, stagingMemory, 0, imageSize, 0, &mapped);
+        std::memcpy(mapped, atlas.GetAtlasPixels().data(), static_cast<size_t>(imageSize));
+        vkUnmapMemory(m_device, stagingMemory);
+    }
+
+    // GPU-local image.
+    VkImageCreateInfo imageInfo{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
+    imageInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageInfo.format = VK_FORMAT_R8_UNORM;
+    imageInfo.extent = {atlasWidth, atlasHeight, 1};
+    imageInfo.mipLevels = 1;
+    imageInfo.arrayLayers = 1;
+    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    VkCheck(vkCreateImage(m_device, &imageInfo, nullptr, &outImage), "vkCreateImage(fontAtlas)");
+
+    VkMemoryRequirements imageMemReq{};
+    vkGetImageMemoryRequirements(m_device, outImage, &imageMemReq);
+    VkMemoryAllocateInfo imageAllocInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+    imageAllocInfo.allocationSize = imageMemReq.size;
+    imageAllocInfo.memoryTypeIndex =
+        FindMemoryType(imageMemReq.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    VkCheck(vkAllocateMemory(m_device, &imageAllocInfo, nullptr, &outMemory),
+            "vkAllocateMemory(fontAtlas)");
+    vkBindImageMemory(m_device, outImage, outMemory, 0);
+
+    // One-shot command buffer: upload + layout transitions, synchronous (submit + wait).
+    // No existing transfer-queue/upload infrastructure to reuse -- new machinery, unlike
+    // the persistently-mapped host-visible buffers used everywhere else so far.
+    VkCommandBufferAllocateInfo cmdAllocInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+    cmdAllocInfo.commandPool = m_commandPool;
+    cmdAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmdAllocInfo.commandBufferCount = 1;
+    VkCommandBuffer uploadCmd = VK_NULL_HANDLE;
+    VkCheck(vkAllocateCommandBuffers(m_device, &cmdAllocInfo, &uploadCmd),
+            "vkAllocateCommandBuffers(fontAtlasUpload)");
+
+    VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(uploadCmd, &beginInfo);
+
+    VkImageMemoryBarrier toTransferDst{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+    toTransferDst.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    toTransferDst.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    toTransferDst.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    toTransferDst.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    toTransferDst.image = outImage;
+    toTransferDst.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    toTransferDst.srcAccessMask = 0;
+    toTransferDst.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    vkCmdPipelineBarrier(uploadCmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+                          nullptr, 0, nullptr, 1, &toTransferDst);
+
+    VkBufferImageCopy copyRegion{};
+    copyRegion.bufferOffset = 0;
+    copyRegion.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+    copyRegion.imageExtent = {atlasWidth, atlasHeight, 1};
+    vkCmdCopyBufferToImage(uploadCmd, stagingBuffer, outImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                            1, &copyRegion);
+
+    VkImageMemoryBarrier toShaderRead = toTransferDst;
+    toShaderRead.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    toShaderRead.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    toShaderRead.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    toShaderRead.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    vkCmdPipelineBarrier(uploadCmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+                          0, nullptr, 0, nullptr, 1, &toShaderRead);
+
+    vkEndCommandBuffer(uploadCmd);
+
+    VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &uploadCmd;
+    VkCheck(vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE), "vkQueueSubmit(fontAtlasUpload)");
+    vkQueueWaitIdle(m_graphicsQueue);
+
+    vkFreeCommandBuffers(m_device, m_commandPool, 1, &uploadCmd);
+    vkDestroyBuffer(m_device, stagingBuffer, nullptr);
+    vkFreeMemory(m_device, stagingMemory, nullptr);
+
+    VkImageViewCreateInfo viewInfo{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
+    viewInfo.image = outImage;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format = VK_FORMAT_R8_UNORM;
+    viewInfo.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    VkCheck(vkCreateImageView(m_device, &viewInfo, nullptr, &outView),
+            "vkCreateImageView(fontAtlas)");
+
+    VkSamplerCreateInfo samplerInfo{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.maxLod = 0.0f; // single mip level, no mip range to clamp
+    VkCheck(vkCreateSampler(m_device, &samplerInfo, nullptr, &outSampler),
+            "vkCreateSampler(fontAtlas)");
+
+    // Static writes for imageBinding (SAMPLED_IMAGE) and samplerBinding (SAMPLER) --
+    // separate, matching the shader's separate Texture2D/SamplerState declarations (see
+    // CreateDescriptorSetLayoutAndPool). Neither changes again, so these ride along
+    // unmodified in every vkCmdBindDescriptorSets call for the set's lifetime.
+    VkDescriptorImageInfo imageDescInfo{};
+    imageDescInfo.imageView = outView;
+    imageDescInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    VkDescriptorImageInfo samplerDescInfo{};
+    samplerDescInfo.sampler = outSampler;
+
+    VkWriteDescriptorSet writes[2]{};
+    writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[0].dstSet = m_descriptorSet;
+    writes[0].dstBinding = imageBinding;
+    writes[0].descriptorCount = 1;
+    writes[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    writes[0].pImageInfo = &imageDescInfo;
+
+    writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[1].dstSet = m_descriptorSet;
+    writes[1].dstBinding = samplerBinding;
+    writes[1].descriptorCount = 1;
+    writes[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    writes[1].pImageInfo = &samplerDescInfo;
+
+    vkUpdateDescriptorSets(m_device, 2, writes, 0, nullptr);
+}
+
+void VulkanRenderer::CreateBackdropScratchImage() {
+    // Viewport-sized, so RecreateSwapchain() calls this again on resize -- tear down the
+    // previous version first (no-op on first call, when all three handles are still null).
+    if (m_backdropScratchImageView) {
+        vkDestroyImageView(m_device, m_backdropScratchImageView, nullptr);
+        m_backdropScratchImageView = VK_NULL_HANDLE;
+    }
+    if (m_backdropScratchImage) {
+        vkDestroyImage(m_device, m_backdropScratchImage, nullptr);
+        m_backdropScratchImage = VK_NULL_HANDLE;
+    }
+    if (m_backdropScratchImageMemory) {
+        vkFreeMemory(m_device, m_backdropScratchImageMemory, nullptr);
+        m_backdropScratchImageMemory = VK_NULL_HANDLE;
+    }
+
+    VkImageCreateInfo imageInfo{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
+    imageInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageInfo.format = m_swapchainFormat; // must match the swapchain image vkCmdCopyImage copies from
+    // m_swapchainExtent, NOT m_width/m_height: the surface's actual current extent can be
+    // clamped by the OS/compositor to something smaller than the requested window size
+    // (e.g. a window taller than the screen) -- CreateSwapchain() already accounts for
+    // this via capabilities.currentExtent, and vkCmdCopyImage requires its source and
+    // destination images to agree on real dimensions, not the originally requested ones.
+    imageInfo.extent = {m_swapchainExtent.width, m_swapchainExtent.height, 1};
+    imageInfo.mipLevels = 1;
+    imageInfo.arrayLayers = 1;
+    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    VkCheck(vkCreateImage(m_device, &imageInfo, nullptr, &m_backdropScratchImage),
+            "vkCreateImage(backdropScratch)");
+
+    VkMemoryRequirements memReq{};
+    vkGetImageMemoryRequirements(m_device, m_backdropScratchImage, &memReq);
+    VkMemoryAllocateInfo allocInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+    allocInfo.allocationSize = memReq.size;
+    allocInfo.memoryTypeIndex = FindMemoryType(memReq.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    VkCheck(vkAllocateMemory(m_device, &allocInfo, nullptr, &m_backdropScratchImageMemory),
+            "vkAllocateMemory(backdropScratch)");
+    vkBindImageMemory(m_device, m_backdropScratchImage, m_backdropScratchImageMemory, 0);
+
+    // One-shot transition UNDEFINED -> GENERAL, kept there permanently: DrawBackdropBlurRect
+    // writes to it via vkCmdCopyImage and reads from it in the fragment shader without ever
+    // changing its layout, trading a theoretically more optimal TRANSFER_DST/SHADER_READ_ONLY
+    // ping-pong for not needing a layout transition around every single draw call.
+    VkCommandBufferAllocateInfo cmdAllocInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+    cmdAllocInfo.commandPool = m_commandPool;
+    cmdAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmdAllocInfo.commandBufferCount = 1;
+    VkCommandBuffer cmd = VK_NULL_HANDLE;
+    VkCheck(vkAllocateCommandBuffers(m_device, &cmdAllocInfo, &cmd),
+            "vkAllocateCommandBuffers(backdropScratchInit)");
+
+    VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(cmd, &beginInfo);
+
+    VkImageMemoryBarrier toGeneral{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+    toGeneral.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    toGeneral.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+    toGeneral.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    toGeneral.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    toGeneral.image = m_backdropScratchImage;
+    toGeneral.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    toGeneral.srcAccessMask = 0;
+    toGeneral.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+                          nullptr, 0, nullptr, 1, &toGeneral);
+
+    vkEndCommandBuffer(cmd);
+    VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &cmd;
+    VkCheck(vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE),
+            "vkQueueSubmit(backdropScratchInit)");
+    vkQueueWaitIdle(m_graphicsQueue);
+    vkFreeCommandBuffers(m_device, m_commandPool, 1, &cmd);
+
+    VkImageViewCreateInfo viewInfo{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
+    viewInfo.image = m_backdropScratchImage;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format = m_swapchainFormat;
+    viewInfo.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    VkCheck(vkCreateImageView(m_device, &viewInfo, nullptr, &m_backdropScratchImageView),
+            "vkCreateImageView(backdropScratch)");
+
+    if (!m_backdropSampler) {
+        VkSamplerCreateInfo samplerInfo{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+        samplerInfo.magFilter = VK_FILTER_LINEAR;
+        samplerInfo.minFilter = VK_FILTER_LINEAR;
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.maxLod = 0.0f;
+        VkCheck(vkCreateSampler(m_device, &samplerInfo, nullptr, &m_backdropSampler),
+                "vkCreateSampler(backdropScratch)");
+    }
+
+    // Static write for binding 6 (SAMPLED_IMAGE) / 7 (SAMPLER) -- refreshed every call since,
+    // unlike the font atlases, the image view handle genuinely changes after a resize
+    // (the old view was just destroyed above and a new one created).
+    VkDescriptorImageInfo imageDescInfo{};
+    imageDescInfo.imageView = m_backdropScratchImageView;
+    imageDescInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+    VkDescriptorImageInfo samplerDescInfo{};
+    samplerDescInfo.sampler = m_backdropSampler;
+
+    VkWriteDescriptorSet writes[2]{};
+    writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[0].dstSet = m_descriptorSet;
+    writes[0].dstBinding = 6;
+    writes[0].descriptorCount = 1;
+    writes[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    writes[0].pImageInfo = &imageDescInfo;
+
+    writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[1].dstSet = m_descriptorSet;
+    writes[1].dstBinding = 7;
+    writes[1].descriptorCount = 1;
+    writes[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    writes[1].pImageInfo = &samplerDescInfo;
+
+    vkUpdateDescriptorSets(m_device, 2, writes, 0, nullptr);
+}
+
 void VulkanRenderer::DestroySwapchainAndDependents() {
     for (VkSemaphore semaphore : m_renderFinishedSemaphores) {
         vkDestroySemaphore(m_device, semaphore, nullptr);
@@ -622,6 +1010,7 @@ void VulkanRenderer::RecreateSwapchain() {
     CreateSwapchainImageViews();
     CreateFramebuffers();
     CreateRenderFinishedSemaphores(); // image count may have changed
+    CreateBackdropScratchImage(); // viewport-sized, must be rebuilt alongside the swapchain
 }
 
 void VulkanRenderer::Resize(uint32_t width, uint32_t height) {
@@ -662,6 +1051,12 @@ void VulkanRenderer::BeginFrame() {
     renderPassInfo.pClearValues = &clearValue;
     vkCmdBeginRenderPass(m_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+    BindFrameDrawState();
+
+    m_currentDrawSlot = 0;
+}
+
+void VulkanRenderer::BindFrameDrawState() {
     // Negative-viewport-height trick: Vulkan's NDC Y points down (opposite of D3D11's
     // Y-up), but the shared shader's VSMain was written for D3D11's convention. Flipping
     // the viewport here is a zero-shader-diff fix (core since Vulkan 1.1 / VK_KHR_maintenance1).
@@ -682,8 +1077,6 @@ void VulkanRenderer::BeginFrame() {
     VkBuffer vertexBuffers[] = {m_quadVertexBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(m_commandBuffer, 0, 1, vertexBuffers, offsets);
-
-    m_currentDrawSlot = 0;
 }
 
 void VulkanRenderer::EndFrame() {
@@ -751,11 +1144,158 @@ void VulkanRenderer::DrawRect(const Rect& rect, const RectPaint& paint) {
     ++m_currentDrawSlot;
 }
 
+void VulkanRenderer::DrawTextQuad(const Rect& rect, const UVRect& atlasUV, const Color& color,
+                                  float glyphScale, FontId fontId) {
+    if (m_frameSkipped) {
+        return;
+    }
+    if (m_currentDrawSlot >= kMaxDrawsPerFrame) {
+        throw std::runtime_error("VulkanRenderer: exceeded kMaxDrawsPerFrame glyphs in a single frame");
+    }
+
+    const RectDrawData data = ComputeTextQuadDrawData(rect, atlasUV, color, glyphScale, fontId,
+                                                       static_cast<float>(m_width),
+                                                       static_cast<float>(m_height));
+
+    const VkDeviceSize vsOffset = m_currentDrawSlot * m_vsStride;
+    const VkDeviceSize psOffset = m_currentDrawSlot * m_psStride;
+    std::memcpy(static_cast<char*>(m_vsUniformMapped) + vsOffset, &data.vs, sizeof(data.vs));
+    std::memcpy(static_cast<char*>(m_psUniformMapped) + psOffset, &data.ps, sizeof(data.ps));
+
+    const uint32_t dynamicOffsets[] = {static_cast<uint32_t>(vsOffset), static_cast<uint32_t>(psOffset)};
+    vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1,
+                             &m_descriptorSet, 2, dynamicOffsets);
+
+    vkCmdDraw(m_commandBuffer, 6, 1, 0, 0);
+
+    ++m_currentDrawSlot;
+}
+
+void VulkanRenderer::DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPaint& paint) {
+    if (m_frameSkipped) {
+        return;
+    }
+    if (m_currentDrawSlot >= kMaxDrawsPerFrame) {
+        throw std::runtime_error(
+            "VulkanRenderer: exceeded kMaxDrawsPerFrame backdrop-blur rects in a single frame");
+    }
+
+    // Copy region: the element's own bounds padded by the (unclamped) blur radius, so the
+    // shader's convolution (clamped to kMaxBackdropBlurRadiusPx in ComputeBackdropBlurDrawData)
+    // always finds real previously-drawn pixels within the copied region instead of
+    // whatever garbage sits outside it. Clamped to the viewport's own bounds since
+    // vkCmdCopyImage's region must stay inside both images.
+    const float pad = paint.filter.blurRadiusPx;
+    const int32_t left = static_cast<int32_t>(std::max(0.0f, rect.x - pad));
+    const int32_t top = static_cast<int32_t>(std::max(0.0f, rect.y - pad));
+    // Clamped against the swapchain's real extent (see CreateBackdropScratchImage's doc
+    // comment) -- m_width/m_height can be larger than what the surface actually allocated.
+    const int32_t right = static_cast<int32_t>(
+        std::min(static_cast<float>(m_swapchainExtent.width), rect.x + rect.width + pad));
+    const int32_t bottom = static_cast<int32_t>(
+        std::min(static_cast<float>(m_swapchainExtent.height), rect.y + rect.height + pad));
+
+    if (right > left && bottom > top) {
+        // vkCmdCopyImage cannot run inside an active render pass instance (core Vulkan
+        // spec constraint) -- end it, do the copy, then resume with m_renderPassResume
+        // (loadOp=LOAD, so the content drawn so far is preserved, not cleared).
+        vkCmdEndRenderPass(m_commandBuffer);
+
+        VkImageMemoryBarrier swapchainToTransferSrc{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+        swapchainToTransferSrc.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // m_renderPass's finalLayout
+        swapchainToTransferSrc.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        swapchainToTransferSrc.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        swapchainToTransferSrc.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        swapchainToTransferSrc.image = m_swapchainImages[m_currentImageIndex];
+        swapchainToTransferSrc.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+        swapchainToTransferSrc.srcAccessMask = 0;
+        swapchainToTransferSrc.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                              VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1,
+                              &swapchainToTransferSrc);
+
+        VkImageCopy copyRegion{};
+        copyRegion.srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+        copyRegion.srcOffset = {left, top, 0};
+        copyRegion.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+        copyRegion.dstOffset = {left, top, 0}; // same x,y as source -- keeps screenUV mapping simple
+        copyRegion.extent = {static_cast<uint32_t>(right - left), static_cast<uint32_t>(bottom - top), 1};
+        vkCmdCopyImage(m_commandBuffer, m_swapchainImages[m_currentImageIndex],
+                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_backdropScratchImage,
+                        VK_IMAGE_LAYOUT_GENERAL, 1, &copyRegion);
+
+        // Two barriers: swapchain image back to COLOR_ATTACHMENT_OPTIMAL (m_renderPassResume's
+        // initialLayout expects this), and the scratch image's write synchronized before the
+        // fragment shader reads it (layout stays GENERAL throughout -- purely a memory barrier).
+        VkImageMemoryBarrier swapchainToColorAttachment = swapchainToTransferSrc;
+        swapchainToColorAttachment.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        swapchainToColorAttachment.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        swapchainToColorAttachment.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        swapchainToColorAttachment.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+        VkImageMemoryBarrier scratchWriteToRead{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+        scratchWriteToRead.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+        scratchWriteToRead.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+        scratchWriteToRead.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        scratchWriteToRead.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        scratchWriteToRead.image = m_backdropScratchImage;
+        scratchWriteToRead.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+        scratchWriteToRead.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        scratchWriteToRead.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        VkImageMemoryBarrier barriers[] = {swapchainToColorAttachment, scratchWriteToRead};
+        vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                                  VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                              0, 0, nullptr, 0, nullptr, 2, barriers);
+
+        VkRenderPassBeginInfo resumeInfo{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
+        resumeInfo.renderPass = m_renderPassResume;
+        resumeInfo.framebuffer = m_swapchainFramebuffers[m_currentImageIndex];
+        resumeInfo.renderArea.extent = m_swapchainExtent;
+        resumeInfo.clearValueCount = 0; // loadOp=LOAD, nothing to clear
+        vkCmdBeginRenderPass(m_commandBuffer, &resumeInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        BindFrameDrawState(); // pipeline/vertex-buffer/viewport/scissor don't survive the split
+    }
+
+    const RectDrawData data = ComputeBackdropBlurDrawData(rect, paint, static_cast<float>(m_width),
+                                                            static_cast<float>(m_height));
+
+    const VkDeviceSize vsOffset = m_currentDrawSlot * m_vsStride;
+    const VkDeviceSize psOffset = m_currentDrawSlot * m_psStride;
+    std::memcpy(static_cast<char*>(m_vsUniformMapped) + vsOffset, &data.vs, sizeof(data.vs));
+    std::memcpy(static_cast<char*>(m_psUniformMapped) + psOffset, &data.ps, sizeof(data.ps));
+
+    const uint32_t dynamicOffsets[] = {static_cast<uint32_t>(vsOffset), static_cast<uint32_t>(psOffset)};
+    vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1,
+                             &m_descriptorSet, 2, dynamicOffsets);
+
+    vkCmdDraw(m_commandBuffer, 6, 1, 0, 0);
+
+    ++m_currentDrawSlot;
+}
+
 void VulkanRenderer::Shutdown() {
     if (m_device == VK_NULL_HANDLE) {
         return;
     }
     vkDeviceWaitIdle(m_device);
+
+    if (m_fontAtlasImageView) vkDestroyImageView(m_device, m_fontAtlasImageView, nullptr);
+    if (m_fontAtlasImage) vkDestroyImage(m_device, m_fontAtlasImage, nullptr);
+    if (m_fontAtlasImageMemory) vkFreeMemory(m_device, m_fontAtlasImageMemory, nullptr);
+    if (m_fontAtlasSampler) vkDestroySampler(m_device, m_fontAtlasSampler, nullptr);
+
+    if (m_fontAtlasImageView2) vkDestroyImageView(m_device, m_fontAtlasImageView2, nullptr);
+    if (m_fontAtlasImage2) vkDestroyImage(m_device, m_fontAtlasImage2, nullptr);
+    if (m_fontAtlasImageMemory2) vkFreeMemory(m_device, m_fontAtlasImageMemory2, nullptr);
+    if (m_fontAtlasSampler2) vkDestroySampler(m_device, m_fontAtlasSampler2, nullptr);
+
+    if (m_backdropScratchImageView) vkDestroyImageView(m_device, m_backdropScratchImageView, nullptr);
+    if (m_backdropScratchImage) vkDestroyImage(m_device, m_backdropScratchImage, nullptr);
+    if (m_backdropScratchImageMemory) vkFreeMemory(m_device, m_backdropScratchImageMemory, nullptr);
+    if (m_backdropSampler) vkDestroySampler(m_device, m_backdropSampler, nullptr);
 
     if (m_quadVertexBuffer) vkDestroyBuffer(m_device, m_quadVertexBuffer, nullptr);
     if (m_quadVertexMemory) vkFreeMemory(m_device, m_quadVertexMemory, nullptr);
@@ -769,6 +1309,7 @@ void VulkanRenderer::Shutdown() {
     if (m_pipelineLayout) vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
     if (m_descriptorSetLayout) vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
     if (m_renderPass) vkDestroyRenderPass(m_device, m_renderPass, nullptr);
+    if (m_renderPassResume) vkDestroyRenderPass(m_device, m_renderPassResume, nullptr);
 
     DestroySwapchainAndDependents(); // also destroys m_renderFinishedSemaphores
 

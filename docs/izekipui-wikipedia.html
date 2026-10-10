@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NativeCSS Framework — taslak ansiklopedi maddesi</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: sans-serif;
+      line-height: 1.6;
+      color: #202122;
+      background: #f8f9fa;
+    }
+
+    body {
+      max-width: 1080px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      background: #fff;
+      border: 1px solid #a7d7f9;
+    }
+
+    main {
+      max-width: 100%;
+      padding: 1.5rem 0;
+    }
+
+    .page-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    .article-content {
+      grid-column: 1;
+      grid-row: 1;
+      min-width: 0;
+    }
+
+    .sidebar {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .brand-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      padding: 0.65rem 0;
+      border-bottom: 1px solid #eaecf0;
+      background: #fff;
+    }
+
+    .brand-bar img {
+      display: block;
+      width: min(260px, 100%);
+      height: auto;
+    }
+
+    .language-toggle {
+      flex: 0 0 auto;
+      padding: 0.45rem 0.75rem;
+      border: 1px solid #a2a9b1;
+      border-radius: 3px;
+      background: #fff;
+      color: #202122;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .language-toggle:hover {
+      background: #f8f9fa;
+    }
+
+    h1 {
+      margin: 0 0 0.4rem;
+      padding-bottom: 0.2rem;
+      border-bottom: 1px solid #a2a9b1;
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: normal;
+    }
+
+    h2 {
+      margin-top: 1.8rem;
+      padding-bottom: 0.2rem;
+      border-bottom: 1px solid #a2a9b1;
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: normal;
+    }
+
+    .api-group {
+      margin-top: 1.25rem;
+    }
+
+    .api-group h3 {
+      margin-bottom: 0.35rem;
+      font-size: 1.05rem;
+    }
+
+    .api-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .api-list li {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #eaecf0;
+    }
+
+    .api-list code {
+      padding: 0.12rem 0.3rem;
+      border-radius: 3px;
+      background: #f1f3f5;
+      font-size: 1rem;
+      font-weight: 600;
+      overflow-wrap: anywhere;
+    }
+
+    a {
+      color: #0645ad;
+    }
+
+    .notice {
+      padding: 0.75rem 1rem;
+      border: 1px solid #a2a9b1;
+      background: #f8f9fa;
+      font-size: 0.95rem;
+    }
+
+    .infobox {
+      width: 100%;
+      margin: 0;
+      border: 1px solid #a2a9b1;
+      border-spacing: 0;
+      background: #f8f9fa;
+      font-size: 0.92rem;
+    }
+
+    .infobox caption {
+      padding: 0.5rem;
+      background: #eaecf0;
+      font-weight: bold;
+    }
+
+    .infobox th,
+    .infobox td {
+      padding: 0.35rem 0.55rem;
+      border-top: 1px solid #a2a9b1;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .infobox th {
+      width: 38%;
+    }
+
+    .toc {
+      display: table;
+      min-width: 230px;
+      padding: 0.8rem 1.2rem;
+      border: 1px solid #a2a9b1;
+      background: #f8f9fa;
+    }
+
+    .toc ol {
+      margin: 0.3rem 0 0;
+      padding-left: 1.5rem;
+    }
+
+    .references {
+      font-size: 0.95rem;
+    }
+
+    .references li {
+      margin: 0.4rem 0;
+    }
+
+    footer {
+      margin-top: 2rem;
+      padding: 1rem 0 1.5rem;
+      border-top: 1px solid #a2a9b1;
+      color: #54595d;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 620px) {
+      body {
+        margin: 0;
+        padding: 0 1rem;
+        border: 0;
+      }
+
+      .page-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1rem;
+      }
+
+      .brand-bar img {
+        width: min(220px, 100%);
+      }
+
+      .article-content {
+        grid-column: 1;
+        grid-row: 1;
+      }
+
+      .sidebar {
+        grid-column: 1;
+        grid-row: 2;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="brand-bar">
+    <img src="nativecss-logo.svg" alt="NativeCSS Framework">
+    <button class="language-toggle" type="button" id="language-toggle"
+            aria-label="Switch to Turkish">Türkçe</button>
+  </header>
+
+  <main>
+    <div class="page-grid">
+      <aside class="sidebar">
+        <div data-lang="en">
+          <table class="infobox">
+            <caption>NativeCSS Framework</caption>
+            <tbody>
+              <tr><th>Type</th><td>C++ GUI library</td></tr>
+              <tr><th>Programming language</th><td>C++</td></tr>
+              <tr><th>Build system</th><td>CMake</td></tr>
+              <tr><th>Graphics backends</th><td>Direct3D 11, Vulkan</td></tr>
+              <tr><th>Key dependencies</th><td>GLFW, Yoga, Lexbor</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div data-lang="tr" hidden>
+        <table class="infobox">
+          <caption>NativeCSS Framework</caption>
+          <tbody>
+            <tr>
+              <th>Tür</th>
+              <td>C++ grafik arayüz kütüphanesi</td>
+            </tr>
+            <tr>
+              <th>Programlama dili</th>
+              <td>C++</td>
+            </tr>
+            <tr>
+              <th>Yapı sistemi</th>
+              <td>CMake</td>
+            </tr>
+            <tr>
+              <th>Grafik arka uçları</th>
+              <td>Direct3D 11, Vulkan</td>
+            </tr>
+            <tr>
+              <th>Başlıca bağımlılıklar</th>
+              <td>GLFW, Yoga, Lexbor</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </aside>
+
+      <article class="article-content" data-lang="en">
+        <p class="notice">
+          <strong>Draft:</strong> This article-style page is based on information in the
+          project repository. Independent published sources are needed before it could
+          be considered suitable for Wikipedia.
+        </p>
+
+        <h1>NativeCSS Framework</h1>
+
+        <p>
+          <b>NativeCSS Framework</b> is a C++ software library for building graphical
+          user interfaces in desktop applications. It uses Yoga for widget layout and
+          Lexbor to process CSS-like style rules.<sup><a href="#ref-cmake-en">[1]</a></sup>
+        </p>
+
+        <nav class="toc" aria-label="Contents">
+          <strong>Contents</strong>
+          <ol>
+            <li><a href="#architecture-en">Architecture</a></li>
+            <li><a href="#api-en">Programming interface</a></li>
+            <li><a href="#styling-en">Styling and layout</a></li>
+            <li><a href="#rendering-en">Rendering and text</a></li>
+            <li><a href="#scope-en">Scope and limitations</a></li>
+            <li><a href="#development-en">Development</a></li>
+            <li><a href="#references-en">References</a></li>
+          </ol>
+        </nav>
+
+        <section id="architecture-en">
+          <h2>Architecture</h2>
+          <p>
+            An interface is represented as a tree of widgets. Each widget owns a Yoga
+            node and may contain child widgets; layout results are resolved into
+            absolute coordinates. The repository includes a base widget, panels,
+            buttons and text labels. Widgets can be assigned a type name, identifier
+            and classes, and hit testing can find the topmost widget at a given
+            position.<sup><a href="#ref-widget-en">[2]</a></sup>
+          </p>
+          <p>
+            The graphics backend is selected when configuring the project with CMake.
+            Separate renderer implementations are provided for Direct3D 11 and
+            Vulkan. The shared renderer interface defines frame, drawing, presentation
+            and resize operations, separating widgets from a particular graphics
+            API.<sup><a href="#ref-options-en">[3]</a></sup>
+          </p>
+        </section>
+
+        <section id="api-en">
+          <h2>Programming interface</h2>
+          <p>
+            The principal classes and calls are grouped below by their role.
+            <sup><a href="#ref-api-en">[7]</a></sup>
+          </p>
+          <div class="api-group">
+            <h3>Widget tree and drawing</h3>
+            <ul class="api-list">
+              <li><code>IzekipUI::Widget</code> — base class for interface elements.</li>
+              <li><code>AddChild</code>, <code>SetId</code>, <code>AddClass</code> — add child widgets and assign identifiers or classes used by CSS selectors.</li>
+              <li><code>CalculateLayout</code>, <code>GetLocalRect</code> — calculate layout and retrieve widget geometry.</li>
+              <li><code>OnPaint</code>, <code>HitTest</code> — paint the widget tree and find a widget at a coordinate.</li>
+              <li><code>IzekipUI::Widgets::Panel</code>, <code>Button</code>, <code>Label</code> — built-in widget types. Label text is managed with <code>SetText</code> and <code>GetText</code>.</li>
+              <li><code>SetHovered</code>, <code>SetActive</code> — set widget interaction state.</li>
+            </ul>
+          </div>
+          <div class="api-group">
+            <h3>CSS</h3>
+            <ul class="api-list">
+              <li><code>StyleSheet::LoadFromFile</code>, <code>LoadFromString</code> — load a stylesheet from a file or string.</li>
+              <li><code>LexborBridge::Build</code> — prepare the widget tree for CSS selector matching.</li>
+              <li><code>StyleApplier::Apply</code> — apply matched styles to the widget tree.</li>
+            </ul>
+          </div>
+          <div class="api-group">
+            <h3>Renderer</h3>
+            <ul class="api-list">
+              <li><code>IzekipUI::Render::IRenderer</code> — shared interface for graphics backends.</li>
+              <li><code>CreateRenderer</code>, <code>GetCompiledInBackend</code> — create a renderer and query the backend selected at build time.</li>
+              <li><code>Initialize</code>, <code>BeginFrame</code>, <code>EndFrame</code>, <code>Present</code>, <code>Resize</code> — renderer lifecycle and resize operations.</li>
+              <li><code>DrawRect</code>, <code>DrawTextQuad</code> — draw rectangles and glyphs.</li>
+            </ul>
+          </div>
+          <div class="api-group">
+            <h3>Window and events</h3>
+            <ul class="api-list">
+              <li><code>IzekipUI::Platform::Window</code>, <code>WindowDesc</code> — window object and initial configuration.</li>
+              <li><code>PollEvents</code>, <code>ShouldClose</code> — process window events and query its close state.</li>
+              <li><code>SetResizeCallback</code>, <code>SetCursorPosCallback</code>, <code>SetMouseButtonCallback</code> — register window and mouse event callbacks.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="styling-en">
+          <h2>Styling and layout</h2>
+          <p>
+            Stylesheets are parsed with Lexbor. The framework supports widget type,
+            class and identifier selectors, grouped selectors, descendant selectors,
+            and the supported interaction states <code>:hover</code> and
+            <code>:active</code>. Matching declarations are combined according to
+            specificity; unsupported CSS properties are not applied.
+            <sup><a href="#ref-css-en">[4]</a></sup>
+          </p>
+          <p>
+            The implemented style subset includes background and text colors, width,
+            height, border color and width, font size, margin and padding. Lengths
+            accept pixel units or unitless numbers. Margin and padding support the
+            one-, two-, three- and four-value shorthand forms. Layout properties
+            include flex direction (<code>row</code>, <code>column</code> and their
+            reverse forms), <code>justify-content</code> and <code>align-items</code>;
+            these are forwarded to Yoga nodes.<sup><a href="#ref-css-en">[4]</a></sup>
+          </p>
+          <p>
+            Visual styling includes corner radius, solid backgrounds, two-stop linear
+            gradients and drop shadows. Gradients use one of four cardinal directions.
+            A transition declaration can specify one property or <code>all</code>,
+            together with a duration and a named easing function. The source currently
+            animates background color, width, height and margin.
+            <sup><a href="#ref-css-en">[4]</a></sup><sup><a href="#ref-widget-en">[2]</a></sup>
+          </p>
+        </section>
+
+        <section id="rendering-en">
+          <h2>Rendering and text</h2>
+          <p>
+            Rectangles are rendered through a shared shader. Fill, gradient, rounded
+            corner and shadow calculations operate in pixel space; color composition
+            uses premultiplied alpha. The Direct3D 11 and Vulkan backends share HLSL
+            shader logic; for Vulkan, the shader is compiled to SPIR-V.
+            <sup><a href="#ref-renderer-en">[5]</a></sup>
+          </p>
+          <p>
+            Text is rendered as individual quads sampled from a single-channel signed
+            distance field (SDF) atlas generated from a TrueType font. Glyph advances
+            and pair kerning are used for text measurement and placement. The atlas is
+            built for the basic printable ASCII range (32–126), so it does not provide
+            full Unicode font coverage.<sup><a href="#ref-renderer-en">[5]</a></sup>
+          </p>
+        </section>
+
+        <section id="scope-en">
+          <h2>Scope and limitations</h2>
+          <p>
+            NativeCSS Framework is not a web browser or an engine for displaying
+            arbitrary HTML documents. Lexbor is used to process CSS selectors against
+            a C++-defined widget tree, and only a subset of CSS properties is applied.
+            Full CSS standards support should not be assumed.
+            <sup><a href="#ref-css-en">[4]</a></sup>
+          </p>
+          <p>
+            A build selects a single graphics backend. D3D11 is the default CMake
+            option; selecting Vulkan requires the Vulkan package and the DXC compiler
+            component.<sup><a href="#ref-options-en">[3]</a></sup>
+          </p>
+        </section>
+
+        <section id="development-en">
+          <h2>Development</h2>
+          <p>
+            The project is configured with CMake and requires C++20. Build options
+            control whether example applications and tests are built. The repository
+            contains a panel-and-button example and CSS tests covering selector
+            matching, specificity, interaction states, transitions and multi-value
+            margin declarations.<sup><a href="#ref-cmake-en">[1]</a></sup>
+            <sup><a href="#ref-tests-en">[6]</a></sup>
+          </p>
+        </section>
+
+        <section id="references-en">
+          <h2>References</h2>
+          <ol class="references">
+            <li id="ref-cmake-en">NativeCSS Framework source repository, <a href="../CMakeLists.txt"><code>CMakeLists.txt</code></a> and <a href="../cmake/Options.cmake"><code>cmake/Options.cmake</code></a>.</li>
+            <li id="ref-widget-en">NativeCSS Framework source repository, <a href="../include/Core/Widget.h"><code>include/Core/Widget.h</code></a>, <a href="../include/Widgets/Panel.h"><code>include/Widgets/Panel.h</code></a>, <a href="../include/Widgets/Button.h"><code>include/Widgets/Button.h</code></a> and <a href="../include/Widgets/Label.h"><code>include/Widgets/Label.h</code></a>.</li>
+            <li id="ref-options-en">NativeCSS Framework source repository, <a href="../include/Renderer/IRenderer.h"><code>include/Renderer/IRenderer.h</code></a> and <a href="../src/Renderer/RHI.cpp"><code>src/Renderer/RHI.cpp</code></a>.</li>
+            <li id="ref-renderer-en">NativeCSS Framework source repository, <a href="../src/Renderer/RectDrawData.cpp"><code>src/Renderer/RectDrawData.cpp</code></a>, <a href="../src/Renderer/Shaders/RectShader.hlsl"><code>src/Renderer/Shaders/RectShader.hlsl</code></a> and <a href="../src/Renderer/GlyphAtlas.cpp"><code>src/Renderer/GlyphAtlas.cpp</code></a>.</li>
+            <li id="ref-css-en">NativeCSS Framework source repository, <a href="../src/CSS/StyleApplier.cpp"><code>src/CSS/StyleApplier.cpp</code></a> and <a href="../src/CSS/LexborBridge.cpp"><code>src/CSS/LexborBridge.cpp</code></a>.</li>
+            <li id="ref-tests-en">NativeCSS Framework source repository, <a href="../tests/CssParserTests.cpp"><code>tests/CssParserTests.cpp</code></a> and <a href="../examples/01_basic_panel_button/main.cpp"><code>examples/01_basic_panel_button/main.cpp</code></a>.</li>
+            <li id="ref-api-en">NativeCSS Framework source repository, <a href="../include/Core/Widget.h"><code>include/Core/Widget.h</code></a>, <a href="../include/Widgets/Label.h"><code>include/Widgets/Label.h</code></a>, <a href="../include/CSS/StyleSheet.h"><code>include/CSS/StyleSheet.h</code></a>, <a href="../include/CSS/LexborBridge.h"><code>include/CSS/LexborBridge.h</code></a>, <a href="../include/CSS/StyleApplier.h"><code>include/CSS/StyleApplier.h</code></a> and <a href="../include/Platform/Window.h"><code>include/Platform/Window.h</code></a>.</li>
+          </ol>
+        </section>
+
+        <footer>
+          This is a local article-style draft, not a Wikipedia article. Independent,
+          reliable sources outside the project repository would be needed to establish
+          encyclopedic notability.
+        </footer>
+      </article>
+
+      <article class="article-content" data-lang="tr" hidden>
+        <p class="notice">
+          <strong>Taslak:</strong> Bu sayfa, proje deposundaki bilgilere dayanarak hazırlanmış
+          ansiklopedik bir tanıtım taslağıdır. Bağımsız yayımlanmış kaynaklar eklenmeden
+          Wikipedia maddesi olarak yayımlanmaya uygun olduğu varsayılmamalıdır.
+        </p>
+
+        <h1>NativeCSS Framework</h1>
+
+    <p>
+      <b>NativeCSS Framework</b>, C++ ile geliştirilen ve masaüstü uygulamalarında grafik kullanıcı
+      arayüzleri oluşturmayı amaçlayan bir yazılım kütüphanesidir. Proje, arayüz
+      bileşenlerinin yerleşimi için Yoga'yı; CSS benzeri stil kurallarının
+      işlenmesinde ise Lexbor'u kullanır.<sup><a href="#ref-cmake">[1]</a></sup>
+    </p>
+
+    <nav class="toc" aria-label="İçindekiler">
+      <strong>İçindekiler</strong>
+      <ol>
+        <li><a href="#mimari">Mimari</a></li>
+        <li><a href="#api">Programlama arayüzü</a></li>
+        <li><a href="#stil">Stil ve yerleşim</a></li>
+        <li><a href="#cizim">Çizim ve metin</a></li>
+        <li><a href="#sinirlar">Kapsam ve sınırlamalar</a></li>
+        <li><a href="#gelistirme">Geliştirme</a></li>
+        <li><a href="#kaynakca">Kaynakça</a></li>
+      </ol>
+    </nav>
+
+    <section id="mimari">
+      <h2>Mimari</h2>
+      <p>
+        Arayüz, widget adı verilen bileşenlerden oluşan bir ağaç biçiminde tanımlanır.
+        Her widget kendi Yoga düğümünü ve çocuk bileşenlerini taşır; yerel arayüz
+        koordinatları yerleşim hesabından sonra mutlak koordinatlara dönüştürülür.
+        Projede temel widget altyapısının yanı sıra panel, düğme ve metin etiketi
+        bileşenleri bulunur. Widget'lar tür adı, kimlik ve sınıf bilgisi alabilir.
+        Ayrıca ağaç üzerinde hit-test ile imleç konumuna denk gelen en üstteki
+        bileşen bulunabilir.<sup><a href="#ref-widget">[2]</a></sup>
+      </p>
+      <p>
+        Kullanılacak grafik arka ucu CMake yapılandırması sırasında seçilir. Kaynak
+        kodunda Direct3D 11 ve Vulkan için ayrı renderer uygulamaları
+        bulunmaktadır. Ortak renderer arayüzü kare başlangıcı, çizim, sunum ve
+        yeniden boyutlandırma işlemlerini tanımlar; arayüz bileşenleri bu sayede
+        belirli bir grafik API'sine doğrudan bağlanmaz.<sup><a href="#ref-options">[3]</a></sup>
+      </p>
+    </section>
+
+    <section id="api">
+      <h2>Programlama arayüzü</h2>
+      <p>
+        Başlıca sınıflar ve çağrılar, kullanım alanlarına göre aşağıda
+        gruplandırılmıştır.<sup><a href="#ref-api">[7]</a></sup>
+      </p>
+      <div class="api-group">
+        <h3>Widget ağacı ve çizim</h3>
+        <ul class="api-list">
+          <li><code>IzekipUI::Widget</code> — tüm arayüz bileşenlerinin temel sınıfı.</li>
+          <li><code>AddChild</code>, <code>SetId</code>, <code>AddClass</code> — çocuk widget ekleme ve CSS seçicilerinde kullanılan kimlik/sınıf bilgilerini ayarlama.</li>
+          <li><code>CalculateLayout</code>, <code>GetLocalRect</code> — yerleşim hesabı ve widget geometrisini alma.</li>
+          <li><code>OnPaint</code>, <code>HitTest</code> — çizim ve koordinatla widget bulma.</li>
+          <li><code>IzekipUI::Widgets::Panel</code>, <code>Button</code>, <code>Label</code> — hazır bileşen türleri. Etiket metni <code>SetText</code> ve <code>GetText</code> ile yönetilir.</li>
+          <li><code>SetHovered</code>, <code>SetActive</code> — widget'ın etkileşim durumunu ayarlama.</li>
+        </ul>
+      </div>
+      <div class="api-group">
+        <h3>CSS</h3>
+        <ul class="api-list">
+          <li><code>StyleSheet::LoadFromFile</code>, <code>LoadFromString</code> — stil sayfasını dosyadan veya metinden yükleme.</li>
+          <li><code>LexborBridge::Build</code> — widget ağacını CSS seçici eşleştirmesine hazırlama.</li>
+          <li><code>StyleApplier::Apply</code> — eşleşen stilleri widget ağacına uygulama.</li>
+        </ul>
+      </div>
+      <div class="api-group">
+        <h3>Renderer</h3>
+        <ul class="api-list">
+          <li><code>IzekipUI::Render::IRenderer</code> — grafik arka uçlarının ortak arayüzü.</li>
+          <li><code>CreateRenderer</code>, <code>GetCompiledInBackend</code> — renderer oluşturma ve derlemede seçilen arka ucu öğrenme.</li>
+          <li><code>Initialize</code>, <code>BeginFrame</code>, <code>EndFrame</code>, <code>Present</code>, <code>Resize</code> — renderer yaşam döngüsü ve pencere boyutu işlemleri.</li>
+          <li><code>DrawRect</code>, <code>DrawTextQuad</code> — dikdörtgen ve metin glifi çizme.</li>
+        </ul>
+      </div>
+      <div class="api-group">
+        <h3>Pencere ve olaylar</h3>
+        <ul class="api-list">
+          <li><code>IzekipUI::Platform::Window</code>, <code>WindowDesc</code> — pencere nesnesi ve başlangıç yapılandırması.</li>
+          <li><code>PollEvents</code>, <code>ShouldClose</code> — pencere olaylarını işleme ve kapanış durumunu sorgulama.</li>
+          <li><code>SetResizeCallback</code>, <code>SetCursorPosCallback</code>, <code>SetMouseButtonCallback</code> — pencere ve fare olayları için geri çağrılar tanımlama.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="stil">
+      <h2>Stil ve yerleşim</h2>
+      <p>
+        Stil dosyaları Lexbor kullanılarak ayrıştırılır. Kütüphane, widget türü
+        seçicilerinin yanında sınıf ve kimlik seçicilerini, gruplandırılmış
+        seçicileri, alt öğe seçicilerini ve desteklenen etkileşimli
+        <code>:hover</code> ile <code>:active</code> durumlarını uygular. Eşleşen
+        bildirimler özgüllüklerine göre birleştirilir; bilinmeyen veya desteklenmeyen
+        CSS özellikleri uygulanmaz.<sup><a href="#ref-css">[4]</a></sup>
+      </p>
+      <p>
+        Stil alt kümesinde arka plan ve metin rengi, genişlik, yükseklik, kenar
+        rengi ve kalınlığı, yazı boyutu, kenar boşluğu ve iç boşluk gibi özellikler
+        yer alır. Boyut değerleri piksel birimiyle veya birimsiz sayıyla ifade
+        edilir; kutu kenarları için CSS'in tek, iki, üç ve dört değerli kısa
+        yazımları desteklenir. Yerleşim özellikleri arasında flex yönü
+        (<code>row</code>, <code>column</code> ve tersleri), <code>justify-content</code>
+        ve <code>align-items</code> seçenekleri bulunur. Bu değerler Yoga düğümlerine
+        aktarılır.<sup><a href="#ref-css">[4]</a></sup>
+      </p>
+      <p>
+        Görsel stiller arasında köşe yarıçapı, tek renkli arka plan, iki renk
+        duraklı doğrusal gradyan ve gölge bulunur. Gradyanlar dört ana yönü
+        kullanır; gölgeler yatay ve dikey kaydırma, bulanıklık yarıçapı ve renk
+        alır. Geçiş bildirimi tek bir özellik veya <code>all</code> için süre ve
+        adlandırılmış easing seçeneği tanımlayabilir. Kaynak kodunda arka plan
+        rengi, genişlik, yükseklik ve kenar boşluğu geçişleri yer alır.
+        <sup><a href="#ref-css">[4]</a></sup><sup><a href="#ref-widget">[2]</a></sup>
+      </p>
+    </section>
+
+    <section id="cizim">
+      <h2>Çizim ve metin</h2>
+      <p>
+        Renderer, dikdörtgenleri ortak bir gölgelendirici üzerinden çizer. Dolgu,
+        gradyan, yuvarlatılmış köşe ve gölge hesapları piksel uzayındaki
+        dikdörtgenler üzerinden yapılır; renk karışımı önceden çarpılmış alfa
+        yaklaşımını kullanır. D3D11 ve Vulkan arka uçları aynı HLSL gölgelendirici
+        mantığını kullanır; Vulkan yapılandırmasında gölgelendirici SPIR-V biçimine
+        derlenir.<sup><a href="#ref-renderer">[5]</a></sup>
+      </p>
+      <p>
+        Metin bileşeni, TrueType yazı tipinden üretilmiş tek kanallı imzalı uzaklık
+        alanı (SDF) atlasındaki karakterleri ayrı dörtgenler halinde çizer.
+        Karakter ilerleme genişlikleri ve çiftler arası kerning bilgisi metin
+        ölçümünde ve çiziminde kullanılır. Atlas temel yazdırılabilir ASCII
+        aralığına (32–126) göre oluşturulur; bu nedenle Unicode metninin tamamı
+        için kapsamlı yazı tipi desteği olduğu anlamına gelmez.
+        <sup><a href="#ref-renderer">[5]</a></sup>
+      </p>
+    </section>
+
+    <section id="sinirlar">
+      <h2>Kapsam ve sınırlamalar</h2>
+      <p>
+        NativeCSS Framework, HTML belgelerini yerleşim motorunda görüntüleyen bir web tarayıcısı
+        değildir. Lexbor, widget ağacına bağlı CSS seçicilerini ve kurallarını
+        işleme akışında kullanılır; arayüzün yapısı C++ widget nesneleriyle
+        oluşturulur. Uygulanan CSS özellikleri projenin kendi alt kümesiyle
+        sınırlıdır; tam CSS standardının desteklendiği varsayılmamalıdır.
+        <sup><a href="#ref-css">[4]</a></sup>
+      </p>
+      <p>
+        Derleme sırasında yalnızca tek grafik arka ucu seçilir. CMake
+        yapılandırmasında varsayılan seçenek D3D11'dir; Vulkan seçeneği için Vulkan
+        paketi ve DXC derleyici bileşeni aranır.<sup><a href="#ref-options">[3]</a></sup>
+      </p>
+    </section>
+
+    <section id="gelistirme">
+      <h2>Geliştirme</h2>
+      <p>
+        Proje CMake ile yapılandırılır ve C++20 standardını gerektirir. Derleme
+        seçenekleri örnek uygulamaları ve testleri açıp kapatmaya imkân verir.
+        Depoda panel ve düğme kullanan bir örnek ile seçici eşleştirme, özgüllük,
+        etkileşim durumları, geçiş bildirimi ve çok değerli kenar boşluğu gibi
+        konuları kapsayan CSS ayrıştırıcı testleri bulunur.
+        <sup><a href="#ref-cmake">[1]</a></sup><sup><a href="#ref-tests">[6]</a></sup>
+      </p>
+    </section>
+
+    <section id="kaynakca">
+      <h2>Kaynakça</h2>
+      <ol class="references">
+        <li id="ref-cmake">
+          NativeCSS Framework kaynak deposu, <a href="../CMakeLists.txt"><code>CMakeLists.txt</code></a>
+          ve <a href="../cmake/Options.cmake"><code>cmake/Options.cmake</code></a>.
+        </li>
+        <li id="ref-widget">
+          NativeCSS Framework kaynak deposu, <a href="../include/Core/Widget.h"><code>include/Core/Widget.h</code></a>,
+          <a href="../include/Widgets/Panel.h"><code>include/Widgets/Panel.h</code></a>,
+          <a href="../include/Widgets/Button.h"><code>include/Widgets/Button.h</code></a>
+          ve <a href="../include/Widgets/Label.h"><code>include/Widgets/Label.h</code></a>.
+        </li>
+        <li id="ref-options">
+          NativeCSS Framework kaynak deposu, <a href="../include/Renderer/IRenderer.h"><code>include/Renderer/IRenderer.h</code></a>
+          ve <a href="../src/Renderer/RHI.cpp"><code>src/Renderer/RHI.cpp</code></a>.
+        </li>
+        <li id="ref-renderer">
+          NativeCSS Framework kaynak deposu, <a href="../src/Renderer/RectDrawData.cpp"><code>src/Renderer/RectDrawData.cpp</code></a>,
+          <a href="../src/Renderer/Shaders/RectShader.hlsl"><code>src/Renderer/Shaders/RectShader.hlsl</code></a>
+          ve <a href="../src/Renderer/GlyphAtlas.cpp"><code>src/Renderer/GlyphAtlas.cpp</code></a>.
+        </li>
+        <li id="ref-css">
+          NativeCSS Framework kaynak deposu,
+          <a href="../src/CSS/StyleApplier.cpp"><code>src/CSS/StyleApplier.cpp</code></a>
+          ve <a href="../src/CSS/LexborBridge.cpp"><code>src/CSS/LexborBridge.cpp</code></a>.
+        </li>
+        <li id="ref-tests">
+          NativeCSS Framework kaynak deposu,
+          <a href="../tests/CssParserTests.cpp"><code>tests/CssParserTests.cpp</code></a>
+          ve
+          <a href="../examples/01_basic_panel_button/main.cpp"><code>examples/01_basic_panel_button/main.cpp</code></a>.
+        </li>
+        <li id="ref-api">
+          NativeCSS Framework kaynak deposu,
+          <a href="../include/Core/Widget.h"><code>include/Core/Widget.h</code></a>,
+          <a href="../include/Widgets/Label.h"><code>include/Widgets/Label.h</code></a>,
+          <a href="../include/CSS/StyleSheet.h"><code>include/CSS/StyleSheet.h</code></a>,
+          <a href="../include/CSS/LexborBridge.h"><code>include/CSS/LexborBridge.h</code></a>,
+          <a href="../include/CSS/StyleApplier.h"><code>include/CSS/StyleApplier.h</code></a>
+          ve <a href="../include/Platform/Window.h"><code>include/Platform/Window.h</code></a>.
+        </li>
+      </ol>
+    </section>
+
+        <footer>
+          Bu metin bir Wikipedia maddesi değildir; mevcut proje kaynaklarından oluşturulmuş
+          yerel bir HTML taslağıdır. Ansiklopedik kayda değerlik için proje dışındaki
+          güvenilir ve bağımsız kaynaklar gereklidir.
+        </footer>
+      </article>
+    </div>
+  </main>
+  <script>
+    const languageButton = document.getElementById("language-toggle");
+    const languageSections = document.querySelectorAll("[data-lang]");
+
+    languageButton.addEventListener("click", () => {
+      const nextLanguage = document.documentElement.lang === "en" ? "tr" : "en";
+      document.documentElement.lang = nextLanguage;
+      document.title = `NativeCSS Framework — ${nextLanguage === "en" ? "article draft" : "taslak ansiklopedi maddesi"}`;
+      languageButton.textContent = nextLanguage === "en" ? "Türkçe" : "English";
+      languageButton.setAttribute(
+        "aria-label",
+        nextLanguage === "en" ? "Switch to Turkish" : "Switch to English"
+      );
+
+      languageSections.forEach((section) => {
+        section.hidden = section.dataset.lang !== nextLanguage;
+      });
+    });
+  </script>
+</body>
+</html>

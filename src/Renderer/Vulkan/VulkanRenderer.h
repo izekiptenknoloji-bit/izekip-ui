@@ -11,6 +11,8 @@ struct GLFWwindow;
 
 namespace IzekipUI::Render {
 
+class GlyphAtlas;
+
 // Vulkan backend: same SDF rect shader as D3D11 (src/Renderer/Shaders/RectShader.hlsl,
 // compiled to SPIR-V at build time via dxc.exe -spirv), same single-draw-call-per-rect
 // model. Scope matches D3D11Renderer's feature level deliberately (single frame in
@@ -28,6 +30,9 @@ public:
     void Present() override;
 
     void DrawRect(const Rect& rect, const RectPaint& paint) override;
+    void DrawTextQuad(const Rect& rect, const UVRect& atlasUV, const Color& color,
+                      float glyphScale, FontId fontId) override;
+    void DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPaint& paint) override;
 
     RendererBackend GetBackend() const override { return RendererBackend::Vulkan; }
 
@@ -40,6 +45,13 @@ private:
     void CreateSwapchain(uint32_t width, uint32_t height);
     void CreateSwapchainImageViews();
     void CreateRenderPass();
+    // Second render pass, same attachment format/sample-count as m_renderPass (so the
+    // same VkPipeline is compatible with both -- render pass compatibility only looks at
+    // format/sample-count, not load/store ops), but loadOp=LOAD instead of CLEAR. Used to
+    // resume rendering after DrawBackdropBlurRect's end-render-pass + vkCmdCopyImage,
+    // since vkCmdCopyImage cannot be called inside an active render pass instance (core
+    // Vulkan spec constraint) -- see DrawBackdropBlurRect.
+    void CreateRenderPassResume();
     void CreateFramebuffers();
     void CreateDescriptorSetLayoutAndPool();
     void CreatePipeline();
@@ -48,11 +60,22 @@ private:
     void CreateRenderFinishedSemaphores(); // one per swapchain image -- see Present() for why
     void CreateQuadVertexBuffer();
     void CreateUniformRingBuffers();
+    void CreateFontAtlasTexture();
+    void UploadFontAtlasTexture(const GlyphAtlas& atlas, VkImage& outImage, VkDeviceMemory& outMemory,
+                                 VkImageView& outView, VkSampler& outSampler, uint32_t imageBinding,
+                                 uint32_t samplerBinding);
+    void CreateBackdropScratchImage(); // viewport-sized, GENERAL layout (see .cpp for why)
     void DestroySwapchainAndDependents();
     void RecreateSwapchain(); // DestroySwapchainAndDependents + Create{Swapchain,ImageViews,Framebuffers}
 
     uint32_t FindMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties) const;
     VkShaderModule LoadShaderModule(const char* path) const;
+
+    // The pipeline/vertex-buffer/viewport/scissor bind sequence shared between BeginFrame
+    // and the render-pass-resume point in DrawBackdropBlurRect (command-buffer-level
+    // bindings aren't guaranteed to survive an end+begin-render-pass pair, so this is
+    // re-run after every resume rather than relied on to persist).
+    void BindFrameDrawState();
 
     VkInstance m_instance = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
@@ -71,6 +94,7 @@ private:
     std::vector<VkFramebuffer> m_swapchainFramebuffers;
 
     VkRenderPass m_renderPass = VK_NULL_HANDLE;
+    VkRenderPass m_renderPassResume = VK_NULL_HANDLE; // loadOp=LOAD variant, see CreateRenderPassResume
     VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
@@ -91,7 +115,28 @@ private:
     VkBuffer m_quadVertexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory m_quadVertexMemory = VK_NULL_HANDLE;
 
-    static constexpr uint32_t kMaxDrawsPerFrame = 1024;
+    VkImage m_fontAtlasImage = VK_NULL_HANDLE;
+    VkDeviceMemory m_fontAtlasImageMemory = VK_NULL_HANDLE;
+    VkImageView m_fontAtlasImageView = VK_NULL_HANDLE;
+    VkSampler m_fontAtlasSampler = VK_NULL_HANDLE;
+
+    VkImage m_fontAtlasImage2 = VK_NULL_HANDLE;
+    VkDeviceMemory m_fontAtlasImageMemory2 = VK_NULL_HANDLE;
+    VkImageView m_fontAtlasImageView2 = VK_NULL_HANDLE;
+    VkSampler m_fontAtlasSampler2 = VK_NULL_HANDLE;
+
+    // backdrop-filter scratch image: a GPU-to-GPU copy of whatever's been painted to the
+    // swapchain image so far, sampled by DrawBackdropBlurRect's blur shader. Viewport-sized,
+    // recreated alongside the swapchain in RecreateSwapchain().
+    VkImage m_backdropScratchImage = VK_NULL_HANDLE;
+    VkDeviceMemory m_backdropScratchImageMemory = VK_NULL_HANDLE;
+    VkImageView m_backdropScratchImageView = VK_NULL_HANDLE;
+    VkSampler m_backdropSampler = VK_NULL_HANDLE;
+
+    // 8 showcase demo rows x multi-line monospace code text can easily exceed 1000
+    // glyph-quad draws in a single frame; D3D11 has no equivalent cap (each draw does its
+    // own Map/Unmap) but this ring buffer is sized for a fixed draw count up front.
+    static constexpr uint32_t kMaxDrawsPerFrame = 4096;
     VkBuffer m_vsUniformBuffer = VK_NULL_HANDLE;
     VkDeviceMemory m_vsUniformMemory = VK_NULL_HANDLE;
     VkBuffer m_psUniformBuffer = VK_NULL_HANDLE;

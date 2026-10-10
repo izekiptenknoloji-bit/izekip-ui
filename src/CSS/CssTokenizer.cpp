@@ -99,6 +99,9 @@ std::vector<Token> Tokenizer::Tokenize() {
                     text += Advance();
                 }
                 tokens.push_back({TokenType::Dimension, text});
+            } else if (!IsAtEnd() && Peek() == '%') {
+                text += Advance();
+                tokens.push_back({TokenType::Percentage, text});
             } else {
                 tokens.push_back({TokenType::Number, text});
             }

@@ -21,6 +21,7 @@ enum class TokenType {
     Comma,      // ,
     Number,     // 10
     Dimension,  // 10px -- text includes the unit, e.g. "10px"
+    Percentage, // 10% -- text includes the '%', e.g. "10%"
     EndOfFile,
 };
 

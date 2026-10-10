@@ -7,6 +7,18 @@ add_custom_command(TARGET IzekipUIExample01 POST_BUILD
         "$<TARGET_FILE_DIR:IzekipUIExample01>/style.css"
 )
 
+add_custom_command(TARGET IzekipUIExample01 POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/third_party/fonts/Inter.ttf"
+        "$<TARGET_FILE_DIR:IzekipUIExample01>/Inter.ttf"
+)
+
+add_custom_command(TARGET IzekipUIExample01 POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/third_party/fonts/SpaceMono-Regular.ttf"
+        "$<TARGET_FILE_DIR:IzekipUIExample01>/SpaceMono-Regular.ttf"
+)
+
 if(IZEKIP_RENDER_BACKEND STREQUAL "D3D11")
     add_custom_command(TARGET IzekipUIExample01 POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different

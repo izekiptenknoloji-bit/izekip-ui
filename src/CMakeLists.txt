@@ -6,6 +6,7 @@ set(IZEKIP_SOURCES
     Core/Interpolate.cpp
     Widgets/Panel.cpp
     Widgets/Button.cpp
+    Widgets/Label.cpp
     Platform/Window.cpp
     Renderer/RHI.cpp
     CSS/CssTokenizer.cpp
@@ -13,6 +14,7 @@ set(IZEKIP_SOURCES
     CSS/StyleApplier.cpp
     CSS/LexborBridge.cpp
     Renderer/RectDrawData.cpp
+    Renderer/GlyphAtlas.cpp
 )
 
 if(IZEKIP_RENDER_BACKEND STREQUAL "D3D11")
@@ -29,6 +31,7 @@ target_include_directories(IzekipUI
         ${CMAKE_BINARY_DIR}/generated
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/third_party/stb
 )
 
 target_link_libraries(IzekipUI

@@ -2,12 +2,14 @@
 
 #include <d3dcompiler.h>
 
+#include <algorithm>
 #include <array>
 #include <cstring>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
 
+#include "Renderer/GlyphAtlas.h"
 #include "Renderer/RectDrawData.h"
 
 using Microsoft::WRL::ComPtr;
@@ -75,6 +77,8 @@ bool D3D11Renderer::Initialize(const RendererCreateInfo& info) {
     CreateQuadGeometry();
     CreateShaders();
     CreateBlendState();
+    CreateFontAtlasTexture();
+    CreateBackdropScratchTexture();
 
     return true;
 }
@@ -85,6 +89,15 @@ void D3D11Renderer::Shutdown() {
     m_vsConstantBuffer.Reset();
     m_psConstantBuffer.Reset();
     m_blendState.Reset();
+    m_fontAtlasTexture.Reset();
+    m_fontAtlasSRV.Reset();
+    m_fontAtlasSampler.Reset();
+    m_fontAtlasTexture2.Reset();
+    m_fontAtlasSRV2.Reset();
+    m_fontAtlasSampler2.Reset();
+    m_backdropScratchTexture.Reset();
+    m_backdropScratchSRV.Reset();
+    m_backdropSampler.Reset();
     m_inputLayout.Reset();
     m_vertexShader.Reset();
     m_pixelShader.Reset();
@@ -94,17 +107,17 @@ void D3D11Renderer::Shutdown() {
 }
 
 void D3D11Renderer::CreateRenderTarget() {
-    ComPtr<ID3D11Texture2D> backBuffer;
     ThrowIfFailed(m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D),
-                                          reinterpret_cast<void**>(backBuffer.GetAddressOf())),
+                                          reinterpret_cast<void**>(m_backBufferTexture.GetAddressOf())),
                   "GetBuffer failed");
-    ThrowIfFailed(
-        m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, m_renderTargetView.GetAddressOf()),
-        "CreateRenderTargetView failed");
+    ThrowIfFailed(m_device->CreateRenderTargetView(m_backBufferTexture.Get(), nullptr,
+                                                     m_renderTargetView.GetAddressOf()),
+                  "CreateRenderTargetView failed");
 }
 
 void D3D11Renderer::ReleaseRenderTarget() {
     m_renderTargetView.Reset();
+    m_backBufferTexture.Reset();
 }
 
 void D3D11Renderer::Resize(uint32_t width, uint32_t height) {
@@ -118,6 +131,7 @@ void D3D11Renderer::Resize(uint32_t width, uint32_t height) {
     ThrowIfFailed(m_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0),
                   "ResizeBuffers failed");
     CreateRenderTarget();
+    CreateBackdropScratchTexture(); // viewport-sized, must be rebuilt alongside the render target
 }
 
 void D3D11Renderer::CreateQuadGeometry() {
@@ -220,6 +234,83 @@ void D3D11Renderer::CreateBlendState() {
                   "CreateBlendState failed");
 }
 
+namespace {
+void UploadFontAtlasTexture(ID3D11Device* device, const GlyphAtlas& atlas,
+                             Microsoft::WRL::ComPtr<ID3D11Texture2D>& outTexture,
+                             Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& outSRV,
+                             Microsoft::WRL::ComPtr<ID3D11SamplerState>& outSampler) {
+    D3D11_TEXTURE2D_DESC texDesc = {};
+    texDesc.Width = atlas.GetAtlasWidth();
+    texDesc.Height = atlas.GetAtlasHeight();
+    texDesc.MipLevels = 1;
+    texDesc.ArraySize = 1;
+    texDesc.Format = DXGI_FORMAT_R8_UNORM;
+    texDesc.SampleDesc.Count = 1;
+    texDesc.Usage = D3D11_USAGE_IMMUTABLE;
+    texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    D3D11_SUBRESOURCE_DATA initData = {};
+    initData.pSysMem = atlas.GetAtlasPixels().data();
+    initData.SysMemPitch = atlas.GetAtlasWidth();
+
+    ThrowIfFailed(device->CreateTexture2D(&texDesc, &initData, outTexture.GetAddressOf()),
+                  "CreateTexture2D(fontAtlas) failed");
+    ThrowIfFailed(device->CreateShaderResourceView(outTexture.Get(), nullptr, outSRV.GetAddressOf()),
+                  "CreateShaderResourceView(fontAtlas) failed");
+
+    D3D11_SAMPLER_DESC samplerDesc = {};
+    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+    ThrowIfFailed(device->CreateSamplerState(&samplerDesc, outSampler.GetAddressOf()),
+                  "CreateSamplerState(fontAtlas) failed");
+}
+} // namespace
+
+void D3D11Renderer::CreateFontAtlasTexture() {
+    UploadFontAtlasTexture(m_device.Get(), GlyphAtlas::GetDefault(), m_fontAtlasTexture, m_fontAtlasSRV,
+                            m_fontAtlasSampler);
+    UploadFontAtlasTexture(m_device.Get(), GlyphAtlas::GetMonospaceDefault(), m_fontAtlasTexture2,
+                            m_fontAtlasSRV2, m_fontAtlasSampler2);
+}
+
+void D3D11Renderer::CreateBackdropScratchTexture() {
+    m_backdropScratchSRV.Reset();
+    m_backdropScratchTexture.Reset();
+
+    D3D11_TEXTURE2D_DESC texDesc = {};
+    texDesc.Width = m_width;
+    texDesc.Height = m_height;
+    texDesc.MipLevels = 1;
+    texDesc.ArraySize = 1;
+    texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // same format as the swapchain backbuffer
+    texDesc.SampleDesc.Count = 1;
+    texDesc.Usage = D3D11_USAGE_DEFAULT; // written via CopySubresourceRegion, not CPU-mapped
+    texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    ThrowIfFailed(m_device->CreateTexture2D(&texDesc, nullptr, m_backdropScratchTexture.GetAddressOf()),
+                  "CreateTexture2D(backdropScratch) failed");
+    ThrowIfFailed(m_device->CreateShaderResourceView(m_backdropScratchTexture.Get(), nullptr,
+                                                       m_backdropScratchSRV.GetAddressOf()),
+                  "CreateShaderResourceView(backdropScratch) failed");
+
+    if (!m_backdropSampler) {
+        D3D11_SAMPLER_DESC samplerDesc = {};
+        samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+        samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+        samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+        samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+        samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+        samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+        ThrowIfFailed(m_device->CreateSamplerState(&samplerDesc, m_backdropSampler.GetAddressOf()),
+                      "CreateSamplerState(backdropScratch) failed");
+    }
+}
+
 void D3D11Renderer::BeginFrame() {
     D3D11_VIEWPORT viewport = {};
     viewport.Width = static_cast<float>(m_width);
@@ -250,6 +341,13 @@ void D3D11Renderer::BeginFrame() {
     m_context->VSSetConstantBuffers(0, 1, &vsCb);
     ID3D11Buffer* psCb = m_psConstantBuffer.Get();
     m_context->PSSetConstantBuffers(0, 1, &psCb);
+
+    ID3D11ShaderResourceView* srvs[3] = {m_fontAtlasSRV.Get(), m_fontAtlasSRV2.Get(),
+                                          m_backdropScratchSRV.Get()};
+    m_context->PSSetShaderResources(0, 3, srvs);
+    ID3D11SamplerState* samplers[3] = {m_fontAtlasSampler.Get(), m_fontAtlasSampler2.Get(),
+                                        m_backdropSampler.Get()};
+    m_context->PSSetSamplers(0, 3, samplers);
 }
 
 void D3D11Renderer::EndFrame() {
@@ -263,6 +361,60 @@ void D3D11Renderer::Present() {
 void D3D11Renderer::DrawRect(const Rect& rect, const RectPaint& paint) {
     const RectDrawData data =
         ComputeRectDrawData(rect, paint, static_cast<float>(m_width), static_cast<float>(m_height));
+
+    D3D11_MAPPED_SUBRESOURCE mapped = {};
+    m_context->Map(m_vsConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    std::memcpy(mapped.pData, &data.vs, sizeof(data.vs));
+    m_context->Unmap(m_vsConstantBuffer.Get(), 0);
+
+    m_context->Map(m_psConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    std::memcpy(mapped.pData, &data.ps, sizeof(data.ps));
+    m_context->Unmap(m_psConstantBuffer.Get(), 0);
+
+    m_context->Draw(6, 0);
+}
+
+void D3D11Renderer::DrawTextQuad(const Rect& rect, const UVRect& atlasUV, const Color& color,
+                                 float glyphScale, FontId fontId) {
+    const RectDrawData data = ComputeTextQuadDrawData(rect, atlasUV, color, glyphScale, fontId,
+                                                       static_cast<float>(m_width),
+                                                       static_cast<float>(m_height));
+
+    D3D11_MAPPED_SUBRESOURCE mapped = {};
+    m_context->Map(m_vsConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    std::memcpy(mapped.pData, &data.vs, sizeof(data.vs));
+    m_context->Unmap(m_vsConstantBuffer.Get(), 0);
+
+    m_context->Map(m_psConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    std::memcpy(mapped.pData, &data.ps, sizeof(data.ps));
+    m_context->Unmap(m_psConstantBuffer.Get(), 0);
+
+    m_context->Draw(6, 0);
+}
+
+void D3D11Renderer::DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPaint& paint) {
+    // Copy region: the element's own bounds padded by the (unclamped) blur radius, so the
+    // shader's convolution -- clamped to kMaxBackdropBlurRadiusPx in ComputeBackdropBlurDrawData --
+    // always finds real previously-drawn pixels within the copied region, never garbage
+    // from outside it. Clamped to the viewport's own bounds since CopySubresourceRegion's
+    // source box must stay inside the source texture.
+    const float pad = paint.filter.blurRadiusPx;
+    const LONG left = static_cast<LONG>(std::max(0.0f, rect.x - pad));
+    const LONG top = static_cast<LONG>(std::max(0.0f, rect.y - pad));
+    const LONG right = static_cast<LONG>(std::min(static_cast<float>(m_width), rect.x + rect.width + pad));
+    const LONG bottom =
+        static_cast<LONG>(std::min(static_cast<float>(m_height), rect.y + rect.height + pad));
+
+    if (right > left && bottom > top) {
+        D3D11_BOX srcBox{static_cast<UINT>(left), static_cast<UINT>(top), 0,
+                          static_cast<UINT>(right), static_cast<UINT>(bottom), 1};
+        m_context->CopySubresourceRegion(m_backdropScratchTexture.Get(), 0, static_cast<UINT>(left),
+                                          static_cast<UINT>(top), 0, m_backBufferTexture.Get(), 0,
+                                          &srcBox);
+    }
+
+    const RectDrawData data = ComputeBackdropBlurDrawData(rect, paint, static_cast<float>(m_width),
+                                                            static_cast<float>(m_height));
 
     D3D11_MAPPED_SUBRESOURCE mapped = {};
     m_context->Map(m_vsConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
