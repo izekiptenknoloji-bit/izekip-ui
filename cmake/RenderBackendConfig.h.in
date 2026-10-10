@@ -1,0 +1,4 @@
+#pragma once
+
+#cmakedefine01 IZEKIP_RENDER_BACKEND_D3D11
+#cmakedefine01 IZEKIP_RENDER_BACKEND_VULKAN

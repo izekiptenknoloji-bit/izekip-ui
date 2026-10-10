@@ -1,0 +1,70 @@
+set(IZEKIP_SOURCES
+    Core/Color.cpp
+    Core/StyleProperties.cpp
+    Core/Widget.cpp
+    Core/Easing.cpp
+    Core/Interpolate.cpp
+    Widgets/Panel.cpp
+    Widgets/Button.cpp
+    Platform/Window.cpp
+    Renderer/RHI.cpp
+    CSS/CssTokenizer.cpp
+    CSS/StyleSheet.cpp
+    CSS/StyleApplier.cpp
+    CSS/LexborBridge.cpp
+    Renderer/RectDrawData.cpp
+)
+
+if(IZEKIP_RENDER_BACKEND STREQUAL "D3D11")
+    list(APPEND IZEKIP_SOURCES Renderer/D3D11/D3D11Renderer.cpp)
+elseif(IZEKIP_RENDER_BACKEND STREQUAL "VULKAN")
+    list(APPEND IZEKIP_SOURCES Renderer/Vulkan/VulkanRenderer.cpp)
+endif()
+
+add_library(IzekipUI STATIC ${IZEKIP_SOURCES})
+
+target_include_directories(IzekipUI
+    PUBLIC
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_BINARY_DIR}/generated
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(IzekipUI
+    PUBLIC
+        glfw
+        yogacore
+        lexbor_static
+)
+
+if(IZEKIP_RENDER_BACKEND STREQUAL "D3D11")
+    target_link_libraries(IzekipUI PUBLIC d3d11 dxgi d3dcompiler)
+elseif(IZEKIP_RENDER_BACKEND STREQUAL "VULKAN")
+    target_link_libraries(IzekipUI PUBLIC Vulkan::Vulkan)
+
+    set(IZEKIP_SHADER_SRC "${CMAKE_CURRENT_SOURCE_DIR}/Renderer/Shaders/RectShader.hlsl")
+    set(IZEKIP_SHADER_OUT_DIR "${CMAKE_BINARY_DIR}/generated/Shaders")
+    file(MAKE_DIRECTORY ${IZEKIP_SHADER_OUT_DIR})
+
+    add_custom_command(
+        OUTPUT "${IZEKIP_SHADER_OUT_DIR}/RectShader.vert.spv"
+        COMMAND $<TARGET_FILE:Vulkan::dxc_exe> -spirv -T vs_6_0 -E VSMain
+                -D VK_BACKEND=1 -Fo "${IZEKIP_SHADER_OUT_DIR}/RectShader.vert.spv"
+                "${IZEKIP_SHADER_SRC}"
+        DEPENDS "${IZEKIP_SHADER_SRC}"
+        COMMENT "Compiling RectShader.hlsl (VSMain) to SPIR-V"
+    )
+    add_custom_command(
+        OUTPUT "${IZEKIP_SHADER_OUT_DIR}/RectShader.frag.spv"
+        COMMAND $<TARGET_FILE:Vulkan::dxc_exe> -spirv -T ps_6_0 -E PSMain
+                -D VK_BACKEND=1 -Fo "${IZEKIP_SHADER_OUT_DIR}/RectShader.frag.spv"
+                "${IZEKIP_SHADER_SRC}"
+        DEPENDS "${IZEKIP_SHADER_SRC}"
+        COMMENT "Compiling RectShader.hlsl (PSMain) to SPIR-V"
+    )
+    add_custom_target(IzekipUIShaders DEPENDS
+        "${IZEKIP_SHADER_OUT_DIR}/RectShader.vert.spv"
+        "${IZEKIP_SHADER_OUT_DIR}/RectShader.frag.spv")
+    add_dependencies(IzekipUI IzekipUIShaders)
+endif()

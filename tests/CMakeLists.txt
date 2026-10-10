@@ -1,0 +1,4 @@
+add_executable(IzekipUICssParserTests CssParserTests.cpp)
+target_link_libraries(IzekipUICssParserTests PRIVATE IzekipUI)
+
+add_test(NAME CssParserTests COMMAND IzekipUICssParserTests)
