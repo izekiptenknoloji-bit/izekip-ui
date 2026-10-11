@@ -1128,7 +1128,8 @@ void VulkanRenderer::DrawRect(const Rect& rect, const RectPaint& paint) {
     }
 
     const RectDrawData data =
-        ComputeRectDrawData(rect, paint, static_cast<float>(m_width), static_cast<float>(m_height));
+        ComputeRectDrawData(rect, paint, static_cast<float>(m_width), static_cast<float>(m_height),
+                            m_worldTransform);
 
     const VkDeviceSize vsOffset = m_currentDrawSlot * m_vsStride;
     const VkDeviceSize psOffset = m_currentDrawSlot * m_psStride;
@@ -1155,7 +1156,7 @@ void VulkanRenderer::DrawTextQuad(const Rect& rect, const UVRect& atlasUV, const
 
     const RectDrawData data = ComputeTextQuadDrawData(rect, atlasUV, color, glyphScale, fontId,
                                                        static_cast<float>(m_width),
-                                                       static_cast<float>(m_height));
+                                                       static_cast<float>(m_height), m_worldTransform);
 
     const VkDeviceSize vsOffset = m_currentDrawSlot * m_vsStride;
     const VkDeviceSize psOffset = m_currentDrawSlot * m_psStride;
@@ -1260,7 +1261,8 @@ void VulkanRenderer::DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPa
     }
 
     const RectDrawData data = ComputeBackdropBlurDrawData(rect, paint, static_cast<float>(m_width),
-                                                            static_cast<float>(m_height));
+                                                            static_cast<float>(m_height),
+                                                            m_worldTransform);
 
     const VkDeviceSize vsOffset = m_currentDrawSlot * m_vsStride;
     const VkDeviceSize psOffset = m_currentDrawSlot * m_psStride;

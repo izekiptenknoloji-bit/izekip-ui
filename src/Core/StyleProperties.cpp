@@ -18,6 +18,8 @@ void StyleProperties::MergeFrom(const StyleProperties& higherPriority) {
     if (higherPriority.fontFamily) fontFamily = higherPriority.fontFamily;
     if (higherPriority.fontWeight) fontWeight = higherPriority.fontWeight;
     if (higherPriority.cursor) cursor = higherPriority.cursor;
+    if (higherPriority.scale) scale = higherPriority.scale;
+    if (higherPriority.rotate) rotate = higherPriority.rotate;
     if (higherPriority.opacity) opacity = higherPriority.opacity;
     if (higherPriority.transform) transform = higherPriority.transform;
     if (higherPriority.animation) animation = higherPriority.animation;

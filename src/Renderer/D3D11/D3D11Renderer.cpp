@@ -360,7 +360,8 @@ void D3D11Renderer::Present() {
 
 void D3D11Renderer::DrawRect(const Rect& rect, const RectPaint& paint) {
     const RectDrawData data =
-        ComputeRectDrawData(rect, paint, static_cast<float>(m_width), static_cast<float>(m_height));
+        ComputeRectDrawData(rect, paint, static_cast<float>(m_width), static_cast<float>(m_height),
+                            m_worldTransform);
 
     D3D11_MAPPED_SUBRESOURCE mapped = {};
     m_context->Map(m_vsConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
@@ -378,7 +379,7 @@ void D3D11Renderer::DrawTextQuad(const Rect& rect, const UVRect& atlasUV, const 
                                  float glyphScale, FontId fontId) {
     const RectDrawData data = ComputeTextQuadDrawData(rect, atlasUV, color, glyphScale, fontId,
                                                        static_cast<float>(m_width),
-                                                       static_cast<float>(m_height));
+                                                       static_cast<float>(m_height), m_worldTransform);
 
     D3D11_MAPPED_SUBRESOURCE mapped = {};
     m_context->Map(m_vsConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
@@ -414,7 +415,8 @@ void D3D11Renderer::DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPai
     }
 
     const RectDrawData data = ComputeBackdropBlurDrawData(rect, paint, static_cast<float>(m_width),
-                                                            static_cast<float>(m_height));
+                                                            static_cast<float>(m_height),
+                                                            m_worldTransform);
 
     D3D11_MAPPED_SUBRESOURCE mapped = {};
     m_context->Map(m_vsConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);

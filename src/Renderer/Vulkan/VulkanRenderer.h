@@ -34,6 +34,7 @@ public:
                       float glyphScale, FontId fontId) override;
     void DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPaint& paint) override;
     void DrawImage(const std::string& imagePath, const Rect& rect, float opacity) override;
+    void SetWorldTransform(const Transform2D& transform) override { m_worldTransform = transform; }
 
     RendererBackend GetBackend() const override { return RendererBackend::Vulkan; }
 
@@ -78,6 +79,7 @@ private:
     // re-run after every resume rather than relied on to persist).
     void BindFrameDrawState();
 
+    Transform2D m_worldTransform;
     VkInstance m_instance = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;

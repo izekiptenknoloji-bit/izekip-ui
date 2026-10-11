@@ -8,10 +8,18 @@ namespace {
 Float4 ColorToFloat4(const Color& c) {
     return Float4{c.r, c.g, c.b, c.a};
 }
+
+void ApplyWorldTransform(RectDrawData& data, const Transform2D& world) {
+    data.vs.xformA = world.a;
+    data.vs.xformS = world.s;
+    data.vs.xformTx = world.tx;
+    data.vs.xformTy = world.ty;
+    data.ps.worldXform = Float4{world.a, world.s, world.tx, world.ty};
+}
 } // namespace
 
 RectDrawData ComputeRectDrawData(const Rect& rect, const RectPaint& paint, float viewportWidth,
-                                  float viewportHeight) {
+                                  float viewportHeight, const Transform2D& world) {
     // Shadow shape: the element's own bounds, offset and inflated by spreadRadius on all
     // four sides (spread=0 reduces to the old "same size as the element" shape).
     Rect shadowRect{};
@@ -100,12 +108,13 @@ RectDrawData ComputeRectDrawData(const Rect& rect, const RectPaint& paint, float
                         hasShadow ? 1.0f : 0.0f};
     ps.textParams = Float4{};
 
+    ApplyWorldTransform(data, world);
     return data;
 }
 
 RectDrawData ComputeTextQuadDrawData(const Rect& rect, const UVRect& atlasUV, const Color& color,
                                       float glyphScale, FontId fontId, float viewportWidth,
-                                      float viewportHeight) {
+                                      float viewportHeight, const Transform2D& world) {
     RectDrawData data;
     data.vs = VSConstants{rect.x,       rect.y,       rect.width,  rect.height,
                            viewportWidth, viewportHeight, 0.0f,        0.0f,
@@ -133,7 +142,8 @@ RectDrawData ComputeTextQuadDrawData(const Rect& rect, const UVRect& atlasUV, co
 }
 
 RectDrawData ComputeBackdropBlurDrawData(const Rect& rect, const BackdropBlurPaint& paint,
-                                          float viewportWidth, float viewportHeight) {
+                                          float viewportWidth, float viewportHeight,
+                                          const Transform2D& world) {
     // Draw quad: just the element's own bounds plus the standard AA padding (same as
     // ComputeRectDrawData's non-shadow case) -- CSS backdrop-filter is clipped to the
     // element's own box, the blurred result never bleeds past it. The GPU-to-GPU copy
@@ -174,6 +184,7 @@ RectDrawData ComputeBackdropBlurDrawData(const Rect& rect, const BackdropBlurPai
     ps.backdropColorAdjust = Float4{paint.filter.brightness, paint.filter.contrast,
                                      paint.filter.saturate, paint.filter.grayscale};
     ps.backdropHueAdjust = Float4{paint.filter.hueRotateRadians, 0.0f, 0.0f, 0.0f};
+    ApplyWorldTransform(data, world);
     return data;
 }
 

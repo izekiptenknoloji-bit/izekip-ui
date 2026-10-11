@@ -63,6 +63,7 @@ void TextArea::OnPaint(Render::IRenderer& renderer) {
             : Render::FontId::Proportional;
 
     const auto& lines = m_buffer.Lines();
+    renderer.SetWorldTransform(GetWorldTransform());
     for (size_t lineIndex = 0; lineIndex < lines.size(); ++lineIndex) {
         const std::u32string& line = lines[lineIndex];
         float penX = visualRect.x + padding.left;

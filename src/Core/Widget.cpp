@@ -120,6 +120,21 @@ CssCursor Widget::GetEffectiveCursor() const {
     return CssCursor::Default;
 }
 
+Transform2D Widget::GetWorldTransform() const {
+    Transform2D world;
+    for (const Widget* widget = this; widget != nullptr; widget = widget->m_parent) {
+        if (!widget->m_style.scale && !widget->m_style.rotate) {
+            continue;
+        }
+        const Rect rect = widget->GetVisualRect();
+        const Transform2D local = Transform2D::AboutPivot(
+            widget->m_style.scale.value_or(1.0f), widget->m_style.rotate.value_or(0.0f),
+            rect.x + rect.width * 0.5f, rect.y + rect.height * 0.5f);
+        world = local.Compose(world);
+    }
+    return world;
+}
+
 float Widget::GetEffectiveOpacity() const {
     float opacity = 1.0f;
     for (const Widget* widget = this; widget != nullptr; widget = widget->m_parent) {
@@ -164,6 +179,7 @@ std::vector<Render::GradientStop> ResolveGradientStops(const std::vector<Gradien
 } // namespace
 
 void Widget::OnPaint(Render::IRenderer& renderer) {
+    renderer.SetWorldTransform(GetWorldTransform());
     const Rect visualRect = GetVisualRect();
     if (m_style.backgroundColor || m_style.background || m_style.boxShadow || m_style.backdropFilter) {
         const float cornerRadius = m_style.borderRadius.value_or(0.0f);
@@ -230,8 +246,11 @@ void Widget::OnPaint(Render::IRenderer& renderer) {
 
 Widget* Widget::HitTest(float x, float y) {
     const Rect visualRect = GetVisualRect();
-    if (x < visualRect.x || x > visualRect.x + visualRect.width ||
-        y < visualRect.y || y > visualRect.y + visualRect.height) {
+    float localX = 0.0f;
+    float localY = 0.0f;
+    GetWorldTransform().ApplyInverse(x, y, localX, localY);
+    if (localX < visualRect.x || localX > visualRect.x + visualRect.width ||
+        localY < visualRect.y || localY > visualRect.y + visualRect.height) {
         return nullptr;
     }
     for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {

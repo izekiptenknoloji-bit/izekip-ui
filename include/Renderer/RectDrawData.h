@@ -24,6 +24,7 @@ struct VSConstants {
     float viewportW, viewportH;
     float pad0, pad1;
     float atlasU0, atlasV0, atlasU1, atlasV1; // zero for non-text draws
+    float xformA, xformS, xformTx, xformTy;   // Transform2D: layout -> screen (identity = 1,0,0,0)
 };
 
 struct Float4 {
@@ -43,6 +44,7 @@ struct PSConstants {
     Float4 backdropParams;      // x=backdropMode(0/1), y=blurRadiusPx, z=viewportW, w=viewportH
     Float4 backdropColorAdjust; // x=brightness, y=contrast, z=saturate, w=grayscale
     Float4 backdropHueAdjust;   // x=hue rotation in radians
+    Float4 worldXform;          // same Transform2D as VSConstants, for mapping screen -> layout in the PS
 };
 
 struct RectDrawData {
@@ -55,7 +57,7 @@ struct RectDrawData {
 // same "don't re-derive carefully-derived math twice" principle applied to the CPU side
 // that already governs why the shader itself is a single shared .hlsl file.
 RectDrawData ComputeRectDrawData(const Rect& rect, const RectPaint& paint, float viewportWidth,
-                                  float viewportHeight);
+                                  float viewportHeight, const Transform2D& world);
 
 // Structural analog of ComputeRectDrawData for a single glyph quad. No AA padding is
 // added to the quad bounds -- stbtt_GetGlyphSDF's own `padding` argument already bakes
@@ -64,13 +66,14 @@ RectDrawData ComputeRectDrawData(const Rect& rect, const RectPaint& paint, float
 // on-screen transition stays ~1 screen pixel at any display size.
 RectDrawData ComputeTextQuadDrawData(const Rect& rect, const UVRect& atlasUV, const Color& color,
                                       float glyphScale, FontId fontId, float viewportWidth,
-                                      float viewportHeight);
+                                      float viewportHeight, const Transform2D& world);
 
 // Structural analog of ComputeRectDrawData for a backdrop-blur quad. The quad bounds are
 // padded by the blur kernel radius (same "compact support" reasoning as the shadow
 // padding in ComputeRectDrawData) so the convolution has real source pixels to sample at
 // the element's edges, not the AA ramp's clamp-to-edge fallback.
 RectDrawData ComputeBackdropBlurDrawData(const Rect& rect, const BackdropBlurPaint& paint,
-                                          float viewportWidth, float viewportHeight);
+                                          float viewportWidth, float viewportHeight,
+                                          const Transform2D& world);
 
 } // namespace IzekipUI::Render::detail

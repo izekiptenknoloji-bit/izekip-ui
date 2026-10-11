@@ -97,6 +97,7 @@ void Label::OnPaint(Render::IRenderer& renderer) {
     const int passes = bold ? 2 : 1;
     const float boldOffset = fontSize * 0.04f;
 
+    renderer.SetWorldTransform(GetWorldTransform());
     for (size_t lineIndex = 0; lineIndex < m_lines.size(); ++lineIndex) {
         const std::u32string& line = m_lines[lineIndex];
         float penX = visualRect.x;

@@ -31,6 +31,7 @@ public:
                       float glyphScale, FontId fontId) override;
     void DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPaint& paint) override;
     void DrawImage(const std::string& imagePath, const Rect& rect, float opacity) override;
+    void SetWorldTransform(const Transform2D& transform) override { m_worldTransform = transform; }
 
     RendererBackend GetBackend() const override { return RendererBackend::D3D11; }
 
@@ -56,6 +57,8 @@ private:
     Microsoft::WRL::ComPtr<ID3D11Texture2D> m_backdropScratchTexture;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_backdropScratchSRV;
     Microsoft::WRL::ComPtr<ID3D11SamplerState> m_backdropSampler;
+
+    Transform2D m_worldTransform;
 
     Microsoft::WRL::ComPtr<ID3D11Texture2D> m_fontAtlasTexture;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_fontAtlasSRV;

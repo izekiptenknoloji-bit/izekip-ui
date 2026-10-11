@@ -11,6 +11,7 @@
 #include "Core/Easing.h"
 #include "Core/Rect.h"
 #include "Core/StyleProperties.h"
+#include "Core/Transform2D.h"
 
 namespace IzekipUI::Render {
 class IRenderer;
@@ -99,6 +100,10 @@ public:
 
     // Cursor shape for this widget: the nearest ancestor-or-self with `cursor` set, else Default.
     CssCursor GetEffectiveCursor() const;
+
+    // Composed scale/rotate of this widget and all its ancestors, mapping this widget's
+    // (untransformed) layout coordinates to screen pixels. Identity when nothing is set.
+    Transform2D GetWorldTransform() const;
 
     const std::string& GetTypeName() const { return m_typeName; }
 

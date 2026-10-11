@@ -8,6 +8,7 @@
 
 #include "Core/Color.h"
 #include "Core/Rect.h"
+#include "Core/Transform2D.h"
 
 namespace IzekipUI::Render {
 
@@ -122,6 +123,11 @@ public:
 
     // Draw image from file path. If image cannot be loaded, does nothing (silent fail).
     virtual void DrawImage(const std::string& imagePath, const Rect& rect, float opacity) = 0;
+
+    // Applies to every subsequent DrawRect / DrawTextQuad / DrawBackdropBlurRect until changed:
+    // rect and glyph coordinates are layout-space, and this maps them to screen pixels.
+    // Widget::OnPaint sets it to the widget's world transform before drawing its own content.
+    virtual void SetWorldTransform(const Transform2D& transform) = 0;
 
     virtual RendererBackend GetBackend() const = 0;
 };

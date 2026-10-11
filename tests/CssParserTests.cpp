@@ -600,6 +600,45 @@ void TestFontWeightAndCursorParsingAndInheritance() {
     std::cout << "TestFontWeightAndCursorParsingAndInheritance passed\n";
 }
 
+void TestScaleRotateParsingAndTransformMath() {
+    auto root = std::make_shared<Widget>("Panel");
+    auto a = std::make_shared<Widget>("Panel");
+    auto bad = std::make_shared<Widget>("Panel");
+    a->AddClass("a");
+    bad->AddClass("bad");
+    root->AddChild(a);
+    root->AddChild(bad);
+
+    StyleSheet sheet = StyleSheet::LoadFromString(
+        ".a { scale: 1.5; rotate: 90deg; } .bad { scale: -1; rotate: 45px; }");
+    LexborBridge bridge;
+    bridge.Build(*root);
+    StyleApplier::Apply(bridge, sheet, *root);
+
+    assert(a->GetStyle().scale && std::fabs(*a->GetStyle().scale - 1.5f) < 1e-5f);
+    assert(a->GetStyle().rotate && std::fabs(*a->GetStyle().rotate - 1.57079632f) < 1e-5f);
+    assert(!bad->GetStyle().scale.has_value());
+    assert(!bad->GetStyle().rotate.has_value());
+
+    // Scale 2 + 90deg about (10,10): (20,10) -> (10,30).
+    const Transform2D t = Transform2D::AboutPivot(2.0f, 1.57079632f, 10.0f, 10.0f);
+    float x = 0.0f;
+    float y = 0.0f;
+    t.Apply(20.0f, 10.0f, x, y);
+    assert(std::fabs(x - 10.0f) < 1e-4f && std::fabs(y - 30.0f) < 1e-4f);
+    t.ApplyInverse(x, y, x, y);
+    assert(std::fabs(x - 20.0f) < 1e-4f && std::fabs(y - 10.0f) < 1e-4f);
+
+    const Transform2D inner = Transform2D::AboutPivot(0.5f, 0.0f, 0.0f, 0.0f);
+    const Transform2D composed = t.Compose(inner);
+    composed.Apply(4.0f, 4.0f, x, y);
+    float ex = 0.0f;
+    float ey = 0.0f;
+    t.Apply(2.0f, 2.0f, ex, ey);
+    assert(std::fabs(x - ex) < 1e-4f && std::fabs(y - ey) < 1e-4f);
+    std::cout << "TestScaleRotateParsingAndTransformMath passed\n";
+}
+
 void TestDisplayResetsWhenHidingClassRemoved() {
     auto root = std::make_shared<Widget>("Panel");
     auto page = std::make_shared<Widget>("Panel");
@@ -757,6 +796,7 @@ int main() {
     TestToggleAndSetClass();
     TestDisplayParsing();
     TestFontWeightAndCursorParsingAndInheritance();
+    TestScaleRotateParsingAndTransformMath();
     TestDisplayResetsWhenHidingClassRemoved();
     TestHiddenChildSkippedByHitTest();
     TestEmptyClassListRemovesAttribute();

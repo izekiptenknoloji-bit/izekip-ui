@@ -21,6 +21,7 @@ cbuffer VSConstants : register(b0) {
     float2 viewportSize;
     float2 vsPadding;
     float4 atlasUVRect;   // x,y = UV origin (u0,v0), z,w = UV corner (u1,v1); zero for rect draws
+    float4 vsWorldXform;  // x=a, y=s, z=tx, w=ty: Transform2D (complex a+is, translation tx+i*ty)
 };
 
 struct VSOutput {
@@ -34,7 +35,9 @@ struct VSOutput {
 
 VSOutput VSMain(float2 localPos : POSITION) {
     VSOutput output;
-    output.pixelPos = quadRect.xy + localPos * quadRect.zw;
+    float2 layoutPixel = quadRect.xy + localPos * quadRect.zw;
+    output.pixelPos = float2(vsWorldXform.x * layoutPixel.x - vsWorldXform.y * layoutPixel.y + vsWorldXform.z,
+                             vsWorldXform.y * layoutPixel.x + vsWorldXform.x * layoutPixel.y + vsWorldXform.w);
     output.atlasUV = atlasUVRect.xy + localPos * (atlasUVRect.zw - atlasUVRect.xy);
     output.screenUV = output.pixelPos / viewportSize;
     float2 ndc;
@@ -61,6 +64,7 @@ cbuffer PSConstants : register(b0) {
     float4 backdropParams;      // x=backdropMode(0/1), y=blurRadiusPx, z=viewportW, w=viewportH
     float4 backdropColorAdjust; // x=brightness, y=contrast, z=saturate, w=grayscale
     float4 backdropHueAdjust;   // x=hue rotation in radians
+    float4 psWorldXform;        // same Transform2D as vsWorldXform; inverted per pixel below
 };
 
 #if VK_BACKEND
@@ -107,7 +111,18 @@ float3 SampleBackdropBlur(float2 uv) {
     return sum / weightSum;
 }
 
+// Inverse of the widget's similarity transform: maps a screen pixel back to the element's
+// untransformed layout space, so every SDF below (element, shadow, gradient) is evaluated
+// in the frame where the rect is axis-aligned, whatever scale/rotation the CSS applied.
+float2 ScreenToLayout(float2 screenPos) {
+    const float2 d = screenPos - psWorldXform.zw;
+    const float determinant = dot(psWorldXform.xy, psWorldXform.xy);
+    return float2(d.x * psWorldXform.x + d.y * psWorldXform.y,
+                  d.y * psWorldXform.x - d.x * psWorldXform.y) / determinant;
+}
+
 float4 PSMain(VSOutput input) : SV_TARGET {
+    const float2 layoutPos = ScreenToLayout(input.pixelPos);
     if (backdropParams.x > 0.5) {
         // backdrop-filter: blur the content already painted behind this element (sampled
         // from a GPU-to-GPU copy, see IRenderer::DrawBackdropBlurRect), then apply the
@@ -139,7 +154,7 @@ float4 PSMain(VSOutput input) : SV_TARGET {
         float cornerRadius = params.x;
         float2 elemCenter = elementRectCenterHalfSize.xy;
         float2 elemHalfSize = elementRectCenterHalfSize.zw;
-        float elemDist = sdRoundBox(input.pixelPos - elemCenter, elemHalfSize, cornerRadius);
+        float elemDist = sdRoundBox(layoutPos - elemCenter, elemHalfSize, cornerRadius);
         float alpha = saturate(1.0 - smoothstep(0.0, 1.0, elemDist + 0.5)); // ~1px AA ramp
         return float4(c * alpha, alpha); // premultiplied
     }
@@ -166,12 +181,12 @@ float4 PSMain(VSOutput input) : SV_TARGET {
 
     float2 elemCenter = elementRectCenterHalfSize.xy;
     float2 elemHalfSize = elementRectCenterHalfSize.zw;
-    float elemDist = sdRoundBox(input.pixelPos - elemCenter, elemHalfSize, cornerRadius);
+    float elemDist = sdRoundBox(layoutPos - elemCenter, elemHalfSize, cornerRadius);
     float fillMask = 1.0 - smoothstep(0.0, 1.0, elemDist + 0.5); // ~1px AA ramp
 
     float4 fillColor = fillColorStart;
     if (gradientMode > 0.5) {
-        float2 unit = (input.pixelPos - (elemCenter - elemHalfSize)) / (elemHalfSize * 2.0);
+        float2 unit = (layoutPos - (elemCenter - elemHalfSize)) / (elemHalfSize * 2.0);
         float t;
         if (gradientMode < 1.5) t = unit.x;             // to right
         else if (gradientMode < 2.5) t = 1.0 - unit.x;  // to left
@@ -201,7 +216,7 @@ float4 PSMain(VSOutput input) : SV_TARGET {
     if (shadowOn) {
         float2 shadowCenter = shadowRectCenterHalfSize.xy;
         float2 shadowHalfSize = shadowRectCenterHalfSize.zw;
-        float shadowDist = sdRoundBox(input.pixelPos - shadowCenter, shadowHalfSize, cornerRadius);
+        float shadowDist = sdRoundBox(layoutPos - shadowCenter, shadowHalfSize, cornerRadius);
         float shadowAlpha = 1.0 - smoothstep(0.0, shadowBlur, shadowDist);
         shadow = float4(shadowColor.rgb, shadowColor.a * saturate(shadowAlpha));
     }

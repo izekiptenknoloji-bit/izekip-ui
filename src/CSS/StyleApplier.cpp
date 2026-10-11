@@ -250,7 +250,8 @@ std::optional<float> ParseFilterAmount(const std::vector<Token>& tokens) {
     return std::nullopt;
 }
 
-std::optional<float> ParseHueRotate(const std::vector<Token>& tokens) {
+// Angle in radians from a CSS angle token (deg/rad/turn/grad, or a bare 0).
+std::optional<float> ParseAngleRadians(const std::vector<Token>& tokens) {
     if (tokens.size() != 1) {
         return std::nullopt;
     }
@@ -336,7 +337,7 @@ std::optional<BackdropFilter> ParseBackdropFilter(const std::vector<Token>& toke
                 anyRecognized = true;
             }
         } else if (name == "hue-rotate") {
-            if (auto radians = ParseHueRotate(args)) {
+            if (auto radians = ParseAngleRadians(args)) {
                 result.hueRotateRadians = *radians;
                 anyRecognized = true;
             }
@@ -772,6 +773,13 @@ std::optional<int> ParseFontWeight(const std::vector<Token>& tokens) {
     return weight;
 }
 
+std::optional<float> ParseScale(const std::vector<Token>& tokens) {
+    if (tokens.size() != 1 || tokens[0].type != TokenType::Number) return std::nullopt;
+    const float factor = std::strtof(tokens[0].text.c_str(), nullptr);
+    if (factor <= 0.0f) return std::nullopt;
+    return factor;
+}
+
 std::optional<CssCursor> ParseCursor(const std::vector<Token>& tokens) {
     if (tokens.size() != 1 || tokens[0].type != TokenType::Ident) return std::nullopt;
     const std::string& v = tokens[0].text;
@@ -823,6 +831,10 @@ StyleProperties DeclarationToStyleProperties(const MatchedDeclaration& decl) {
         props.fontWeight = ParseFontWeight(tokens);
     } else if (decl.propertyName == "cursor") {
         props.cursor = ParseCursor(tokens);
+    } else if (decl.propertyName == "scale") {
+        props.scale = ParseScale(tokens);
+    } else if (decl.propertyName == "rotate") {
+        props.rotate = ParseAngleRadians(tokens);
     } else if (decl.propertyName == "margin") {
         props.margin = ParseBoxEdges(tokens);
     } else if (decl.propertyName == "padding") {

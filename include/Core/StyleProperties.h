@@ -160,6 +160,10 @@ struct StyleProperties {
     // synthetic emboldening pass in Label (no bold font asset ships with IzekipUI).
     std::optional<int> fontWeight;
     std::optional<CssCursor> cursor;
+    // CSS individual transform properties. `scale` is a uniform factor (> 0), `rotate` is in
+    // radians. Both pivot about the widget's own center; layout is never affected.
+    std::optional<float> scale;
+    std::optional<float> rotate;
     std::optional<float> opacity;
     std::optional<Translation> transform;
     std::optional<CssAnimation> animation;
