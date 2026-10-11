@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "Core/Color.h"
@@ -68,8 +69,7 @@ struct UVRect {
 };
 
 // Which baked glyph atlas (and GPU texture/sampler slot) a DrawTextQuad call samples from.
-// Not CSS-driven -- showcase/chrome text picks this directly in C++, there is no
-// `font-family` CSS property (see Label::SetFontFamily).
+// Font selection is deliberately limited to the two atlases bundled with the renderer.
 enum class FontId { Proportional = 0, Monospace = 1 };
 
 // backdrop-filter parameters, already defaulted to "no-op" for any field the CSS didn't
@@ -81,6 +81,7 @@ struct BackdropFilterParams {
     float contrast = 1.0f;
     float saturate = 1.0f;
     float grayscale = 0.0f;
+    float hueRotateRadians = 0.0f;
 };
 
 struct BackdropBlurPaint {
@@ -118,6 +119,9 @@ public:
     // result into `rect` -- the actual backdrop-filter effect. Must be called before the
     // widget's own (usually translucent) fill is drawn on top; see Widget::OnPaint.
     virtual void DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPaint& paint) = 0;
+
+    // Draw image from file path. If image cannot be loaded, does nothing (silent fail).
+    virtual void DrawImage(const std::string& imagePath, const Rect& rect, float opacity) = 0;
 
     virtual RendererBackend GetBackend() const = 0;
 };

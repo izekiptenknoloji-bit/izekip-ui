@@ -1334,4 +1334,12 @@ void VulkanRenderer::Shutdown() {
     m_instance = VK_NULL_HANDLE;
 }
 
+void VulkanRenderer::DrawImage(const std::string& imagePath, const Rect& rect, float opacity) {
+    // TODO: Load PNG from imagePath, create Vulkan image + texture, draw as quad.
+    // For now, silent no-op to unblock Image widget integration.
+    (void)imagePath;
+    (void)rect;
+    (void)opacity;
+}
+
 } // namespace IzekipUI::Render

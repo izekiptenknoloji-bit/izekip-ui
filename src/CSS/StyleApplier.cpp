@@ -1,6 +1,7 @@
 #include "CSS/StyleApplier.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <optional>
 #include <string>
@@ -139,10 +140,98 @@ std::optional<Length> ParseCssLength(const std::vector<Token>& tokens) {
         const float value = std::strtof(text.substr(0, text.size() - 1).c_str(), nullptr);
         return Length{value, true};
     }
+    if (tokens[0].type == TokenType::Dimension && tokens[0].text.size() > 2 &&
+        tokens[0].text.substr(tokens[0].text.size() - 2) == "vh") {
+        const std::string numeric = tokens[0].text.substr(0, tokens[0].text.size() - 2);
+        char* parsedEnd = nullptr;
+        const float value = std::strtof(numeric.c_str(), &parsedEnd);
+        if (parsedEnd == numeric.c_str() || *parsedEnd != '\0' || !std::isfinite(value)) {
+            return std::nullopt;
+        }
+        return Length{value, false, true};
+    }
     if (auto px = ParseLength(tokens)) {
         return Length{*px, false};
     }
     return std::nullopt;
+}
+
+std::optional<float> ParseTranslateLength(const Token& token) {
+    if (token.type == TokenType::Number) {
+        const float value = std::strtof(token.text.c_str(), nullptr);
+        return value == 0.0f ? std::optional<float>(0.0f) : std::nullopt;
+    }
+    if (token.type != TokenType::Dimension || token.text.size() <= 2 ||
+        token.text.substr(token.text.size() - 2) != "px") {
+        return std::nullopt;
+    }
+    const std::string numeric = token.text.substr(0, token.text.size() - 2);
+    char* parsedEnd = nullptr;
+    const float value = std::strtof(numeric.c_str(), &parsedEnd);
+    if (parsedEnd == numeric.c_str() || *parsedEnd != '\0' || !std::isfinite(value)) {
+        return std::nullopt;
+    }
+    return value;
+}
+
+std::optional<Translation> ParseTransform(const std::vector<Token>& tokens) {
+    if (tokens.size() == 1 && tokens[0].type == TokenType::Ident &&
+        tokens[0].text == "none") {
+        return Translation{};
+    }
+
+    Translation result;
+    bool foundTranslation = false;
+    size_t i = 0;
+    while (i < tokens.size()) {
+        if (tokens[i].type != TokenType::Ident || i + 1 >= tokens.size() ||
+            tokens[i + 1].type != TokenType::ParenOpen) {
+            return std::nullopt;
+        }
+        const std::string& function = tokens[i].text;
+        size_t close = i + 2;
+        while (close < tokens.size() && tokens[close].type != TokenType::ParenClose) {
+            ++close;
+        }
+        if (close >= tokens.size()) {
+            return std::nullopt;
+        }
+        std::vector<Token> args(tokens.begin() + static_cast<long>(i + 2),
+                                tokens.begin() + static_cast<long>(close));
+        args.erase(std::remove_if(args.begin(), args.end(), [](const Token& token) {
+            return token.type == TokenType::Comma;
+        }), args.end());
+
+        if (function == "translateX" || function == "translateY") {
+            if (args.size() != 1) {
+                return std::nullopt;
+            }
+            auto value = ParseTranslateLength(args[0]);
+            if (!value) {
+                return std::nullopt;
+            }
+            if (function == "translateX") result.x += *value;
+            else result.y += *value;
+            foundTranslation = true;
+        } else if (function == "translate") {
+            if (args.empty() || args.size() > 2) {
+                return std::nullopt;
+            }
+            auto x = ParseTranslateLength(args[0]);
+            auto y = args.size() == 2 ? ParseTranslateLength(args[1])
+                                      : std::optional<float>(0.0f);
+            if (!x || !y) {
+                return std::nullopt;
+            }
+            result.x += *x;
+            result.y += *y;
+            foundTranslation = true;
+        } else {
+            return std::nullopt;
+        }
+        i = close + 1;
+    }
+    return foundTranslation ? std::optional<Translation>(result) : std::nullopt;
 }
 
 // A CSS <number> or <percentage> used as a filter-function amount (e.g. brightness(1.2)
@@ -159,6 +248,49 @@ std::optional<float> ParseFilterAmount(const std::vector<Token>& tokens) {
         return std::strtof(text.substr(0, text.size() - 1).c_str(), nullptr) / 100.0f;
     }
     return std::nullopt;
+}
+
+std::optional<float> ParseHueRotate(const std::vector<Token>& tokens) {
+    if (tokens.size() != 1) {
+        return std::nullopt;
+    }
+
+    const Token& token = tokens[0];
+    if (token.type == TokenType::Number) {
+        const float degrees = std::strtof(token.text.c_str(), nullptr);
+        return degrees == 0.0f ? std::optional<float>(0.0f) : std::nullopt;
+    }
+    if (token.type != TokenType::Dimension) {
+        return std::nullopt;
+    }
+
+    const std::string& value = token.text;
+    float multiplier = 0.0f;
+    size_t suffixLength = 0;
+    if (value.size() >= 3 && value.substr(value.size() - 3) == "deg") {
+        multiplier = 0.01745329251994329577f;
+        suffixLength = 3;
+    } else if (value.size() >= 3 && value.substr(value.size() - 3) == "rad") {
+        multiplier = 1.0f;
+        suffixLength = 3;
+    } else if (value.size() >= 4 && value.substr(value.size() - 4) == "turn") {
+        multiplier = 6.28318530717958647692f;
+        suffixLength = 4;
+    } else if (value.size() >= 4 && value.substr(value.size() - 4) == "grad") {
+        multiplier = 0.01570796326794896619f;
+        suffixLength = 4;
+    } else {
+        return std::nullopt;
+    }
+
+    const std::string numeric = value.substr(0, value.size() - suffixLength);
+    char* parsedEnd = nullptr;
+    const float angle = std::strtof(numeric.c_str(), &parsedEnd);
+    if (parsedEnd == numeric.c_str() || *parsedEnd != '\0' || !std::isfinite(angle)) {
+        return std::nullopt;
+    }
+    const float radians = angle * multiplier;
+    return std::isfinite(radians) ? std::optional<float>(radians) : std::nullopt;
 }
 
 // backdrop-filter: <filter-function># -- a SPACE-separated list of function calls (not
@@ -203,6 +335,11 @@ std::optional<BackdropFilter> ParseBackdropFilter(const std::vector<Token>& toke
                 result.blurRadiusPx = *px;
                 anyRecognized = true;
             }
+        } else if (name == "hue-rotate") {
+            if (auto radians = ParseHueRotate(args)) {
+                result.hueRotateRadians = *radians;
+                anyRecognized = true;
+            }
         } else if (name == "brightness" || name == "contrast" || name == "saturate" ||
                    name == "grayscale") {
             if (auto amount = ParseFilterAmount(args)) {
@@ -213,9 +350,8 @@ std::optional<BackdropFilter> ParseBackdropFilter(const std::vector<Token>& toke
                 anyRecognized = true;
             }
         }
-        // Unrecognized function names (hue-rotate, invert, drop-shadow, opacity, ...) are
-        // skipped individually -- the rest of the list still applies (e.g.
-        // `blur(10px) hue-rotate(90deg)` still gets its blur).
+        // Unrecognized function names (invert, drop-shadow, opacity, ...) are skipped
+        // individually -- the rest of the list still applies.
 
         i = j + 1;
     }
@@ -305,6 +441,8 @@ std::optional<TransitionSpec> ParseTransitionSegment(const std::vector<Token>& t
     else if (propertyName == "width") spec.property = TransitionProperty::Width;
     else if (propertyName == "height") spec.property = TransitionProperty::Height;
     else if (propertyName == "margin") spec.property = TransitionProperty::Margin;
+    else if (propertyName == "opacity") spec.property = TransitionProperty::Opacity;
+    else if (propertyName == "transform") spec.property = TransitionProperty::Transform;
     else return std::nullopt;
 
     auto duration = ParseDurationSeconds(tokens[1]);
@@ -318,6 +456,62 @@ std::optional<TransitionSpec> ParseTransitionSegment(const std::vector<Token>& t
     }
 
     return spec;
+}
+
+std::optional<CssAnimation> ParseAnimation(const std::vector<Token>& tokens) {
+    if (tokens.size() == 1 && tokens[0].type == TokenType::Ident &&
+        tokens[0].text == "none") {
+        return CssAnimation{};
+    }
+    if (tokens.empty() || tokens[0].type != TokenType::Ident) return std::nullopt;
+
+    CssAnimation result;
+    result.name = tokens[0].text;
+    bool hasDuration = false;
+    for (size_t i = 1; i < tokens.size();) {
+        if (tokens[i].type == TokenType::Dimension) {
+            auto duration = ParseDurationSeconds(tokens[i]);
+            if (!duration || hasDuration || *duration < 0.0f) return std::nullopt;
+            result.durationSeconds = *duration;
+            hasDuration = true;
+            ++i;
+        } else if (tokens[i].type == TokenType::Ident && tokens[i].text == "forwards") {
+            result.forwards = true;
+            ++i;
+        } else if (tokens[i].type == TokenType::Ident &&
+                   TryGetNamedEasing(tokens[i].text, result.easing)) {
+            ++i;
+        } else if (tokens[i].type == TokenType::Ident &&
+                   tokens[i].text == "cubic-bezier" && i + 9 < tokens.size() &&
+                   tokens[i + 1].type == TokenType::ParenOpen &&
+                   tokens[i + 3].type == TokenType::Comma &&
+                   tokens[i + 5].type == TokenType::Comma &&
+                   tokens[i + 7].type == TokenType::Comma &&
+                   tokens[i + 9].type == TokenType::ParenClose) {
+            const Token* values[] = {&tokens[i + 2], &tokens[i + 4], &tokens[i + 6], &tokens[i + 8]};
+            float parsed[4]{};
+            bool valid = true;
+            for (size_t n = 0; n < 4; ++n) {
+                if (values[n]->type != TokenType::Number) {
+                    valid = false;
+                    break;
+                }
+                char* end = nullptr;
+                parsed[n] = std::strtof(values[n]->text.c_str(), &end);
+                if (end == values[n]->text.c_str() || *end != '\0' || !std::isfinite(parsed[n])) {
+                    valid = false;
+                    break;
+                }
+            }
+            if (!valid || parsed[0] < 0.0f || parsed[0] > 1.0f ||
+                parsed[2] < 0.0f || parsed[2] > 1.0f) return std::nullopt;
+            result.easing = CubicBezier{parsed[0], parsed[1], parsed[2], parsed[3]};
+            i += 10;
+        } else {
+            return std::nullopt;
+        }
+    }
+    return hasDuration ? std::optional<CssAnimation>(std::move(result)) : std::nullopt;
 }
 
 // transition: <single-transition># -- a comma-separated list of transitions (e.g.
@@ -551,6 +745,20 @@ std::optional<Display> ParseDisplay(const std::vector<Token>& tokens) {
     return std::nullopt; // block/grid/inline/... are not implemented -- ignored
 }
 
+std::optional<CssFontFamily> ParseFontFamily(const std::vector<Token>& tokens) {
+    if (tokens.empty() || tokens[0].type != TokenType::Ident) {
+        return std::nullopt;
+    }
+    if (tokens[0].text == "monospace") {
+        return CssFontFamily::Monospace;
+    }
+    if (tokens[0].text == "sans-serif" || tokens[0].text == "serif" ||
+        tokens[0].text == "system-ui") {
+        return CssFontFamily::Proportional;
+    }
+    return std::nullopt;
+}
+
 StyleProperties DeclarationToStyleProperties(const MatchedDeclaration& decl) {
     StyleProperties props;
     std::vector<Token> tokens = Tokenizer(decl.rawValueText).Tokenize();
@@ -573,16 +781,28 @@ StyleProperties DeclarationToStyleProperties(const MatchedDeclaration& decl) {
         props.width = ParseCssLength(tokens);
     } else if (decl.propertyName == "height") {
         props.height = ParseCssLength(tokens);
+    } else if (decl.propertyName == "min-width") {
+        props.minWidth = ParseCssLength(tokens);
+    } else if (decl.propertyName == "max-width") {
+        props.maxWidth = ParseCssLength(tokens);
+    } else if (decl.propertyName == "min-height") {
+        props.minHeight = ParseCssLength(tokens);
+    } else if (decl.propertyName == "max-height") {
+        props.maxHeight = ParseCssLength(tokens);
     } else if (decl.propertyName == "border-width") {
         props.borderWidth = ParseLength(tokens);
     } else if (decl.propertyName == "font-size") {
         props.fontSize = ParseLength(tokens);
+    } else if (decl.propertyName == "font-family") {
+        props.fontFamily = ParseFontFamily(tokens);
     } else if (decl.propertyName == "margin") {
         props.margin = ParseBoxEdges(tokens);
     } else if (decl.propertyName == "padding") {
         props.padding = ParseBoxEdges(tokens);
     } else if (decl.propertyName == "transition") {
         props.transition = ParseTransitionDeclaration(tokens);
+    } else if (decl.propertyName == "animation") {
+        props.animation = ParseAnimation(tokens);
     } else if (decl.propertyName == "border-radius") {
         props.borderRadius = ParseLength(tokens);
     } else if (decl.propertyName == "box-shadow") {
@@ -603,11 +823,29 @@ StyleProperties DeclarationToStyleProperties(const MatchedDeclaration& decl) {
         if (auto opacity = ParseFilterAmount(tokens)) {
             props.opacity = std::clamp(*opacity, 0.0f, 1.0f);
         }
+    } else if (decl.propertyName == "transform") {
+        props.transform = ParseTransform(tokens);
     }
     // Unknown properties are ignored -- lexbor parses the full real CSS property set
     // syntactically, but IzekipUI only acts on the properties it implements above.
 
     return props;
+}
+
+std::vector<KeyframeAnimationPoint> ResolveKeyframePoints(const KeyframesDefinition& definition) {
+    std::vector<KeyframeAnimationPoint> points;
+    points.reserve(definition.frames.size());
+    for (const auto& frame : definition.frames) {
+        StyleProperties properties;
+        for (const auto& declaration : frame.declarations) {
+            MatchedDeclaration matched;
+            matched.propertyName = declaration.propertyName;
+            matched.rawValueText = declaration.value;
+            properties.MergeFrom(DeclarationToStyleProperties(matched));
+        }
+        points.push_back({frame.offset, properties.opacity, properties.transform});
+    }
+    return points;
 }
 
 void PushFlexPropsToYoga(YGNodeRef node, const StyleProperties& props) {
@@ -667,6 +905,12 @@ void StyleApplier::ApplyToSingleWidget(LexborBridge& bridge, const StyleSheet& s
 
     const StyleProperties& previous = widget.GetTargetStyle();
     const bool firstApply = !widget.HasBeenStyled();
+    const bool animationChanged = firstApply || previous.animation != resolved.animation;
+    if (animationChanged) {
+        widget.CancelCssAnimation();
+    }
+    const bool preserveAnimatedOpacity = !animationChanged && widget.CssAnimationAffectsOpacity();
+    const bool preserveAnimatedTransform = !animationChanged && widget.CssAnimationAffectsTransform();
     // `transition` is now a comma-separated list (e.g. `width 300ms ease-in-out, height
     // 300ms ease-in-out`) -- each property below finds its OWN covering entry rather than
     // sharing a single one, since different properties can be covered by different
@@ -719,7 +963,7 @@ void StyleApplier::ApplyToSingleWidget(LexborBridge& bridge, const StyleSheet& s
         }
     }
 
-    if (resolved.opacity) {
+    if (resolved.opacity && !preserveAnimatedOpacity) {
         const bool changed = !firstApply && (!previous.opacity || *previous.opacity != *resolved.opacity);
         const TransitionSpec* transition =
             changed ? FindCoveringTransition(transitions, TransitionProperty::Opacity) : nullptr;
@@ -730,6 +974,30 @@ void StyleApplier::ApplyToSingleWidget(LexborBridge& bridge, const StyleSheet& s
         }
     }
 
+    if (resolved.transform && !preserveAnimatedTransform) {
+        const bool changed = !firstApply &&
+                             (!previous.transform || *previous.transform != *resolved.transform);
+        const TransitionSpec* transition =
+            changed ? FindCoveringTransition(transitions, TransitionProperty::Transform) : nullptr;
+        if (transition) {
+            widget.AnimateTransformTo(*resolved.transform, transition->durationSeconds,
+                                      transition->easing);
+        } else {
+            widget.SnapTransform(*resolved.transform);
+        }
+    }
+
+    if (animationChanged && resolved.animation && !resolved.animation->name.empty()) {
+        const auto definition = std::find_if(
+            sheet.GetKeyframes().begin(), sheet.GetKeyframes().end(),
+            [&resolved](const KeyframesDefinition& candidate) {
+                return candidate.name == resolved.animation->name;
+            });
+        if (definition != sheet.GetKeyframes().end()) {
+            widget.StartCssAnimation(*resolved.animation, ResolveKeyframePoints(*definition));
+        }
+    }
+
     // Remaining fields are never animated -- merge them straight in.
     StyleProperties nonAnimatedFields = resolved;
     nonAnimatedFields.backgroundColor.reset();
@@ -737,9 +1005,34 @@ void StyleApplier::ApplyToSingleWidget(LexborBridge& bridge, const StyleSheet& s
     nonAnimatedFields.height.reset();
     nonAnimatedFields.margin.reset();
     nonAnimatedFields.opacity.reset();
+    nonAnimatedFields.transform.reset();
     widget.GetStyle().MergeFrom(nonAnimatedFields);
+    if (!resolved.animation) {
+        widget.GetStyle().animation.reset();
+    }
 
     YGNodeRef node = widget.GetYogaNode();
+
+    const auto applyMinMax = [node](const std::optional<Length>& value,
+                                    void (*setPoint)(YGNodeRef, float),
+                                    void (*setPercent)(YGNodeRef, float),
+                                    void (*clear)(YGNodeRef, float)) {
+        if (!value || value->isViewportHeight) {
+            clear(node, YGUndefined);
+        } else if (value->isPercent) {
+            setPercent(node, value->value);
+        } else {
+            setPoint(node, value->value);
+        }
+    };
+    applyMinMax(resolved.minWidth, YGNodeStyleSetMinWidth, YGNodeStyleSetMinWidthPercent,
+                YGNodeStyleSetMinWidth);
+    applyMinMax(resolved.maxWidth, YGNodeStyleSetMaxWidth, YGNodeStyleSetMaxWidthPercent,
+                YGNodeStyleSetMaxWidth);
+    applyMinMax(resolved.minHeight, YGNodeStyleSetMinHeight, YGNodeStyleSetMinHeightPercent,
+                YGNodeStyleSetMinHeight);
+    applyMinMax(resolved.maxHeight, YGNodeStyleSetMaxHeight, YGNodeStyleSetMaxHeightPercent,
+                YGNodeStyleSetMaxHeight);
 
     // `display` is ALWAYS written (resolved value or the default `flex`), unlike the
     // merge-if-set fields above: the cascade is additive, so once a `.hidden { display:

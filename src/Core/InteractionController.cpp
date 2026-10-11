@@ -27,14 +27,14 @@ bool IsEffectivelyDisplayed(const Widget* widget) {
 
 Widget* NearestClickable(Widget* widget) {
     for (Widget* w = widget; w != nullptr; w = w->GetParent()) {
-        if (w->IsClickable()) return w;
+        if (w->IsClickable() && w->IsEnabled()) return w;
     }
     return nullptr;
 }
 
 Widget* NearestFocusable(Widget* widget) {
     for (Widget* w = widget; w != nullptr; w = w->GetParent()) {
-        if (w->IsFocusable()) return w;
+        if (w->IsFocusable() && w->IsEnabled()) return w;
     }
     return nullptr;
 }
@@ -105,7 +105,7 @@ bool InteractionController::Update() {
     m_pendingButtonEvents.clear();
 
     // :active = the hovered chain while the button is held (same rule the examples use).
-    const bool wantActive = m_buttonDown && m_hovered != nullptr;
+    const bool wantActive = m_buttonDown && m_hovered != nullptr && m_hovered->IsEnabled();
     if (wantActive != m_activeState || (wantActive && changed)) {
         ClearActiveRecursive(m_root);
         if (wantActive) {
@@ -115,7 +115,7 @@ bool InteractionController::Update() {
         changed = true;
     }
 
-    if (m_focused && !IsEffectivelyDisplayed(m_focused)) {
+    if (m_focused && (!IsEffectivelyDisplayed(m_focused) || !m_focused->IsEnabled())) {
         SetFocus(nullptr);
     }
 

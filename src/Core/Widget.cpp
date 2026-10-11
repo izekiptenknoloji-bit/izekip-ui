@@ -51,8 +51,37 @@ bool Widget::ToggleClass(const std::string& className) {
 }
 
 void Widget::CalculateLayout(float availableWidth, float availableHeight) {
+    ApplyViewportUnits(availableHeight);
     YGNodeCalculateLayout(m_yogaNode, availableWidth, availableHeight, YGDirectionLTR);
     ResolveAbsoluteRects(0.0f, 0.0f);
+}
+
+void Widget::ApplyViewportUnits(float viewportHeight) {
+    const auto dimension = [viewportHeight](YGNodeRef node, const std::optional<Length>& value,
+                                             bool width, bool minimum, bool maximum) {
+        if (!value || !value->isViewportHeight) {
+            return;
+        }
+        const float pixels = viewportHeight * value->value / 100.0f;
+        if (width) {
+            if (minimum) YGNodeStyleSetMinWidth(node, pixels);
+            else if (maximum) YGNodeStyleSetMaxWidth(node, pixels);
+            else YGNodeStyleSetWidth(node, pixels);
+        } else {
+            if (minimum) YGNodeStyleSetMinHeight(node, pixels);
+            else if (maximum) YGNodeStyleSetMaxHeight(node, pixels);
+            else YGNodeStyleSetHeight(node, pixels);
+        }
+    };
+    dimension(m_yogaNode, m_style.width, true, false, false);
+    dimension(m_yogaNode, m_style.height, false, false, false);
+    dimension(m_yogaNode, m_style.minWidth, true, true, false);
+    dimension(m_yogaNode, m_style.maxWidth, true, false, true);
+    dimension(m_yogaNode, m_style.minHeight, false, true, false);
+    dimension(m_yogaNode, m_style.maxHeight, false, false, true);
+    for (const auto& child : m_children) {
+        child->ApplyViewportUnits(viewportHeight);
+    }
 }
 
 void Widget::ResolveAbsoluteRects(float parentAbsoluteX, float parentAbsoluteY) {
@@ -69,6 +98,25 @@ void Widget::ResolveAbsoluteRects(float parentAbsoluteX, float parentAbsoluteY) 
     for (auto& child : m_children) {
         child->ResolveAbsoluteRects(m_rect.x, m_rect.y);
     }
+}
+
+Rect Widget::GetVisualRect() const {
+    Rect rect = m_rect;
+    for (const Widget* widget = this; widget != nullptr; widget = widget->m_parent) {
+        if (widget->m_style.transform) {
+            rect.x += widget->m_style.transform->x;
+            rect.y += widget->m_style.transform->y;
+        }
+    }
+    return rect;
+}
+
+float Widget::GetEffectiveOpacity() const {
+    float opacity = 1.0f;
+    for (const Widget* widget = this; widget != nullptr; widget = widget->m_parent) {
+        opacity *= widget->m_style.opacity.value_or(1.0f);
+    }
+    return std::clamp(opacity, 0.0f, 1.0f);
 }
 
 namespace {
@@ -107,6 +155,7 @@ std::vector<Render::GradientStop> ResolveGradientStops(const std::vector<Gradien
 } // namespace
 
 void Widget::OnPaint(Render::IRenderer& renderer) {
+    const Rect visualRect = GetVisualRect();
     if (m_style.backgroundColor || m_style.background || m_style.boxShadow || m_style.backdropFilter) {
         const float cornerRadius = m_style.borderRadius.value_or(0.0f);
 
@@ -117,7 +166,7 @@ void Widget::OnPaint(Render::IRenderer& renderer) {
         // reduces to just the shadow, so no shader change was needed for multiple shadows.
         if (m_style.boxShadow) {
             const auto& shadows = *m_style.boxShadow;
-            const float opacity = m_style.opacity.value_or(1.0f);
+            const float opacity = GetEffectiveOpacity();
             for (auto it = shadows.rbegin(); it != shadows.rend(); ++it) {
                 Render::RectPaint shadowOnlyPaint;
                 shadowOnlyPaint.fill.color = Color{0.0f, 0.0f, 0.0f, 0.0f};
@@ -125,7 +174,7 @@ void Widget::OnPaint(Render::IRenderer& renderer) {
                 shadowOnlyPaint.shadow = Render::RectShadow{it->offsetX, it->offsetY, it->blurRadius,
                                                              it->spreadRadius, it->color};
                 shadowOnlyPaint.opacity = opacity;
-                renderer.DrawRect(m_rect, shadowOnlyPaint);
+                renderer.DrawRect(visualRect, shadowOnlyPaint);
             }
         }
 
@@ -141,7 +190,9 @@ void Widget::OnPaint(Render::IRenderer& renderer) {
             blurPaint.filter.contrast = m_style.backdropFilter->contrast.value_or(1.0f);
             blurPaint.filter.saturate = m_style.backdropFilter->saturate.value_or(1.0f);
             blurPaint.filter.grayscale = m_style.backdropFilter->grayscale.value_or(0.0f);
-            renderer.DrawBackdropBlurRect(m_rect, blurPaint);
+            blurPaint.filter.hueRotateRadians =
+                m_style.backdropFilter->hueRotateRadians.value_or(0.0f);
+            renderer.DrawBackdropBlurRect(visualRect, blurPaint);
         }
 
         if (m_style.backgroundColor || m_style.background) {
@@ -154,8 +205,8 @@ void Widget::OnPaint(Render::IRenderer& renderer) {
                 paint.fill.color = *m_style.backgroundColor;
             }
             paint.cornerRadius = cornerRadius;
-            paint.opacity = m_style.opacity.value_or(1.0f);
-            renderer.DrawRect(m_rect, paint);
+            paint.opacity = GetEffectiveOpacity();
+            renderer.DrawRect(visualRect, paint);
         }
     }
     // Hidden (display: none) children are skipped HERE, by the parent, rather than inside
@@ -169,7 +220,9 @@ void Widget::OnPaint(Render::IRenderer& renderer) {
 }
 
 Widget* Widget::HitTest(float x, float y) {
-    if (x < m_rect.x || x > m_rect.x + m_rect.width || y < m_rect.y || y > m_rect.y + m_rect.height) {
+    const Rect visualRect = GetVisualRect();
+    if (x < visualRect.x || x > visualRect.x + visualRect.width ||
+        y < visualRect.y || y > visualRect.y + visualRect.height) {
         return nullptr;
     }
     for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
@@ -265,6 +318,54 @@ void Widget::AnimateOpacityTo(float target, float durationSeconds, const CubicBe
     m_opacityAnim = Animation<float>{*m_style.opacity, target, 0.0f, durationSeconds, easing};
 }
 
+void Widget::SnapTransform(Translation value) {
+    m_style.transform = value;
+    m_transformAnim.reset();
+}
+
+void Widget::AnimateTransformTo(Translation target, float durationSeconds,
+                                const CubicBezier& easing) {
+    if (!m_style.transform) {
+        SnapTransform(target);
+        return;
+    }
+    m_transformAnim = Animation<Translation>{*m_style.transform, target, 0.0f,
+                                              durationSeconds, easing};
+}
+
+void Widget::StartCssAnimation(const CssAnimation& animation,
+                               std::vector<KeyframeAnimationPoint> points) {
+    if (animation.name.empty() || animation.durationSeconds <= 0.0f || points.empty()) {
+        m_cssAnimation.reset();
+        return;
+    }
+    std::stable_sort(points.begin(), points.end(), [](const auto& a, const auto& b) {
+        return a.offset < b.offset;
+    });
+    m_cssAnimation = CssAnimationState{animation, std::move(points), 0.0f,
+                                       m_style.opacity, m_style.transform, false};
+}
+
+void Widget::CancelCssAnimation() {
+    if (m_cssAnimation) {
+        m_style.opacity = m_cssAnimation->baseOpacity;
+        m_style.transform = m_cssAnimation->baseTransform;
+        m_cssAnimation.reset();
+    }
+}
+
+bool Widget::CssAnimationAffectsOpacity() const {
+    return m_cssAnimation && std::any_of(
+        m_cssAnimation->points.begin(), m_cssAnimation->points.end(),
+        [](const KeyframeAnimationPoint& point) { return point.opacity.has_value(); });
+}
+
+bool Widget::CssAnimationAffectsTransform() const {
+    return m_cssAnimation && std::any_of(
+        m_cssAnimation->points.begin(), m_cssAnimation->points.end(),
+        [](const KeyframeAnimationPoint& point) { return point.transform.has_value(); });
+}
+
 AnimationTickResult Widget::TickAnimations(float deltaSeconds) {
     AnimationTickResult result;
 
@@ -342,6 +443,99 @@ AnimationTickResult Widget::TickAnimations(float deltaSeconds) {
         m_style.opacity = std::clamp(value, 0.0f, 1.0f);
         if (t >= 1.0f) {
             m_opacityAnim.reset();
+        } else {
+            result.stillAnimating = true;
+        }
+    }
+
+    if (m_transformAnim) {
+        auto& anim = *m_transformAnim;
+        anim.elapsed += deltaSeconds;
+        const float t = anim.duration > 0.0f
+                            ? std::clamp(anim.elapsed / anim.duration, 0.0f, 1.0f)
+                            : 1.0f;
+        const float eased = anim.easing.Evaluate(t);
+        if (t >= 1.0f) {
+            m_style.transform = anim.to;
+            m_transformAnim.reset();
+        } else {
+            m_style.transform = Translation{
+                Lerp(anim.from.x, anim.to.x, eased),
+                Lerp(anim.from.y, anim.to.y, eased)
+            };
+            result.stillAnimating = true;
+        }
+    }
+
+    if (m_cssAnimation) {
+        auto& anim = *m_cssAnimation;
+        if (anim.finished) return result;
+        anim.elapsed += std::max(deltaSeconds, 0.0f);
+        const float progress = anim.spec.durationSeconds > 0.0f
+                                   ? std::clamp(anim.elapsed / anim.spec.durationSeconds, 0.0f, 1.0f)
+                                   : 1.0f;
+        const bool finished = progress >= 1.0f;
+        const float eased = anim.spec.easing.Evaluate(progress);
+
+        const auto sample = [eased](auto base, const auto& member, auto interpolate)
+            -> std::optional<decltype(base)> {
+            using Value = decltype(base);
+            std::vector<std::pair<float, Value>> values;
+            bool hasAtStart = false;
+            bool hasAtEnd = false;
+            for (const auto& point : member) {
+                if (point.second) {
+                    values.emplace_back(point.first, *point.second);
+                    hasAtStart = hasAtStart || point.first == 0.0f;
+                    hasAtEnd = hasAtEnd || point.first == 1.0f;
+                }
+            }
+            if (!hasAtStart) values.emplace_back(0.0f, base);
+            if (!hasAtEnd) values.emplace_back(1.0f, base);
+            std::stable_sort(values.begin(), values.end(), [](const auto& a, const auto& b) {
+                return a.first < b.first;
+            });
+            if (values.size() < 2) return std::nullopt;
+            auto upper = std::upper_bound(values.begin(), values.end(), eased,
+                                          [](float position, const auto& entry) {
+                                              return position < entry.first;
+                                          });
+            if (upper == values.begin()) return upper->second;
+            if (upper == values.end()) return values.back().second;
+            const auto& right = *upper;
+            const auto& left = *(upper - 1);
+            const float span = right.first - left.first;
+            const float local = span > 0.0f ? (eased - left.first) / span : 1.0f;
+            return interpolate(left.second, right.second, local);
+        };
+
+        std::vector<std::pair<float, std::optional<float>>> opacityPoints;
+        std::vector<std::pair<float, std::optional<Translation>>> transformPoints;
+        opacityPoints.reserve(anim.points.size());
+        transformPoints.reserve(anim.points.size());
+        for (const auto& point : anim.points) {
+            opacityPoints.emplace_back(point.offset, point.opacity);
+            transformPoints.emplace_back(point.offset, point.transform);
+        }
+        const float baseOpacity = anim.baseOpacity.value_or(1.0f);
+        if (auto value = sample(baseOpacity, opacityPoints,
+                                [](float from, float to, float t) { return Lerp(from, to, t); })) {
+            m_style.opacity = std::clamp(*value, 0.0f, 1.0f);
+        }
+        const Translation baseTransform = anim.baseTransform.value_or(Translation{});
+        if (auto value = sample(baseTransform, transformPoints, [](Translation from, Translation to, float t) {
+                return Translation{Lerp(from.x, to.x, t), Lerp(from.y, to.y, t)};
+            })) {
+            m_style.transform = *value;
+        }
+        if (finished) {
+            if (!anim.spec.forwards) {
+                m_style.opacity = anim.baseOpacity;
+                m_style.transform = anim.baseTransform;
+                m_cssAnimation.reset();
+            } else {
+                anim.finished = true;
+            }
         } else {
             result.stillAnimating = true;
         }

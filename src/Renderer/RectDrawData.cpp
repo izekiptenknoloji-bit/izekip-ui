@@ -173,6 +173,7 @@ RectDrawData ComputeBackdropBlurDrawData(const Rect& rect, const BackdropBlurPai
     ps.backdropParams = Float4{1.0f, clampedBlurRadius, viewportWidth, viewportHeight};
     ps.backdropColorAdjust = Float4{paint.filter.brightness, paint.filter.contrast,
                                      paint.filter.saturate, paint.filter.grayscale};
+    ps.backdropHueAdjust = Float4{paint.filter.hueRotateRadians, 0.0f, 0.0f, 0.0f};
     return data;
 }
 

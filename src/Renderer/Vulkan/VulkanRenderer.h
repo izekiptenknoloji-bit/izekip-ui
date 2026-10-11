@@ -33,6 +33,7 @@ public:
     void DrawTextQuad(const Rect& rect, const UVRect& atlasUV, const Color& color,
                       float glyphScale, FontId fontId) override;
     void DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPaint& paint) override;
+    void DrawImage(const std::string& imagePath, const Rect& rect, float opacity) override;
 
     RendererBackend GetBackend() const override { return RendererBackend::Vulkan; }
 

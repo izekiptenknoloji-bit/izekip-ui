@@ -13,6 +13,7 @@ A from-scratch GPU-accelerated GUI library combining **real CSS styling** with *
 - **SDF Text Rendering**: Smooth glyph rendering via `stb_truetype`
 - **Visual Effects**: Border radius, box-shadow, linear gradients, backdrop filters
 - **Smooth Animations**: CSS transitions with cubic-bezier easing
+- **Keyframe Animations**: `@keyframes`, `animation`, and reduced-motion media queries
 - **Opacity Support**: Full opacity property with animation support
 
 ## Supported CSS Properties
@@ -26,18 +27,27 @@ A from-scratch GPU-accelerated GUI library combining **real CSS styling** with *
 - `background-color` (hex, rgb, rgba, named colors)
 - `background` (linear-gradient only)
 - `color` (text color)
+- `font-family` (`sans-serif`, `serif`, `system-ui`, `monospace`; limited to bundled fonts)
 - `border-color`
 - `opacity` (0-1, animatable)
+- `min-width`, `max-width`, `min-height`, `max-height` (px and %; `vh` for height)
 
 ### Visual Effects
 - `border-radius` (SDF-based rounded corners)
 - `box-shadow` (multi-shadow, with blur and spread)
-- `backdrop-filter` (blur, brightness, contrast, saturate, grayscale)
+- `backdrop-filter` (blur, brightness, contrast, saturate, grayscale, hue-rotate)
 
 ### Animations
 - `transition` (comma-separated property list)
-  - Supports: `background-color`, `width`, `height`, `margin`, `opacity`
+  - Supports: `background-color`, `width`, `height`, `margin`, `opacity`, `transform`
   - Custom easing: cubic-bezier functions
+- Translation transforms: `translateX()`, `translateY()`, and `translate()`
+- `@keyframes` animations: one named animation with a duration, named or
+  `cubic-bezier()` easing, and optional `forwards` fill mode; animatable keyframe
+  properties are `opacity` and translation-only `transform`
+- `@media (prefers-reduced-motion: reduce)`: opt in to the query by setting
+  `sheet.SetPrefersReducedMotion(true)` before applying the stylesheet. This is an
+  application-provided preference; the library does not query the operating system.
 
 ## Building
 

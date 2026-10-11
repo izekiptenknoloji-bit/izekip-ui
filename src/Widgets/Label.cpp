@@ -40,8 +40,11 @@ void Label::SetFontFamily(Render::FontId fontFamily) {
 }
 
 Render::GlyphAtlas& Label::GetAtlas() const {
-    return (m_fontFamily == Render::FontId::Monospace) ? Render::GlyphAtlas::GetMonospaceDefault()
-                                                         : Render::GlyphAtlas::GetDefault();
+    const bool monospace = m_style.fontFamily
+                               ? *m_style.fontFamily == CssFontFamily::Monospace
+                               : m_fontFamily == Render::FontId::Monospace;
+    return monospace ? Render::GlyphAtlas::GetMonospaceDefault()
+                     : Render::GlyphAtlas::GetDefault();
 }
 
 YGSize Label::MeasureFunc(YGNodeConstRef node, float width, YGMeasureMode widthMode, float height,
@@ -76,16 +79,23 @@ void Label::OnPaint(Render::IRenderer& renderer) {
     }
 
     const float fontSize = m_style.fontSize.value_or(16.0f);
-    const Color color = m_style.textColor.value_or(Color{0.0f, 0.0f, 0.0f, 1.0f});
+    Color color = m_style.textColor.value_or(Color{0.0f, 0.0f, 0.0f, 1.0f});
+    color.a *= GetEffectiveOpacity();
     auto& atlas = GetAtlas();
     const float scale = fontSize / atlas.GetBakedPixelHeight();
     const float lineHeight = atlas.GetLineHeight() * scale;
+    const Rect visualRect = GetVisualRect();
+    const Render::FontId fontId =
+        (m_style.fontFamily && *m_style.fontFamily == CssFontFamily::Monospace) ||
+                (!m_style.fontFamily && m_fontFamily == Render::FontId::Monospace)
+            ? Render::FontId::Monospace
+            : Render::FontId::Proportional;
 
     for (size_t lineIndex = 0; lineIndex < m_lines.size(); ++lineIndex) {
         const std::u32string& line = m_lines[lineIndex];
-        float penX = m_rect.x;
+        float penX = visualRect.x;
         const float baselineY =
-            m_rect.y + atlas.GetAscent() * scale + lineHeight * static_cast<float>(lineIndex);
+            visualRect.y + atlas.GetAscent() * scale + lineHeight * static_cast<float>(lineIndex);
         char32_t prev = 0;
 
         for (char32_t c : line) {
@@ -102,7 +112,7 @@ void Label::OnPaint(Render::IRenderer& renderer) {
                 Rect dst{penX + glyph->bearingX * scale, baselineY + glyph->bearingY * scale,
                           glyph->width * scale, glyph->height * scale};
                 Render::UVRect uv{glyph->u0, glyph->v0, glyph->u1, glyph->v1};
-                renderer.DrawTextQuad(dst, uv, color, scale, m_fontFamily);
+                renderer.DrawTextQuad(dst, uv, color, scale, fontId);
             }
 
             penX += glyph->advance * scale;

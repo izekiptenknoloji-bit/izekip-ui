@@ -16,6 +16,9 @@ TextArea::TextArea() : Widget("TextArea") {
 }
 
 Render::GlyphAtlas& TextArea::GetAtlas() const {
+    if (m_style.fontFamily && *m_style.fontFamily == CssFontFamily::Monospace) {
+        return Render::GlyphAtlas::GetMonospaceDefault();
+    }
     return Render::GlyphAtlas::GetDefault();
 }
 
@@ -47,17 +50,25 @@ void TextArea::OnPaint(Render::IRenderer& renderer) {
     Widget::OnPaint(renderer); // background/border/shadow/children first, glyphs on top
 
     const float fontSize = m_style.fontSize.value_or(kDefaultFontSize);
-    const Color color = m_style.textColor.value_or(Color{0.0f, 0.0f, 0.0f, 1.0f});
+    Color color = m_style.textColor.value_or(Color{0.0f, 0.0f, 0.0f, 1.0f});
+    color.a *= GetEffectiveOpacity();
     auto& atlas = GetAtlas();
     const float scale = fontSize / atlas.GetBakedPixelHeight();
     const float lineHeight = atlas.GetLineHeight() * scale;
+    const BoxEdges padding = m_style.padding.value_or(BoxEdges{});
+    const Rect visualRect = GetVisualRect();
+    const Render::FontId fontId =
+        m_style.fontFamily && *m_style.fontFamily == CssFontFamily::Monospace
+            ? Render::FontId::Monospace
+            : Render::FontId::Proportional;
 
     const auto& lines = m_buffer.Lines();
     for (size_t lineIndex = 0; lineIndex < lines.size(); ++lineIndex) {
         const std::u32string& line = lines[lineIndex];
-        float penX = m_rect.x;
+        float penX = visualRect.x + padding.left;
         const float baselineY =
-            m_rect.y + atlas.GetAscent() * scale + lineHeight * static_cast<float>(lineIndex);
+            visualRect.y + padding.top + atlas.GetAscent() * scale +
+            lineHeight * static_cast<float>(lineIndex);
         char32_t prev = 0;
 
         for (char32_t c : line) {
@@ -74,7 +85,7 @@ void TextArea::OnPaint(Render::IRenderer& renderer) {
                 Rect dst{penX + glyph->bearingX * scale, baselineY + glyph->bearingY * scale,
                           glyph->width * scale, glyph->height * scale};
                 Render::UVRect uv{glyph->u0, glyph->v0, glyph->u1, glyph->v1};
-                renderer.DrawTextQuad(dst, uv, color, scale, Render::FontId::Proportional);
+                renderer.DrawTextQuad(dst, uv, color, scale, fontId);
             }
 
             penX += glyph->advance * scale;
@@ -86,8 +97,10 @@ void TextArea::OnPaint(Render::IRenderer& renderer) {
         const TextBuffer::Position cursor = m_buffer.GetCursor();
         const std::u32string& cursorLine = lines[cursor.line];
         const float caretX =
-            m_rect.x + atlas.MeasureTextWidth(cursorLine.substr(0, cursor.column), fontSize);
-        const float caretY = m_rect.y + lineHeight * static_cast<float>(cursor.line);
+            visualRect.x + padding.left +
+            atlas.MeasureTextWidth(cursorLine.substr(0, cursor.column), fontSize);
+        const float caretY =
+            visualRect.y + padding.top + lineHeight * static_cast<float>(cursor.line);
 
         Render::RectPaint caretPaint;
         caretPaint.fill.color = color;

@@ -134,6 +134,37 @@ void TestFocusAndBlur() {
     std::cout << "TestFocusAndBlur passed\n";
 }
 
+void TestDisabledWidgetsCannotBeFocusedOrClicked() {
+    Scene scene;
+    int clicks = 0;
+    scene.a->SetOnClick([&] { ++clicks; });
+    scene.a->SetFocusable(true);
+    scene.a->SetDisabled(true);
+    InteractionController controller(*scene.root);
+
+    controller.OnMouseMove(50.0f, 50.0f);
+    controller.OnMouseButton(true);
+    controller.OnMouseButton(false);
+    Pump(controller, scene);
+    assert(clicks == 0);
+    assert(controller.GetFocused() == nullptr);
+
+    scene.a->Click();
+    assert(clicks == 0);
+
+    scene.a->SetDisabled(false);
+    controller.OnMouseButton(true);
+    controller.OnMouseButton(false);
+    Pump(controller, scene);
+    assert(clicks == 1);
+    assert(controller.GetFocused() == scene.a.get());
+
+    scene.a->SetDisabled(true);
+    Pump(controller, scene);
+    assert(controller.GetFocused() == nullptr);
+    std::cout << "TestDisabledWidgetsCannotBeFocusedOrClicked passed\n";
+}
+
 void TestHoverUpdatesAfterHideWithoutMouseMove() {
     Scene scene;
     InteractionController controller(*scene.root);
@@ -147,6 +178,29 @@ void TestHoverUpdatesAfterHideWithoutMouseMove() {
     assert(controller.GetHovered() == scene.b.get());
     assert(!scene.bChild->IsHovered());
     std::cout << "TestHoverUpdatesAfterHideWithoutMouseMove passed\n";
+}
+
+void TestTranslatedWidgetHitTestingUsesPaintedPosition() {
+    auto root = std::make_shared<Widgets::Panel>();
+    root->SetId("root");
+    auto child = std::make_shared<Widgets::Panel>();
+    child->AddClass("target");
+    root->AddChild(child);
+
+    StyleSheet sheet = StyleSheet::LoadFromString(
+        "#root { width: 100px; height: 100px; transform: translate(20px, 10px); }"
+        ".target { width: 50px; height: 50px; }");
+    LexborBridge bridge;
+    bridge.Build(*root);
+    StyleApplier::Apply(bridge, sheet, *root);
+    root->CalculateLayout(100.0f, 100.0f);
+
+    const Rect childRect = child->GetVisualRect();
+    assert(std::abs(childRect.x - 20.0f) < 0.001f);
+    assert(std::abs(childRect.y - 10.0f) < 0.001f);
+    assert(root->HitTest(25.0f, 15.0f) == child.get());
+    assert(root->HitTest(5.0f, 5.0f) == nullptr);
+    std::cout << "TestTranslatedWidgetHitTestingUsesPaintedPosition passed\n";
 }
 
 void TestCheckboxToggle() {
@@ -221,7 +275,9 @@ int main() {
     TestNoClickWhenReleasedOutside();
     TestPressOnChildBubblesToClickableAncestor();
     TestFocusAndBlur();
+    TestDisabledWidgetsCannotBeFocusedOrClicked();
     TestHoverUpdatesAfterHideWithoutMouseMove();
+    TestTranslatedWidgetHitTestingUsesPaintedPosition();
     TestCheckboxToggle();
     TestRadioGroupExclusivity();
     TestProgressBarClamps();

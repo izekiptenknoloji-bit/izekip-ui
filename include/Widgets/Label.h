@@ -19,8 +19,7 @@ public:
     void SetText(std::string text);
     const std::string& GetText() const { return m_text; }
 
-    // C++-only font selection -- there is no CSS `font-family` property (see IRenderer.h's
-    // FontId doc comment for why). Default: Render::FontId::Proportional.
+    // Selects the fallback font when CSS does not set font-family.
     void SetFontFamily(Render::FontId fontFamily);
 
     void OnPaint(Render::IRenderer& renderer) override;

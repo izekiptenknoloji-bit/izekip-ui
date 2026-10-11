@@ -6,7 +6,7 @@
 
 namespace IzekipUI {
 
-enum class TransitionProperty { All, BackgroundColor, Width, Height, Margin, Opacity };
+enum class TransitionProperty { All, BackgroundColor, Width, Height, Margin, Opacity, Transform };
 
 // Describes how a widget should animate future changes to its resolved style -- this is
 // not itself a trigger, it is read whenever StyleApplier notices a resolved value changed

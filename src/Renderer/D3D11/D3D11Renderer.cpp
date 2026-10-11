@@ -428,4 +428,12 @@ void D3D11Renderer::DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPai
     m_context->Draw(6, 0);
 }
 
+void D3D11Renderer::DrawImage(const std::string& imagePath, const Rect& rect, float opacity) {
+    // TODO: Load PNG from imagePath, create D3D11 texture, draw as quad.
+    // For now, silent no-op to unblock Image widget integration.
+    (void)imagePath;
+    (void)rect;
+    (void)opacity;
+}
+
 } // namespace IzekipUI::Render

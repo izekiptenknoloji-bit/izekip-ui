@@ -14,6 +14,7 @@ set(IZEKIP_SOURCES
     Widgets/Checkbox.cpp
     Widgets/RadioButton.cpp
     Widgets/ProgressBar.cpp
+    Widgets/Image.cpp
     Platform/Window.cpp
     Renderer/RHI.cpp
     CSS/CssTokenizer.cpp

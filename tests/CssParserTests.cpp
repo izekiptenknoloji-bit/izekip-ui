@@ -8,6 +8,7 @@
 #include "CSS/StyleSheet.h"
 #include "Core/Transition.h"
 #include "Core/Widget.h"
+#include "Widgets/Label.h"
 
 using namespace IzekipUI;
 using namespace IzekipUI::Css;
@@ -93,6 +94,39 @@ void TestHoverActiveMatching() {
     assert(*button->GetStyle().backgroundColor == Color::FromHex("#5588FF"));
 
     std::cout << "TestHoverActiveMatching passed\n";
+}
+
+void TestDisabledPseudoClassMatching() {
+    auto button = std::make_shared<Widget>("Button");
+    button->AddClass("action");
+    auto child = std::make_shared<Widget>("Panel");
+    child->AddClass("nested-action");
+    button->AddChild(child);
+
+    StyleSheet sheet = StyleSheet::LoadFromString(
+        ".action { opacity: 1.0; }"
+        ".action:disabled, .nested-action:disabled { opacity: 0.4; }");
+
+    LexborBridge bridge;
+    bridge.Build(*button);
+
+    StyleApplier::Apply(bridge, sheet, *button);
+    assert(button->GetStyle().opacity.has_value());
+    assert(std::abs(*button->GetStyle().opacity - 1.0f) < 0.001f);
+
+    button->SetDisabled(true);
+    StyleApplier::Apply(bridge, sheet, *button);
+    assert(button->GetStyle().opacity.has_value());
+    assert(child->GetStyle().opacity.has_value());
+    assert(std::abs(*button->GetStyle().opacity - 0.4f) < 0.001f);
+    assert(std::abs(*child->GetStyle().opacity - 0.4f) < 0.001f);
+
+    button->SetDisabled(false);
+    StyleApplier::Apply(bridge, sheet, *button);
+    assert(button->GetStyle().opacity.has_value());
+    assert(std::abs(*button->GetStyle().opacity - 1.0f) < 0.001f);
+    assert(!child->GetStyle().opacity.has_value());
+    std::cout << "TestDisabledPseudoClassMatching passed\n";
 }
 
 void TestTransitionDeclarationParsing() {
@@ -200,6 +234,35 @@ void TestPercentWidthResolvesViaYoga() {
     std::cout << "TestPercentWidthResolvesViaYoga passed\n";
 }
 
+void TestMinMaxDimensionsAndViewportHeight() {
+    auto root = std::make_shared<Widget>("Panel");
+    root->AddClass("viewport");
+    StyleSheet sheet = StyleSheet::LoadFromString(
+        ".viewport { width: 500px; min-height: 100vh; max-width: 320px; }");
+    LexborBridge bridge;
+    bridge.Build(*root);
+    StyleApplier::Apply(bridge, sheet, *root);
+    root->CalculateLayout(500.0f, 240.0f);
+
+    assert(root->GetStyle().minHeight.has_value());
+    assert(root->GetStyle().minHeight->isViewportHeight);
+    assert(root->GetStyle().maxWidth.has_value());
+    assert(std::abs(root->GetLocalRect().height - 240.0f) < 0.01f);
+    assert(std::abs(root->GetLocalRect().width - 320.0f) < 0.01f);
+    std::cout << "TestMinMaxDimensionsAndViewportHeight passed\n";
+}
+
+void TestCssGenericFontFamily() {
+    auto label = std::make_shared<Widgets::Label>();
+    StyleSheet sheet = StyleSheet::LoadFromString("Label { font-family: monospace; }");
+    LexborBridge bridge;
+    bridge.Build(*label);
+    StyleApplier::Apply(bridge, sheet, *label);
+    assert(label->GetStyle().fontFamily.has_value());
+    assert(*label->GetStyle().fontFamily == CssFontFamily::Monospace);
+    std::cout << "TestCssGenericFontFamily passed\n";
+}
+
 // Proves the 5-value (spread) and `inset` box-shadow variants parse correctly.
 void TestBoxShadowSpreadAndInset() {
     auto spreadButton = std::make_shared<Widget>("Button");
@@ -290,7 +353,7 @@ void TestBorderShorthand() {
 void TestMultiplePropertyTransitionList() {
     auto button = std::make_shared<Widget>("Button");
     StyleSheet sheet = StyleSheet::LoadFromString(
-        "Button { transition: width 300ms ease-in-out, height 500ms linear; }");
+        "Button { transition: width 300ms ease-in-out, height 500ms linear, opacity 220ms ease-out; }");
 
     LexborBridge bridge;
     bridge.Build(*button);
@@ -298,17 +361,69 @@ void TestMultiplePropertyTransitionList() {
 
     assert(button->GetStyle().transition.has_value());
     const auto& transitions = *button->GetStyle().transition;
-    assert(transitions.size() == 2);
+    assert(transitions.size() == 3);
     assert(transitions[0].property == TransitionProperty::Width);
     assert(std::abs(transitions[0].durationSeconds - 0.3f) < 0.001f);
     assert(transitions[1].property == TransitionProperty::Height);
     assert(std::abs(transitions[1].durationSeconds - 0.5f) < 0.001f);
+    assert(transitions[2].property == TransitionProperty::Opacity);
+    assert(std::abs(transitions[2].durationSeconds - 0.22f) < 0.001f);
 
     assert(FindCoveringTransition(transitions, TransitionProperty::Width) == &transitions[0]);
     assert(FindCoveringTransition(transitions, TransitionProperty::Height) == &transitions[1]);
+    assert(FindCoveringTransition(transitions, TransitionProperty::Opacity) == &transitions[2]);
     assert(FindCoveringTransition(transitions, TransitionProperty::BackgroundColor) == nullptr);
 
     std::cout << "TestMultiplePropertyTransitionList passed\n";
+}
+
+void TestOpacityTransitionRunsAfterClassChange() {
+    Widget widget("Panel");
+    widget.AddClass("loading");
+    StyleSheet sheet = StyleSheet::LoadFromString(
+        ".panel { opacity: 1.0; transition: opacity 220ms ease-in-out; }"
+        ".loading { opacity: 0.4; }");
+    widget.AddClass("panel");
+
+    LexborBridge bridge;
+    bridge.Build(widget);
+    StyleApplier::Apply(bridge, sheet, widget);
+    assert(widget.GetStyle().opacity.has_value());
+    assert(std::abs(*widget.GetStyle().opacity - 0.4f) < 0.001f);
+
+    widget.RemoveClass("loading");
+    StyleApplier::Apply(bridge, sheet, widget);
+    TickWidgetTreeAnimations(widget, 0.11f);
+    assert(*widget.GetStyle().opacity > 0.4f);
+    assert(*widget.GetStyle().opacity < 1.0f);
+
+    TickWidgetTreeAnimations(widget, 0.2f);
+    assert(std::abs(*widget.GetStyle().opacity - 1.0f) < 0.001f);
+    std::cout << "TestOpacityTransitionRunsAfterClassChange passed\n";
+}
+
+void TestTranslateTransformAndTransition() {
+    Widget widget("Panel");
+    widget.AddClass("card");
+    StyleSheet sheet = StyleSheet::LoadFromString(
+        ".card { transform: translateY(16px); transition: transform 400ms ease-out; }"
+        ".card.visible { transform: translate(0px, 0px); }");
+
+    LexborBridge bridge;
+    bridge.Build(widget);
+    StyleApplier::Apply(bridge, sheet, widget);
+    assert(widget.GetStyle().transform.has_value());
+    assert(std::abs(widget.GetStyle().transform->y - 16.0f) < 0.001f);
+
+    widget.AddClass("visible");
+    StyleApplier::Apply(bridge, sheet, widget);
+    TickWidgetTreeAnimations(widget, 0.2f);
+    assert(widget.GetStyle().transform->y > 0.0f);
+    assert(widget.GetStyle().transform->y < 16.0f);
+
+    TickWidgetTreeAnimations(widget, 0.3f);
+    assert(std::abs(widget.GetStyle().transform->y) < 0.001f);
+    std::cout << "TestTranslateTransformAndTransition passed\n";
 }
 
 // Proves a single backdrop-filter function (blur) parses.
@@ -332,7 +447,8 @@ void TestBackdropFilterSingleFunction() {
 void TestBackdropFilterMultipleFunctions() {
     auto panel = std::make_shared<Widget>("Panel");
     StyleSheet sheet =
-        StyleSheet::LoadFromString("Panel { backdrop-filter: blur(10px) brightness(1.2); }");
+        StyleSheet::LoadFromString(
+            "Panel { backdrop-filter: blur(10px) brightness(1.2) hue-rotate(90deg); }");
 
     LexborBridge bridge;
     bridge.Build(*panel);
@@ -342,13 +458,38 @@ void TestBackdropFilterMultipleFunctions() {
     assert(*panel->GetStyle().backdropFilter->blurRadiusPx == 10.0f);
     assert(panel->GetStyle().backdropFilter->brightness.has_value());
     assert(std::abs(*panel->GetStyle().backdropFilter->brightness - 1.2f) < 0.001f);
+    assert(panel->GetStyle().backdropFilter->hueRotateRadians.has_value());
+    assert(std::abs(*panel->GetStyle().backdropFilter->hueRotateRadians -
+                    1.57079632679f) < 0.001f);
 
     std::cout << "TestBackdropFilterMultipleFunctions passed\n";
 }
 
-// Proves an unrecognized sub-function (hue-rotate) is skipped individually -- the rest of
-// the list still applies -- while a declaration made ENTIRELY of unrecognized functions
-// resolves to nullopt (consistent with "unknown properties are ignored").
+void TestBackdropHueRotateAngleUnits() {
+    const auto parseHue = [](const char* value) {
+        auto panel = std::make_shared<Widget>("Panel");
+        StyleSheet sheet = StyleSheet::LoadFromString(
+            std::string("Panel { backdrop-filter: hue-rotate(") + value + "); }");
+        LexborBridge bridge;
+        bridge.Build(*panel);
+        StyleApplier::Apply(bridge, sheet, *panel);
+        assert(panel->GetStyle().backdropFilter.has_value());
+        assert(panel->GetStyle().backdropFilter->hueRotateRadians.has_value());
+        return *panel->GetStyle().backdropFilter->hueRotateRadians;
+    };
+
+    constexpr float kQuarterTurn = 1.57079632679f;
+    assert(std::abs(parseHue("90deg") - kQuarterTurn) < 0.001f);
+    assert(std::abs(parseHue("1.57079632679rad") - kQuarterTurn) < 0.001f);
+    assert(std::abs(parseHue("0.25turn") - kQuarterTurn) < 0.001f);
+    assert(std::abs(parseHue("100grad") - kQuarterTurn) < 0.001f);
+    assert(std::abs(parseHue("0") - 0.0f) < 0.001f);
+
+    std::cout << "TestBackdropHueRotateAngleUnits passed\n";
+}
+
+// Proves an unrecognized sub-function is skipped individually while the rest of the list
+// still applies, and an entirely unsupported declaration resolves to nullopt.
 void TestBackdropFilterUnknownSubFunctionIgnored() {
     auto mixedPanel = std::make_shared<Widget>("Panel");
     StyleSheet mixedSheet =
@@ -359,6 +500,8 @@ void TestBackdropFilterUnknownSubFunctionIgnored() {
 
     assert(mixedPanel->GetStyle().backdropFilter.has_value());
     assert(*mixedPanel->GetStyle().backdropFilter->blurRadiusPx == 10.0f);
+    assert(std::abs(*mixedPanel->GetStyle().backdropFilter->hueRotateRadians -
+                    1.57079632679f) < 0.001f);
 
     auto unknownPanel = std::make_shared<Widget>("Panel");
     StyleSheet unknownSheet = StyleSheet::LoadFromString("Panel { backdrop-filter: opacity(0.5); }");
@@ -495,6 +638,69 @@ void TestEmptyClassListRemovesAttribute() {
     std::cout << "TestEmptyClassListRemovesAttribute passed\n";
 }
 
+void TestKeyframeAnimationAndReducedMotion() {
+    auto card = std::make_shared<Widget>("Panel");
+    card->AddClass("card");
+    StyleSheet sheet = StyleSheet::LoadFromString(
+        "@keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); }"
+        " to { opacity: 1; transform: translateY(0); } }"
+        ".card { opacity: 0; transform: translateY(16px);"
+        " animation: fade-in-up 400ms cubic-bezier(0.22, 1, 0.36, 1) forwards; }"
+        ".transient { opacity: 0.2; animation: fade-in-up 100ms linear; }"
+        "@media (prefers-reduced-motion: reduce) {"
+        " .card { animation: none; opacity: 1; transform: none; } }");
+    assert(sheet.GetKeyframes().size() == 1);
+    assert(sheet.GetKeyframes()[0].name == "fade-in-up");
+    assert(sheet.GetKeyframes()[0].frames.size() == 2);
+
+    LexborBridge bridge;
+    bridge.Build(*card);
+    StyleApplier::Apply(bridge, sheet, *card);
+    assert(card->GetStyle().opacity && *card->GetStyle().opacity == 0.0f);
+    TickWidgetTreeAnimations(*card, 0.2f);
+    assert(card->GetStyle().opacity && *card->GetStyle().opacity > 0.0f &&
+           *card->GetStyle().opacity < 1.0f);
+    assert(card->GetStyle().transform && card->GetStyle().transform->y < 16.0f);
+    StyleApplier::Apply(bridge, sheet, *card);
+    assert(card->GetStyle().opacity && *card->GetStyle().opacity > 0.0f &&
+           *card->GetStyle().opacity < 1.0f);
+    TickWidgetTreeAnimations(*card, 0.2f);
+    assert(card->GetStyle().opacity && std::abs(*card->GetStyle().opacity - 1.0f) < 0.001f);
+    assert(card->GetStyle().transform && std::abs(card->GetStyle().transform->y) < 0.001f);
+
+    sheet.SetPrefersReducedMotion(true);
+    StyleApplier::Apply(bridge, sheet, *card);
+    assert(card->GetStyle().opacity && std::abs(*card->GetStyle().opacity - 1.0f) < 0.001f);
+    assert(card->GetStyle().transform && std::abs(card->GetStyle().transform->y) < 0.001f);
+    TickWidgetTreeAnimations(*card, 1.0f);
+    assert(card->GetStyle().opacity && std::abs(*card->GetStyle().opacity - 1.0f) < 0.001f);
+
+    auto transient = std::make_shared<Widget>("Panel");
+    transient->AddClass("transient");
+    LexborBridge transientBridge;
+    transientBridge.Build(*transient);
+    StyleApplier::Apply(transientBridge, sheet, *transient);
+    TickWidgetTreeAnimations(*transient, 0.1f);
+    assert(transient->GetStyle().opacity &&
+           std::abs(*transient->GetStyle().opacity - 0.2f) < 0.001f);
+    std::cout << "TestKeyframeAnimationAndReducedMotion passed\n";
+}
+
+void TestOpacityInheritsThroughWidgetTree() {
+    auto root = std::make_shared<Widget>("Panel");
+    auto child = std::make_shared<Widget>("Panel");
+    auto grandchild = std::make_shared<Widget>("Panel");
+    root->AddChild(child);
+    child->AddChild(grandchild);
+    root->GetStyle().opacity = 0.5f;
+    child->GetStyle().opacity = 0.8f;
+    grandchild->GetStyle().opacity = 0.5f;
+    assert(std::abs(root->GetEffectiveOpacity() - 0.5f) < 0.001f);
+    assert(std::abs(child->GetEffectiveOpacity() - 0.4f) < 0.001f);
+    assert(std::abs(grandchild->GetEffectiveOpacity() - 0.2f) < 0.001f);
+    std::cout << "TestOpacityInheritsThroughWidgetTree passed\n";
+}
+
 } // namespace
 
 int main() {
@@ -502,18 +708,24 @@ int main() {
     TestCommaSeparatedSelectorGroup();
     TestSpecificityOrdering();
     TestHoverActiveMatching();
+    TestDisabledPseudoClassMatching();
     TestTransitionDeclarationParsing();
     TestDescendantCombinatorAndMultiValueMargin();
     TestRgbFunctionColorParsing();
     TestThreeDigitHexColorParsing();
     TestPercentWidthResolvesViaYoga();
+    TestMinMaxDimensionsAndViewportHeight();
+    TestCssGenericFontFamily();
     TestBoxShadowSpreadAndInset();
     TestMultipleCommaBoxShadows();
     TestThreeStopLinearGradient();
     TestBorderShorthand();
     TestMultiplePropertyTransitionList();
+    TestOpacityTransitionRunsAfterClassChange();
+    TestTranslateTransformAndTransition();
     TestBackdropFilterSingleFunction();
     TestBackdropFilterMultipleFunctions();
+    TestBackdropHueRotateAngleUnits();
     TestBackdropFilterUnknownSubFunctionIgnored();
     TestRemoveClassResyncsCascade();
     TestToggleAndSetClass();
@@ -521,6 +733,8 @@ int main() {
     TestDisplayResetsWhenHidingClassRemoved();
     TestHiddenChildSkippedByHitTest();
     TestEmptyClassListRemovesAttribute();
+    TestKeyframeAnimationAndReducedMotion();
+    TestOpacityInheritsThroughWidgetTree();
     std::cout << "All CssParserTests passed.\n";
     return 0;
 }

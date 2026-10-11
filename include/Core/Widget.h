@@ -29,6 +29,12 @@ struct AnimationTickResult {
     }
 };
 
+struct KeyframeAnimationPoint {
+    float offset = 0.0f;
+    std::optional<float> opacity;
+    std::optional<Translation> transform;
+};
+
 // Base class for every UI element. Layout is delegated to Yoga: each Widget owns a
 // YGNodeRef, and CSS-driven width/height/margin/padding are written into that node
 // (see StyleApplier). CalculateLayout() runs Yoga's algorithm once from the root and
@@ -67,8 +73,25 @@ public:
     // Click handling. Clicks are detected and fired by InteractionController (press +
     // release over the same clickable widget's subtree); Click() fires one programmatically.
     void SetOnClick(std::function<void()> onClick) { m_onClick = std::move(onClick); }
-    void Click() { OnClicked(); }
+    void Click() {
+        if (IsEnabled()) {
+            OnClicked();
+        }
+    }
     bool IsClickable() const { return HandlesClick(); }
+
+    // Disabled widgets remain visible and hoverable, but cannot be focused or activated.
+    // A disabled ancestor disables its entire subtree; request a restyle after changing it.
+    void SetDisabled(bool disabled) { m_disabled = disabled; }
+    bool IsDisabled() const { return m_disabled; }
+    bool IsEnabled() const {
+        for (const Widget* widget = this; widget != nullptr; widget = widget->m_parent) {
+            if (widget->m_disabled) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     // Whether pressing this widget gives it keyboard focus (TextArea is focusable by default).
     void SetFocusable(bool focusable) { m_focusable = focusable; }
@@ -83,8 +106,11 @@ public:
 
     // Only meaningful when called on the root widget.
     void CalculateLayout(float availableWidth, float availableHeight);
+    void ApplyViewportUnits(float viewportHeight);
 
     const Rect& GetLocalRect() const { return m_rect; }
+    Rect GetVisualRect() const;
+    float GetEffectiveOpacity() const;
 
     virtual void OnPaint(Render::IRenderer& renderer);
 
@@ -121,6 +147,14 @@ public:
 
     void SnapOpacity(float value);
     void AnimateOpacityTo(float target, float durationSeconds, const CubicBezier& easing);
+
+    void SnapTransform(Translation value);
+    void AnimateTransformTo(Translation target, float durationSeconds, const CubicBezier& easing);
+    void StartCssAnimation(const CssAnimation& animation,
+                           std::vector<KeyframeAnimationPoint> points);
+    void CancelCssAnimation();
+    bool CssAnimationAffectsOpacity() const;
+    bool CssAnimationAffectsTransform() const;
 
     // Advances this widget's in-flight animations by deltaSeconds, writing interpolated
     // results into m_style (and, for width/height/margin, into the Yoga node). Does not
@@ -163,6 +197,7 @@ protected:
     bool m_hovered = false;
     bool m_active = false;
     bool m_focused = false;
+    bool m_disabled = false;
     bool m_hasBeenStyled = false;
     StyleProperties m_targetStyle;
 
@@ -171,6 +206,16 @@ protected:
     std::optional<Animation<float>> m_heightAnim;
     std::optional<Animation<BoxEdges>> m_marginAnim;
     std::optional<Animation<float>> m_opacityAnim;
+    std::optional<Animation<Translation>> m_transformAnim;
+    struct CssAnimationState {
+        CssAnimation spec;
+        std::vector<KeyframeAnimationPoint> points;
+        float elapsed = 0.0f;
+        std::optional<float> baseOpacity;
+        std::optional<Translation> baseTransform;
+        bool finished = false;
+    };
+    std::optional<CssAnimationState> m_cssAnimation;
 };
 
 // Clears IsHovered()/IsActive() across the whole subtree -- used before re-marking the

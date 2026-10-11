@@ -16,6 +16,7 @@
 #include "WinSys.h"
 #include "Widgets/Button.h"
 #include "Widgets/Checkbox.h"
+#include "Widgets/Image.h"
 #include "Widgets/Label.h"
 #include "Widgets/Panel.h"
 #include "Widgets/ProgressBar.h"
@@ -163,10 +164,12 @@ void App::BuildTree() {
 
     // ---- Header ----
     auto header = MakePanel("header");
-    auto logoIcon = MakePanel("logo-icon");
-    header->AddChild(logoIcon);
+    auto logo = std::make_shared<Widgets::Image>();
+    logo->SetImagePath("logo.png");
+    logo->AddClass("logo-image");
+    header->AddChild(logo);
     auto titlePanel = MakePanel("title-panel");
-    titlePanel->AddChild(MakeLabel("İzekip NativeCSS Framework", "title-main"));
+    titlePanel->AddChild(MakeLabel("NativeCSS Framework", "title-main"));
     titlePanel->AddChild(MakeLabel("SDK Kurulumu", "title-sub"));
     header->AddChild(titlePanel);
     m_stepLabel = MakeLabel("", "step");

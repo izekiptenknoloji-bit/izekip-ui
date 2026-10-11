@@ -42,6 +42,7 @@ struct PSConstants {
     Float4 gradientPositions; // x,y,z = stop0/1/2 position in [0,1] along the axis, w = stop count (2 or 3)
     Float4 backdropParams;      // x=backdropMode(0/1), y=blurRadiusPx, z=viewportW, w=viewportH
     Float4 backdropColorAdjust; // x=brightness, y=contrast, z=saturate, w=grayscale
+    Float4 backdropHueAdjust;   // x=hue rotation in radians
 };
 
 struct RectDrawData {

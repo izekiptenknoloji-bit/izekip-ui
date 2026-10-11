@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "Core/Color.h"
@@ -28,11 +29,40 @@ enum class Display { Flex, None };
 struct Length {
     float value = 0.0f;
     bool isPercent = false;
+    bool isViewportHeight = false;
 
     bool operator==(const Length& other) const {
-        return value == other.value && isPercent == other.isPercent;
+        return value == other.value && isPercent == other.isPercent &&
+               isViewportHeight == other.isViewportHeight;
     }
     bool operator!=(const Length& other) const { return !(*this == other); }
+};
+
+enum class CssFontFamily { Proportional, Monospace };
+
+struct CssAnimation {
+    std::string name;
+    float durationSeconds = 0.0f;
+    CubicBezier easing{};
+    bool forwards = false;
+
+    bool operator==(const CssAnimation& other) const {
+        return name == other.name && durationSeconds == other.durationSeconds &&
+               easing.x1 == other.easing.x1 && easing.y1 == other.easing.y1 &&
+               easing.x2 == other.easing.x2 && easing.y2 == other.easing.y2 &&
+               forwards == other.forwards;
+    }
+    bool operator!=(const CssAnimation& other) const { return !(*this == other); }
+};
+
+struct Translation {
+    float x = 0.0f;
+    float y = 0.0f;
+
+    bool operator==(const Translation& other) const {
+        return x == other.x && y == other.y;
+    }
+    bool operator!=(const Translation& other) const { return !(*this == other); }
 };
 
 struct BoxShadow {
@@ -87,20 +117,20 @@ struct LinearGradient {
 // linear spatial operator, brightness/contrast/saturate/grayscale are all linear
 // per-pixel color transforms, and a linear spatial operator commutes with any
 // position-independent linear color transform), then brightness -> contrast -> saturate
-// -> grayscale in that fixed order. hue-rotate()/invert()/drop-shadow()/opacity() are
-// unsupported (out of scope, see the Phase plan) and silently ignored per-function (not
-// the whole declaration).
+// -> grayscale -> hue-rotate in that fixed order. invert()/drop-shadow()/opacity() are
+// unsupported and silently ignored per-function (not the whole declaration).
 struct BackdropFilter {
     std::optional<float> blurRadiusPx;
     std::optional<float> brightness;
     std::optional<float> contrast;
     std::optional<float> saturate;
     std::optional<float> grayscale;
+    std::optional<float> hueRotateRadians;
 
     bool operator==(const BackdropFilter& other) const {
         return blurRadiusPx == other.blurRadiusPx && brightness == other.brightness &&
                contrast == other.contrast && saturate == other.saturate &&
-               grayscale == other.grayscale;
+               grayscale == other.grayscale && hueRotateRadians == other.hueRotateRadians;
     }
     bool operator!=(const BackdropFilter& other) const { return !(*this == other); }
 };
@@ -115,9 +145,16 @@ struct StyleProperties {
 
     std::optional<Length> width;
     std::optional<Length> height;
+    std::optional<Length> minWidth;
+    std::optional<Length> maxWidth;
+    std::optional<Length> minHeight;
+    std::optional<Length> maxHeight;
     std::optional<float> borderWidth;
     std::optional<float> fontSize;
+    std::optional<CssFontFamily> fontFamily;
     std::optional<float> opacity;
+    std::optional<Translation> transform;
+    std::optional<CssAnimation> animation;
 
     // margin/padding stay pixel-only for now (percent support deferred -- BoxEdges would
     // need to become a Length-per-edge struct, a bigger change than this pass covers).

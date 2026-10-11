@@ -60,6 +60,7 @@ cbuffer PSConstants : register(b0) {
     float4 gradientPositions; // x,y,z = stop0/1/2 position in [0,1] along the axis, w = stop count (2 or 3)
     float4 backdropParams;      // x=backdropMode(0/1), y=blurRadiusPx, z=viewportW, w=viewportH
     float4 backdropColorAdjust; // x=brightness, y=contrast, z=saturate, w=grayscale
+    float4 backdropHueAdjust;   // x=hue rotation in radians
 };
 
 #if VK_BACKEND
@@ -112,13 +113,28 @@ float4 PSMain(VSOutput input) : SV_TARGET {
         // from a GPU-to-GPU copy, see IRenderer::DrawBackdropBlurRect), then apply the
         // affine color adjustments in the engine's fixed canonical order (blur always
         // first -- it commutes with these, see StyleProperties.h's BackdropFilter doc
-        // comment -- then brightness -> contrast -> saturate -> grayscale).
+        // comment -- then brightness -> contrast -> saturate -> grayscale -> hue-rotate.
         float3 c = SampleBackdropBlur(input.screenUV);
         c *= backdropColorAdjust.x;                   // brightness: rgb *= amount
         c = (c - 0.5) * backdropColorAdjust.y + 0.5;   // contrast: (rgb-0.5)*amount+0.5
         float luminance = dot(c, float3(0.2126, 0.7152, 0.0722));
         c = lerp(luminance.xxx, c, backdropColorAdjust.z); // saturate: lerp(lum, rgb, amount)
         c = lerp(c, luminance.xxx, backdropColorAdjust.w); // grayscale: lerp(rgb, lum, amount)
+        float hueRadians = backdropHueAdjust.x;
+        if (abs(hueRadians) > 0.00001) {
+            float cosine = cos(hueRadians);
+            float sine = sin(hueRadians);
+            c = float3(
+                dot(c, float3(0.213 + 0.787 * cosine - 0.213 * sine,
+                              0.715 - 0.715 * cosine - 0.715 * sine,
+                              0.072 - 0.072 * cosine + 0.928 * sine)),
+                dot(c, float3(0.213 - 0.213 * cosine + 0.143 * sine,
+                              0.715 + 0.285 * cosine + 0.140 * sine,
+                              0.072 - 0.072 * cosine - 0.283 * sine)),
+                dot(c, float3(0.213 - 0.213 * cosine - 0.787 * sine,
+                              0.715 - 0.715 * cosine + 0.715 * sine,
+                              0.072 + 0.928 * cosine + 0.072 * sine)));
+        }
 
         float cornerRadius = params.x;
         float2 elemCenter = elementRectCenterHalfSize.xy;
