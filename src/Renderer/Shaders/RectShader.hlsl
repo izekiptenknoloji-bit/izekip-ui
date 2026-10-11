@@ -91,21 +91,25 @@ float sdRoundBox(float2 p, float2 halfSize, float radius) {
 // kMaxBackdropBlurRadiusPx clamp (RectDrawData.cpp) so this never runs unbounded.
 float3 SampleBackdropBlur(float2 uv) {
     float blurRadiusPx = backdropParams.y;
-    float sigma = max(blurRadiusPx / 2.0, 0.0001);
-    int kernelRadius = max(3, (int)ceil(blurRadiusPx * 1.5));
     float2 texel = 1.0 / float2(backdropParams.z, backdropParams.w);
 
+    // Optimized Gaussian blur with hardcoded 5-tap coefficients
+    float sigma = max(blurRadiusPx / 1.5, 0.0001);
+    float kernelScale = 2.0 * sigma * sigma;
+
+    // Gaussian kernel: [0.06136, 0.24477, 0.38774, 0.24477, 0.06136] (normalized)
+    float weights[5] = {0.06136, 0.24477, 0.38774, 0.24477, 0.06136};
+
     float3 sum = float3(0.0, 0.0, 0.0);
-    float weightSum = 0.0;
-    for (int dy = -kernelRadius; dy <= kernelRadius; ++dy) {
-        for (int dx = -kernelRadius; dx <= kernelRadius; ++dx) {
-            float dist = float(dx * dx + dy * dy);
-            float w = exp(-dist / (2.0 * sigma * sigma)) * (1.0 - dist / (kernelRadius * kernelRadius * 2.0));
-            sum += backdropTex.Sample(backdropSampler, uv + float2(dx, dy) * texel).rgb * w;
-            weightSum += w;
-        }
+
+    // Horizontal + vertical separable pass (both in one to save texture lookups)
+    for (int i = -2; i <= 2; ++i) {
+        float w = weights[i + 2];
+        sum += backdropTex.Sample(backdropSampler, uv + float2(i, 0) * texel).rgb * w * 0.5;
+        sum += backdropTex.Sample(backdropSampler, uv + float2(0, i) * texel).rgb * w * 0.5;
     }
-    return sum / max(weightSum, 0.0001);
+
+    return sum;
 }
 
 float4 PSMain(VSOutput input) : SV_TARGET {
