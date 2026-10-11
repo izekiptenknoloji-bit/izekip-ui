@@ -163,6 +163,8 @@ void App::BuildTree() {
 
     // ---- Header ----
     auto header = MakePanel("header");
+    auto logoIcon = MakePanel("logo-icon");
+    header->AddChild(logoIcon);
     auto titlePanel = MakePanel("title-panel");
     titlePanel->AddChild(MakeLabel("İzekip NativeCSS Framework", "title-main"));
     titlePanel->AddChild(MakeLabel("SDK Kurulumu", "title-sub"));
