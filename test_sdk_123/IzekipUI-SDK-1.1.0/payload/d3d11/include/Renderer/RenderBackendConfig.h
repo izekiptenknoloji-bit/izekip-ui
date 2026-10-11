@@ -1,0 +1,4 @@
+#pragma once
+
+#define IZEKIP_RENDER_BACKEND_D3D11 1
+#define IZEKIP_RENDER_BACKEND_VULKAN 0

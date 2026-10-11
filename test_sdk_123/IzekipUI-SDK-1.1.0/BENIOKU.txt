@@ -1,0 +1,14 @@
+İzekip UI SDK 1.1.0
+
+Kurulum:
+  1. Bu zip arşivini bir klasöre çıkarın (zip içinden doğrudan çalıştırmayın).
+  2. IzekipUISetup.exe dosyasını çalıştırın ve adımları izleyin.
+
+Gereksinimler:
+  - Windows 10 veya üstü, 64-bit.
+  - Microsoft Visual C++ 2015-2022 Redistributable (x64) -- Visual Studio kuruluysa zaten vardır.
+  - SDK'yı kullanmak için: Visual Studio (MSVC) ve CMake 3.21+.
+  - Vulkan payload'ını seçerseniz: Vulkan SDK.
+
+Kaldırma: Ayarlar > Uygulamalar > "İzekip UI SDK" > Kaldır
+(ya da <kurulum klasörü>\uninstall\IzekipUISetup.exe --uninstall).

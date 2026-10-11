@@ -1,0 +1,164 @@
+/* İzekip UI SDK installer -- styled with İzekip UI's own CSS engine.
+   Rule followed throughout (the cascade is additive, see ARCHITECTURE.md): every property
+   a state class (:hover, :active, .checked, .hidden) overrides also has a base value, so
+   removing the state class restores it. */
+
+#root {
+    width: 760px;
+    height: 520px;
+    flex-direction: column;
+    background: linear-gradient(to bottom, #14161A, #1B1F27);
+}
+
+.hidden { display: none; }
+
+/* ---- Header / footer ---- */
+
+.header {
+    height: 64px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0px 28px;
+    background-color: rgba(255, 255, 255, 0.04);
+    box-shadow: 0px 2px 12px #00000040;
+}
+
+.logo-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
+    background-color: #2457A7;
+    justify-content: center;
+    align-items: center;
+    margin: 0px 12px 0px 0px;
+}
+
+.logo-mark { color: #FFFFFF; font-size: 24px; font-weight: 700; }
+
+.title-panel { flex-direction: column; }
+.title-main { color: #3366FF; font-size: 16px; font-weight: 600; }
+.title-sub { color: #FFFFFF; font-size: 18px; margin: 2px 0px 0px 0px; }
+.title { color: #FFFFFF; font-size: 18px; }
+.step  { color: #8A94A6; font-size: 13px; }
+
+.pages {
+    height: 392px;
+    flex-direction: column;
+    padding: 20px 28px;
+}
+
+.page { flex-direction: column; }
+
+.footer {
+    height: 64px;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0px 28px;
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* ---- Text ---- */
+
+.page-title { color: #FFFFFF; font-size: 22px; margin: 0px 0px 14px 0px; }
+.body       { color: #D7DAE0; font-size: 14px; }
+.muted      { color: #8A94A6; font-size: 12px; margin: 14px 0px 0px 0px; }
+.section    { color: #9AA4B5; font-size: 13px; margin: 14px 0px 8px 0px; }
+.error      { color: #FF6B6B; font-size: 13px; margin: 14px 0px 0px 0px; }
+.status     { color: #8A94A6; font-size: 13px; margin: 12px 0px 0px 0px; }
+
+/* ---- Buttons ---- */
+
+.btn {
+    width: 120px;
+    height: 36px;
+    justify-content: center;
+    align-items: center;
+    border-radius: 8px;
+    margin: 0px 0px 0px 10px;
+    background-color: #2A2F36;
+    transition: background-color 150ms ease-in-out;
+}
+
+.btn-label { color: #FFFFFF; font-size: 14px; }
+
+.btn-primary        { background-color: #3366FF; }
+.btn-primary:hover  { background-color: #4A78FF; }
+.btn-primary:active { background-color: #2A52CC; }
+
+.btn-secondary        { background-color: #2A2F36; }
+.btn-secondary:hover  { background-color: #353B44; }
+.btn-secondary:active { background-color: #20242A; }
+
+.done-buttons { flex-direction: row; margin: 18px 0px 0px -10px; }
+.done-buttons .btn { width: 200px; }
+
+/* ---- Radio buttons / checkboxes (state = .checked) ---- */
+
+RadioButton, Checkbox { margin: 0px 0px 10px 0px; }
+
+.radio-label, .checkbox-label { color: #E6E9EF; font-size: 14px; }
+
+.radio-dot-outer {
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    justify-content: center;
+    align-items: center;
+    margin: 0px 10px 0px 0px;
+    background-color: #2A2F36;
+}
+.radio-dot { width: 8px; height: 8px; border-radius: 4px; background-color: #FFFFFF; display: none; }
+RadioButton.checked .radio-dot-outer { background-color: #3366FF; }
+RadioButton.checked .radio-dot       { display: flex; }
+
+.checkbox-box {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    justify-content: center;
+    align-items: center;
+    margin: 0px 10px 0px 0px;
+    background-color: #2A2F36;
+}
+.checkbox-mark { width: 8px; height: 8px; border-radius: 2px; background-color: #FFFFFF; display: none; }
+Checkbox.checked .checkbox-box  { background-color: #3366FF; }
+Checkbox.checked .checkbox-mark { display: flex; }
+
+/* ---- Path field ---- */
+
+.path-row { flex-direction: row; align-items: center; }
+
+/* TextArea draws its glyphs at its own top-left corner (padding doesn't offset them), so
+   the visible box + padding live on this wrapper and the TextArea sits inside it. */
+.path-box {
+    width: 560px;
+    height: 36px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background-color: #1E2228;
+}
+
+.path-field {
+    width: 540px;
+    height: 20px;
+    color: #E6E9EF;
+    font-size: 14px;
+}
+
+.backend-section { flex-direction: column; }
+
+/* ---- Progress ---- */
+
+ProgressBar {
+    height: 12px;
+    border-radius: 6px;
+    margin: 10px 0px 0px 0px;
+    background-color: #2A2F36;
+}
+
+.progress-fill {
+    border-radius: 6px;
+    background: linear-gradient(to right, #3366FF, #7B5CFF);
+}

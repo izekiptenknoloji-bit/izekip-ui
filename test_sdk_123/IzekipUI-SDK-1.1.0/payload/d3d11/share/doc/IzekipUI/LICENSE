@@ -1,0 +1,53 @@
+MIT License
+
+Copyright (c) 2026 İzekip Team
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## Third-Party Dependencies
+
+This software includes the following third-party libraries, each with their own licenses:
+
+### GLFW (https://github.com/glfw/glfw)
+License: Zlib License
+Used for: Window creation and input handling
+
+### Yoga (https://github.com/facebook/yoga)
+License: MIT License
+Used for: Flexbox layout engine
+
+### lexbor (https://github.com/lexbor/lexbor)
+License: Apache 2.0
+Used for: CSS parsing and selector matching
+
+### stb_truetype (https://github.com/nothings/stb)
+License: Public Domain / Unlicense
+Used for: TrueType font rasterization and SDF generation
+
+### Inter Font (https://github.com/rsms/inter)
+License: OFL (Open Font License) 1.1
+Used for: Default UI font (variable font instance)
+
+### Space Mono Font (https://github.com/googlefonts/spacemono)
+License: OFL (Open Font License) 1.1
+Used for: Monospace UI font
+
+See `third_party/` directory for individual license texts.

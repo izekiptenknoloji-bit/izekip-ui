@@ -91,15 +91,16 @@ float sdRoundBox(float2 p, float2 halfSize, float radius) {
 // kMaxBackdropBlurRadiusPx clamp (RectDrawData.cpp) so this never runs unbounded.
 float3 SampleBackdropBlur(float2 uv) {
     float blurRadiusPx = backdropParams.y;
-    float sigma = max(blurRadiusPx / 2.5, 0.0001);
-    int kernelRadius = max(2, (int)ceil(blurRadiusPx * 1.2));
+    float sigma = max(blurRadiusPx / 2.0, 0.0001);
+    int kernelRadius = max(3, (int)ceil(blurRadiusPx * 1.5));
     float2 texel = 1.0 / float2(backdropParams.z, backdropParams.w);
 
     float3 sum = float3(0.0, 0.0, 0.0);
     float weightSum = 0.0;
     for (int dy = -kernelRadius; dy <= kernelRadius; ++dy) {
         for (int dx = -kernelRadius; dx <= kernelRadius; ++dx) {
-            float w = exp(-float(dx * dx + dy * dy) / (2.0 * sigma * sigma));
+            float dist = float(dx * dx + dy * dy);
+            float w = exp(-dist / (2.0 * sigma * sigma)) * (1.0 - dist / (kernelRadius * kernelRadius * 2.0));
             sum += backdropTex.Sample(backdropSampler, uv + float2(dx, dy) * texel).rgb * w;
             weightSum += w;
         }
