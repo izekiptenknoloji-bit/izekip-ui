@@ -91,8 +91,8 @@ float sdRoundBox(float2 p, float2 halfSize, float radius) {
 // kMaxBackdropBlurRadiusPx clamp (RectDrawData.cpp) so this never runs unbounded.
 float3 SampleBackdropBlur(float2 uv) {
     float blurRadiusPx = backdropParams.y;
-    float sigma = max(blurRadiusPx / 3.0, 0.0001);
-    int kernelRadius = (int)ceil(blurRadiusPx);
+    float sigma = max(blurRadiusPx / 2.5, 0.0001);
+    int kernelRadius = max(2, (int)ceil(blurRadiusPx * 1.2));
     float2 texel = 1.0 / float2(backdropParams.z, backdropParams.w);
 
     float3 sum = float3(0.0, 0.0, 0.0);
