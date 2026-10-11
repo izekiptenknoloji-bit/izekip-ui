@@ -10,7 +10,16 @@
     background: linear-gradient(to bottom, #14161A, #1B1F27);
 }
 
-.hidden { display: none; }
+.page {
+    flex-direction: column;
+    opacity: 1;
+    transition: opacity 300ms ease-in-out;
+}
+
+.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
 
 /* ---- Header / footer ---- */
 
@@ -47,8 +56,6 @@
     flex-direction: column;
     padding: 20px 28px;
 }
-
-.page { flex-direction: column; }
 
 .footer {
     height: 64px;
