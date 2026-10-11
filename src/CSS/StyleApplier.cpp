@@ -759,6 +759,30 @@ std::optional<CssFontFamily> ParseFontFamily(const std::vector<Token>& tokens) {
     return std::nullopt;
 }
 
+std::optional<int> ParseFontWeight(const std::vector<Token>& tokens) {
+    if (tokens.size() != 1) return std::nullopt;
+    if (tokens[0].type == TokenType::Ident) {
+        if (tokens[0].text == "normal") return 400;
+        if (tokens[0].text == "bold") return 700;
+        return std::nullopt;
+    }
+    if (tokens[0].type != TokenType::Number) return std::nullopt;
+    const int weight = std::atoi(tokens[0].text.c_str());
+    if (weight < 100 || weight > 900 || weight % 100 != 0) return std::nullopt;
+    return weight;
+}
+
+std::optional<CssCursor> ParseCursor(const std::vector<Token>& tokens) {
+    if (tokens.size() != 1 || tokens[0].type != TokenType::Ident) return std::nullopt;
+    const std::string& v = tokens[0].text;
+    if (v == "default" || v == "auto") return CssCursor::Default;
+    if (v == "pointer") return CssCursor::Pointer;
+    if (v == "text") return CssCursor::Text;
+    if (v == "crosshair") return CssCursor::Crosshair;
+    if (v == "not-allowed") return CssCursor::NotAllowed;
+    return std::nullopt; // other CSS cursor keywords are not mapped to a platform cursor
+}
+
 StyleProperties DeclarationToStyleProperties(const MatchedDeclaration& decl) {
     StyleProperties props;
     std::vector<Token> tokens = Tokenizer(decl.rawValueText).Tokenize();
@@ -795,6 +819,10 @@ StyleProperties DeclarationToStyleProperties(const MatchedDeclaration& decl) {
         props.fontSize = ParseLength(tokens);
     } else if (decl.propertyName == "font-family") {
         props.fontFamily = ParseFontFamily(tokens);
+    } else if (decl.propertyName == "font-weight") {
+        props.fontWeight = ParseFontWeight(tokens);
+    } else if (decl.propertyName == "cursor") {
+        props.cursor = ParseCursor(tokens);
     } else if (decl.propertyName == "margin") {
         props.margin = ParseBoxEdges(tokens);
     } else if (decl.propertyName == "padding") {

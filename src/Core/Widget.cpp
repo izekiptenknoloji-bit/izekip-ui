@@ -111,6 +111,15 @@ Rect Widget::GetVisualRect() const {
     return rect;
 }
 
+CssCursor Widget::GetEffectiveCursor() const {
+    for (const Widget* widget = this; widget != nullptr; widget = widget->m_parent) {
+        if (widget->m_style.cursor) {
+            return *widget->m_style.cursor;
+        }
+    }
+    return CssCursor::Default;
+}
+
 float Widget::GetEffectiveOpacity() const {
     float opacity = 1.0f;
     for (const Widget* widget = this; widget != nullptr; widget = widget->m_parent) {

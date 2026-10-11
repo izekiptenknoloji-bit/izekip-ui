@@ -62,10 +62,30 @@ Window::Window(const WindowDesc& desc) : m_width(desc.width), m_height(desc.heig
 }
 
 Window::~Window() {
+    for (GLFWcursor* cursor : m_cursors) {
+        if (cursor) {
+            glfwDestroyCursor(cursor);
+        }
+    }
     if (m_handle) {
         glfwDestroyWindow(m_handle);
     }
     ReleaseGlfw();
+}
+
+void Window::SetCursorShape(CursorShape shape) {
+    if (shape == m_currentCursor) {
+        return;
+    }
+    const auto index = static_cast<std::size_t>(shape);
+    if (!m_cursors[index]) {
+        constexpr int kGlfwShapes[kCursorShapeCount] = {
+            GLFW_ARROW_CURSOR, GLFW_POINTING_HAND_CURSOR, GLFW_IBEAM_CURSOR,
+            GLFW_CROSSHAIR_CURSOR, GLFW_NOT_ALLOWED_CURSOR};
+        m_cursors[index] = glfwCreateStandardCursor(kGlfwShapes[index]);
+    }
+    glfwSetCursor(m_handle, m_cursors[index]);
+    m_currentCursor = shape;
 }
 
 bool Window::ShouldClose() const {

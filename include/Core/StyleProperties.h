@@ -40,6 +40,10 @@ struct Length {
 
 enum class CssFontFamily { Proportional, Monospace };
 
+// Mouse cursor shape requested by CSS `cursor`. Applied by the app via Platform::Window::SetCursor
+// for whichever widget is hovered; inherited from ancestors when unset (as in CSS).
+enum class CssCursor { Default, Pointer, Text, Crosshair, NotAllowed };
+
 struct CssAnimation {
     std::string name;
     float durationSeconds = 0.0f;
@@ -152,6 +156,10 @@ struct StyleProperties {
     std::optional<float> borderWidth;
     std::optional<float> fontSize;
     std::optional<CssFontFamily> fontFamily;
+    // CSS numeric weight (100..900). Only the 400-vs-bold distinction is rendered, via a
+    // synthetic emboldening pass in Label (no bold font asset ships with IzekipUI).
+    std::optional<int> fontWeight;
+    std::optional<CssCursor> cursor;
     std::optional<float> opacity;
     std::optional<Translation> transform;
     std::optional<CssAnimation> animation;

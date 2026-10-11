@@ -92,6 +92,7 @@ public:
 private:
     void BuildTree();
     void ShowPage(Page page);
+    void UpdateCursor();
     void OnNext();
     void OnBack();
     void StartInstall();
@@ -335,6 +336,20 @@ void App::BuildTree() {
     SetPathText(m_prefix);
 }
 
+void App::UpdateCursor() {
+    Platform::CursorShape shape = Platform::CursorShape::Arrow;
+    if (Widget* hovered = m_controller->GetHovered()) {
+        switch (hovered->GetEffectiveCursor()) {
+            case CssCursor::Default: shape = Platform::CursorShape::Arrow; break;
+            case CssCursor::Pointer: shape = Platform::CursorShape::Pointer; break;
+            case CssCursor::Text: shape = Platform::CursorShape::IBeam; break;
+            case CssCursor::Crosshair: shape = Platform::CursorShape::Crosshair; break;
+            case CssCursor::NotAllowed: shape = Platform::CursorShape::NotAllowed; break;
+        }
+    }
+    m_window->SetCursorShape(shape);
+}
+
 void App::ShowPage(Page page) {
     m_page = page;
     m_pageWelcome->SetClass("hidden", page != Page::Welcome);
@@ -562,6 +577,7 @@ int App::Run() {
         restyle = restyle || m_dirty;
         m_dirty = false;
         bool relayout = restyle;
+        UpdateCursor();
 
         if (m_engineActive) {
             const auto& status = m_engine.Step(std::chrono::milliseconds(12));

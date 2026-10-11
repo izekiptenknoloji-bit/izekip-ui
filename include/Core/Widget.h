@@ -97,6 +97,9 @@ public:
     void SetFocusable(bool focusable) { m_focusable = focusable; }
     bool IsFocusable() const { return m_focusable; }
 
+    // Cursor shape for this widget: the nearest ancestor-or-self with `cursor` set, else Default.
+    CssCursor GetEffectiveCursor() const;
+
     const std::string& GetTypeName() const { return m_typeName; }
 
     StyleProperties& GetStyle() { return m_style; }

@@ -102,6 +102,7 @@
     transition: background-color 150ms ease-in-out, transform 120ms ease-out;
 }
 
+.btn { cursor: pointer; }
 .btn:active { transform: translate(0px, 1px); }
 
 .btn-label { color: #FFFFFF; font-size: 14px; }
@@ -146,6 +147,7 @@ RadioButton.checked .radio-dot       { display: flex; }
     background-color: #2A2F36;
 }
 .checkbox-box, .radio-dot-outer { transition: background-color 150ms ease-in-out; }
+RadioButton, Checkbox { cursor: pointer; }
 .checkbox-mark { width: 8px; height: 8px; border-radius: 2px; background-color: #FFFFFF; display: none; }
 Checkbox.checked .checkbox-box  { background-color: #3366FF; }
 Checkbox.checked .checkbox-mark { display: flex; }
@@ -165,6 +167,7 @@ Checkbox.checked .checkbox-mark { display: flex; }
 }
 
 .path-field {
+    cursor: text;
     width: 540px;
     height: 20px;
     color: #E6E9EF;

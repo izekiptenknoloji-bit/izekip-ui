@@ -574,6 +574,32 @@ void TestDisplayParsing() {
     std::cout << "TestDisplayParsing passed\n";
 }
 
+void TestFontWeightAndCursorParsingAndInheritance() {
+    auto root = std::make_shared<Widget>("Panel");
+    auto label = std::make_shared<Widget>("Label");
+    auto bad = std::make_shared<Widget>("Label");
+    label->AddClass("title");
+    bad->AddClass("bad");
+    root->AddChild(label);
+    root->AddChild(bad);
+    root->SetClass("pointer-root", true);
+
+    StyleSheet sheet = StyleSheet::LoadFromString(
+        ".pointer-root { cursor: pointer; } "
+        ".title { font-weight: 600; } "
+        ".bad { font-weight: 550; cursor: wait; }");
+    LexborBridge bridge;
+    bridge.Build(*root);
+    StyleApplier::Apply(bridge, sheet, *root);
+
+    assert(label->GetStyle().fontWeight == 600);
+    assert(!bad->GetStyle().fontWeight.has_value());
+    assert(!bad->GetStyle().cursor.has_value());
+    assert(label->GetEffectiveCursor() == CssCursor::Pointer);
+    assert(bad->GetEffectiveCursor() == CssCursor::Pointer);
+    std::cout << "TestFontWeightAndCursorParsingAndInheritance passed\n";
+}
+
 void TestDisplayResetsWhenHidingClassRemoved() {
     auto root = std::make_shared<Widget>("Panel");
     auto page = std::make_shared<Widget>("Panel");
@@ -730,6 +756,7 @@ int main() {
     TestRemoveClassResyncsCascade();
     TestToggleAndSetClass();
     TestDisplayParsing();
+    TestFontWeightAndCursorParsingAndInheritance();
     TestDisplayResetsWhenHidingClassRemoved();
     TestHiddenChildSkippedByHitTest();
     TestEmptyClassListRemovesAttribute();

@@ -91,6 +91,12 @@ void Label::OnPaint(Render::IRenderer& renderer) {
             ? Render::FontId::Monospace
             : Render::FontId::Proportional;
 
+    // Synthetic bold: no bold font ships with IzekipUI, so weight >= 600 draws each glyph a
+    // second time shifted right by a fraction of the font size.
+    const bool bold = m_style.fontWeight.value_or(400) >= 600;
+    const int passes = bold ? 2 : 1;
+    const float boldOffset = fontSize * 0.04f;
+
     for (size_t lineIndex = 0; lineIndex < m_lines.size(); ++lineIndex) {
         const std::u32string& line = m_lines[lineIndex];
         float penX = visualRect.x;
@@ -109,10 +115,13 @@ void Label::OnPaint(Render::IRenderer& renderer) {
             }
 
             if (glyph->width > 0.0f && glyph->height > 0.0f) {
-                Rect dst{penX + glyph->bearingX * scale, baselineY + glyph->bearingY * scale,
-                          glyph->width * scale, glyph->height * scale};
                 Render::UVRect uv{glyph->u0, glyph->v0, glyph->u1, glyph->v1};
-                renderer.DrawTextQuad(dst, uv, color, scale, fontId);
+                for (int pass = 0; pass < passes; ++pass) {
+                    Rect dst{penX + glyph->bearingX * scale + static_cast<float>(pass) * boldOffset,
+                              baselineY + glyph->bearingY * scale, glyph->width * scale,
+                              glyph->height * scale};
+                    renderer.DrawTextQuad(dst, uv, color, scale, fontId);
+                }
             }
 
             penX += glyph->advance * scale;

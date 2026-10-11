@@ -1,10 +1,12 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <string>
 
 struct GLFWwindow;
+struct GLFWcursor;
 
 namespace IzekipUI::Platform {
 
@@ -23,6 +25,10 @@ enum class MouseAction { Press, Release };
 enum class Key { Unknown, Backspace, Delete, Enter, Tab, Escape, Left, Right, Up, Down, Home, End };
 // Unlike MouseAction, Repeat is kept -- a held-down Backspace/arrow key should repeat.
 enum class KeyAction { Press, Release, Repeat };
+
+// Platform-level cursor shapes, mapped from CSS `cursor` by the app (Window stays free of
+// the CSS vocabulary). Backed by GLFW's standard cursors, created lazily and cached.
+enum class CursorShape { Arrow, Pointer, IBeam, Crosshair, NotAllowed };
 
 // Thin GLFW wrapper. Created with GLFW_CLIENT_API = GLFW_NO_API since the renderer
 // (D3D11 today, Vulkan later) owns its own swapchain/surface instead of an OpenGL context.
@@ -69,6 +75,8 @@ public:
     using CharCallback = std::function<void(char32_t codepoint)>;
     void SetCharCallback(CharCallback callback);
 
+    void SetCursorShape(CursorShape shape);
+
 private:
     static void FramebufferSizeCallback(GLFWwindow* window, int width, int height);
     static void CursorPosCallbackThunk(GLFWwindow* window, double x, double y);
@@ -77,6 +85,9 @@ private:
     static void CharCallbackThunk(GLFWwindow* window, unsigned int codepoint);
 
     GLFWwindow* m_handle = nullptr;
+    static constexpr std::size_t kCursorShapeCount = 5;
+    GLFWcursor* m_cursors[kCursorShapeCount] = {};
+    CursorShape m_currentCursor = CursorShape::Arrow;
     uint32_t m_width = 0;
     uint32_t m_height = 0;
     ResizeCallback m_onResize;
