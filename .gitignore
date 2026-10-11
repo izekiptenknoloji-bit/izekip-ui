@@ -7,3 +7,4 @@ out/
 CMakeUserPresets.json
 docs/html/
 dist/
+test_sdk_123/

@@ -4,6 +4,34 @@ All notable changes to İzekip UI are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/); versioning follows
 [Semantic Versioning](https://semver.org/) as defined in `COMPATIBILITY.md`.
 
+## [1.2.0] - 2026-10-11
+
+Additive for Tier-1 consumers. `IRenderer` gained a pure virtual (`SetWorldTransform`), so
+out-of-tree renderer implementations must add it. `Widget::HitTest` now respects transforms;
+untransformed widgets behave as before.
+
+### Added
+- CSS `scale` (uniform factor) and `rotate` (any CSS angle unit), pivoting about each
+  widget's own center. Nested transforms compose through `Widget::GetWorldTransform()`,
+  and hit-testing uses the inverse. Backed by the new `Core/Transform2D.h` and
+  `IRenderer::SetWorldTransform`; both D3D11 and Vulkan shaders apply it.
+- CSS `cursor` (`default`, `pointer`, `text`, `crosshair`, `not-allowed`), inherited from
+  ancestors, applied through `Platform::Window::SetCursorShape`.
+- CSS `font-weight`: values 600 and up render with a synthetic emboldening pass in `Label`
+  (no bold font asset ships with IzekipUI).
+- Installer: "Yapay Zeka Yardımı" option that installs `share/doc/IzekipUI/AI_GUIDE.md`,
+  a teaching text for AI coding assistants.
+
+### Fixed
+- Backdrop blur scratch texture format now matches the backbuffer (`CopySubresourceRegion`
+  silently failed on mismatched formats, leaving stale pixels behind the blur).
+- Backdrop blur kernel replaced with a single-pass 2D Gaussian spanning the full radius.
+- Installer text glyphs were invisible after the transform pipeline change.
+
+### Known limitations
+- `scale` and `rotate` are not animatable through `transition` yet.
+- `backdrop-filter` and shadow blur do not follow a scaled or rotated element's transform.
+
 ## [1.1.0] - 2026-10-11
 
 Additive only -- `tools/api_diff.py --check --against 1.0.0` reports ADDED entries and

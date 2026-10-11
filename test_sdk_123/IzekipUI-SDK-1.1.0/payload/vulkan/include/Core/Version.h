@@ -1,6 +1,0 @@
-#pragma once
-
-#define IZEKIP_VERSION_MAJOR 1
-#define IZEKIP_VERSION_MINOR 1
-#define IZEKIP_VERSION_PATCH 0
-#define IZEKIP_VERSION_STRING "1.1.0"
