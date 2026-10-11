@@ -75,10 +75,17 @@ cmake --build . --config Release
 
 ## Starting a New Project
 
-**Easiest:** download `IzekipUI-SDK-<version>-win64.zip`, extract it, run `IzekipUISetup.exe`
-(a GUI installer written with İzekip UI itself), then in a new terminal:
-`cssfr create myapp` → `cd myapp` → `cmake -B build` → `cmake --build build`. To build that
-zip yourself: `cmake -DD3D11_BUILD_DIR=build -DVULKAN_BUILD_DIR=build-vulkan -P cmake/PackageSDK.cmake`.
+**Easiest (Recommended):** 
+1. Download `IzekipUI-SDK-1.1.0-win64.zip` from [GitHub Releases](https://github.com/izekiptenknoloji/izekip-ui/releases)
+2. Extract the zip
+3. Run `IzekipUISetup.exe` (a GUI installer written with İzekip UI itself)
+4. In a new terminal: `cssfr create myapp` → `cd myapp` → `cmake -B build` → `cmake --build build`
+
+> **⚠️ Note on Unsigned Applications:** The installer (`IzekipUISetup.exe`) is not code-signed.
+> On first run, Windows may show a **SmartScreen warning** ("İmzasız Uygulamalar"). 
+> Click "More info" → "Run anyway" to proceed. This is expected for unsigned builds.
+
+To build the SDK zip yourself: `cmake -DD3D11_BUILD_DIR=build -DVULKAN_BUILD_DIR=build-vulkan -P cmake/PackageSDK.cmake`.
 
 **From source:** once IzekipUI is built (above), install it and scaffold a new project with `cssfr`:
 
