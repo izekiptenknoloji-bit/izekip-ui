@@ -287,7 +287,7 @@ void D3D11Renderer::CreateBackdropScratchTexture() {
     texDesc.Height = m_height;
     texDesc.MipLevels = 1;
     texDesc.ArraySize = 1;
-    texDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT; // 16-bit float for high-precision blur sampling
+    texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // must match the backbuffer: CopySubresourceRegion requires identical formats
     texDesc.SampleDesc.Count = 1;
     texDesc.Usage = D3D11_USAGE_DEFAULT; // written via CopySubresourceRegion, not CPU-mapped
     texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;

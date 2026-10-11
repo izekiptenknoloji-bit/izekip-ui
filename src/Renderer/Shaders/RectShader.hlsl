@@ -84,32 +84,27 @@ float sdRoundBox(float2 p, float2 halfSize, float radius) {
     return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radius;
 }
 
-// Real 2D Gaussian convolution, single pass (not the separable 2-pass form -- that needs
-// render-to-texture infra this engine doesn't have, see RectDrawData.cpp's named scope
-// cut). sigma = radius/3 is the standard "3-sigma covers the kernel" choice; kernelRadius
-// taps per axis means (2*kernelRadius+1)^2 total taps, bounded by the caller's
-// kMaxBackdropBlurRadiusPx clamp (RectDrawData.cpp) so this never runs unbounded.
+// Single-pass 2D Gaussian spanning the full blur radius: a 9x9 grid of taps spaced
+// radius/4 texels apart (81 samples instead of (2r+1)^2), with sigma = radius/2 so the
+// kernel tail reaches the radius edge.
 float3 SampleBackdropBlur(float2 uv) {
-    float blurRadiusPx = backdropParams.y;
-    float2 texel = 1.0 / float2(backdropParams.z, backdropParams.w);
-
-    // Optimized Gaussian blur with hardcoded 5-tap coefficients
-    float sigma = max(blurRadiusPx / 1.5, 0.0001);
-    float kernelScale = 2.0 * sigma * sigma;
-
-    // Gaussian kernel: [0.06136, 0.24477, 0.38774, 0.24477, 0.06136] (normalized)
-    float weights[5] = {0.06136, 0.24477, 0.38774, 0.24477, 0.06136};
+    const float radius = max(backdropParams.y, 0.0001);
+    const float2 texel = 1.0 / float2(backdropParams.z, backdropParams.w);
+    const float stride = radius / 4.0;
+    const float sigma = radius / 2.0;
+    const float invTwoSigmaSq = 1.0 / (2.0 * sigma * sigma);
 
     float3 sum = float3(0.0, 0.0, 0.0);
-
-    // Horizontal + vertical separable pass (both in one to save texture lookups)
-    for (int i = -2; i <= 2; ++i) {
-        float w = weights[i + 2];
-        sum += backdropTex.Sample(backdropSampler, uv + float2(i, 0) * texel).rgb * w * 0.5;
-        sum += backdropTex.Sample(backdropSampler, uv + float2(0, i) * texel).rgb * w * 0.5;
+    float weightSum = 0.0;
+    [unroll] for (int y = -4; y <= 4; ++y) {
+        [unroll] for (int x = -4; x <= 4; ++x) {
+            float2 off = float2(x, y) * stride;
+            float w = exp(-dot(off, off) * invTwoSigmaSq);
+            sum += backdropTex.Sample(backdropSampler, uv + off * texel).rgb * w;
+            weightSum += w;
+        }
     }
-
-    return sum;
+    return sum / weightSum;
 }
 
 float4 PSMain(VSOutput input) : SV_TARGET {
