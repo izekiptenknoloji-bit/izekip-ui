@@ -129,7 +129,7 @@ private:
     Widgets::RadioGroup m_backendGroup;
     std::shared_ptr<Widgets::TextArea> m_pathField;
     std::shared_ptr<Widgets::Label> m_locationError;
-    std::shared_ptr<Widgets::Checkbox> m_optPath, m_optEnv, m_optUninstall, m_optShortcut;
+    std::shared_ptr<Widgets::Checkbox> m_optPath, m_optEnv, m_optUninstall, m_optShortcut, m_optAiGuide;
     std::shared_ptr<Widgets::Label> m_optionsError;
 
     std::shared_ptr<Widgets::Label> m_progressTitle;
@@ -266,9 +266,13 @@ void App::BuildTree() {
     m_optEnv->SetChecked(m_args.setCmakeDirEnv.value_or(true));
     m_optUninstall->SetChecked(m_args.registerUninstall.value_or(true));
     m_optShortcut->SetChecked(m_args.startMenuShortcut.value_or(true));
+    m_optAiGuide = std::make_shared<Widgets::Checkbox>("Claude Code için öğretim dosyasını ekle (AI_GUIDE.md)");
+    m_optAiGuide->SetChecked(m_args.aiGuide.value_or(true));
     for (const auto& box : {m_optPath, m_optEnv, m_optUninstall, m_optShortcut}) {
         m_pageOptions->AddChild(box);
     }
+    m_pageOptions->AddChild(MakeLabel("Yapay Zeka Yardımı", "section"));
+    m_pageOptions->AddChild(m_optAiGuide);
     m_optionsError = MakeLabel("", "error");
     m_optionsError->AddClass("hidden");
     m_pageOptions->AddChild(m_optionsError);
@@ -389,6 +393,7 @@ InstallOptions App::GatherOptions() const {
     o.setCmakeDirEnv = m_optEnv->IsChecked();
     o.registerUninstall = m_optUninstall->IsChecked();
     o.startMenuShortcut = m_optShortcut->IsChecked();
+    o.aiGuide = m_optAiGuide->IsChecked();
     return o;
 }
 
@@ -433,6 +438,7 @@ void App::StartInstall() {
         child.setCmakeDirEnv = options.setCmakeDirEnv;
         child.registerUninstall = options.registerUninstall;
         child.startMenuShortcut = options.startMenuShortcut;
+        child.aiGuide = options.aiGuide;
         switch (WinSys::Relaunch(WinSys::ExePath(), SerializeArgs(child), true)) {
             case WinSys::LaunchResult::Ok: m_exitCode = 0; m_quit = true; return;
             case WinSys::LaunchResult::Cancelled:

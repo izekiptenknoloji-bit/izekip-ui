@@ -34,6 +34,7 @@ struct Args {
     std::optional<bool> setCmakeDirEnv;
     std::optional<bool> registerUninstall;
     std::optional<bool> startMenuShortcut;
+    std::optional<bool> aiGuide;
     unsigned long waitPid = 0;
 };
 

@@ -58,6 +58,7 @@ Args ParseArgs(const std::vector<std::wstring>& argv) {
         else if (key == L"--env") args.setCmakeDirEnv = ParseBool(value);
         else if (key == L"--uninstall-entry") args.registerUninstall = ParseBool(value);
         else if (key == L"--shortcut") args.startMenuShortcut = ParseBool(value);
+        else if (key == L"--ai-guide") args.aiGuide = ParseBool(value);
         else if (key == L"--wait-pid") args.waitPid = std::wcstoul(value.c_str(), nullptr, 10);
         // Unknown arguments are ignored.
     }
@@ -82,6 +83,7 @@ std::wstring SerializeArgs(const Args& args) {
     boolArg(L"--env", args.setCmakeDirEnv);
     boolArg(L"--uninstall-entry", args.registerUninstall);
     boolArg(L"--shortcut", args.startMenuShortcut);
+    boolArg(L"--ai-guide", args.aiGuide);
     if (args.waitPid) parts.push_back(L"--wait-pid=" + std::to_wstring(args.waitPid));
 
     std::wstring out;

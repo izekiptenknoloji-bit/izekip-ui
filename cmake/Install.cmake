@@ -108,6 +108,12 @@ install(FILES
     DESTINATION share/doc/IzekipUI
 )
 
+install(FILES
+    "${CMAKE_SOURCE_DIR}/docs/ai-guide.md"
+    RENAME AI_GUIDE.md
+    DESTINATION share/doc/IzekipUI
+)
+
 install(EXPORT IzekipUI-export
     FILE IzekipUITargets.cmake
     NAMESPACE IzekipUI::

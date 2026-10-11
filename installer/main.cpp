@@ -27,6 +27,7 @@ InstallOptions OptionsFromArgs(const Args& args) {
     o.setCmakeDirEnv = args.setCmakeDirEnv.value_or(true);
     o.registerUninstall = args.registerUninstall.value_or(true);
     o.startMenuShortcut = args.startMenuShortcut.value_or(true);
+    o.aiGuide = args.aiGuide.value_or(true);
     return o;
 }
 

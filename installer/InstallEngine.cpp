@@ -36,6 +36,8 @@ std::string ErrorCodeText(const std::error_code& ec) {
 
 constexpr const char* kEnvName = "IzekipUI_DIR";
 
+const fs::path kAiGuideRelPath = fs::path("share") / "doc" / "IzekipUI" / "AI_GUIDE.md";
+
 } // namespace
 
 fs::path InstallEngine::ManifestPath(const fs::path& prefix) {
@@ -115,7 +117,11 @@ bool InstallEngine::BeginInstall(const InstallOptions& options, const fs::path& 
     for (auto it = fs::recursive_directory_iterator(m_payloadDir, ec); !ec && it != fs::recursive_directory_iterator();
          it.increment(ec)) {
         if (it->is_regular_file(ec)) {
-            m_work.push_back(it->path().lexically_relative(m_payloadDir));
+            fs::path rel = it->path().lexically_relative(m_payloadDir);
+            if (!options.aiGuide && rel == kAiGuideRelPath) {
+                continue;
+            }
+            m_work.push_back(rel);
             m_totalBytes += it->file_size(ec);
         }
     }

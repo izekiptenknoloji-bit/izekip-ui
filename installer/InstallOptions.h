@@ -16,6 +16,7 @@ struct InstallOptions {
     bool setCmakeDirEnv = true;
     bool registerUninstall = true;
     bool startMenuShortcut = true;
+    bool aiGuide = true; // copy share/doc/IzekipUI/AI_GUIDE.md (teaching text for AI coding assistants)
 };
 
 inline const char* BackendDirName(Backend backend) {
