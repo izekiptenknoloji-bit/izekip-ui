@@ -37,4 +37,6 @@ add_custom_command(TARGET IzekipUISetup POST_BUILD
         "$<TARGET_FILE_DIR:IzekipUISetup>/SpaceMono-Regular.ttf"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_SOURCE_DIR}/src/Renderer/Shaders/RectShader.hlsl" "$<TARGET_FILE_DIR:IzekipUISetup>/RectShader.hlsl"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/logo.svg" "$<TARGET_FILE_DIR:IzekipUISetup>/logo.svg"
 )

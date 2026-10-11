@@ -163,7 +163,10 @@ void App::BuildTree() {
 
     // ---- Header ----
     auto header = MakePanel("header");
-    header->AddChild(MakeLabel("İzekip UI SDK Kurulumu", "title"));
+    auto titlePanel = MakePanel("title-panel");
+    titlePanel->AddChild(MakeLabel("İzekip NativeCSS Framework", "title-main"));
+    titlePanel->AddChild(MakeLabel("SDK Kurulumu", "title-sub"));
+    header->AddChild(titlePanel);
     m_stepLabel = MakeLabel("", "step");
     header->AddChild(m_stepLabel);
     m_root->AddChild(header);
@@ -483,7 +486,7 @@ void App::OnEngineFinished() {
 
 int App::Run() {
     Platform::WindowDesc desc;
-    desc.title = m_uninstallMode ? "İzekip UI SDK Kaldırma" : "İzekip UI SDK Kurulumu";
+    desc.title = m_uninstallMode ? "İzekip NativeCSS Framework SDK Kaldırma" : "İzekip NativeCSS Framework SDK Kurulumu";
     desc.width = static_cast<uint32_t>(kWidth);
     desc.height = static_cast<uint32_t>(kHeight);
     desc.resizable = false;

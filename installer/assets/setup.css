@@ -24,6 +24,9 @@
     box-shadow: 0px 2px 12px #00000040;
 }
 
+.title-panel { flex-direction: column; }
+.title-main { color: #3366FF; font-size: 16px; font-weight: 600; }
+.title-sub { color: #FFFFFF; font-size: 18px; margin: 2px 0px 0px 0px; }
 .title { color: #FFFFFF; font-size: 18px; }
 .step  { color: #8A94A6; font-size: 13px; }
 
