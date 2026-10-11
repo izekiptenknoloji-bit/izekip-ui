@@ -164,10 +164,10 @@ void App::BuildTree() {
 
     // ---- Header ----
     auto header = MakePanel("header");
-    auto logo = std::make_shared<Widgets::Image>();
-    logo->SetImagePath("logo.png");
-    logo->AddClass("logo-image");
-    header->AddChild(logo);
+    auto logoBox = MakePanel("logo-box");
+    auto logoMark = MakeLabel("C", "logo-mark");
+    logoBox->AddChild(logoMark);
+    header->AddChild(logoBox);
     auto titlePanel = MakePanel("title-panel");
     titlePanel->AddChild(MakeLabel("NativeCSS Framework", "title-main"));
     titlePanel->AddChild(MakeLabel("SDK Kurulumu", "title-sub"));
