@@ -7,7 +7,7 @@
     width: 760px;
     height: 520px;
     flex-direction: column;
-    background: linear-gradient(135deg, rgba(20, 22, 26, 0.8), rgba(27, 31, 39, 0.8));
+    background: linear-gradient(135deg, rgba(20, 22, 26, 0.94), rgba(27, 31, 39, 0.94));
     backdrop-filter: blur(4px);
     border: 2px solid rgba(66, 102, 255, 0.5);
     border-radius: 12px;

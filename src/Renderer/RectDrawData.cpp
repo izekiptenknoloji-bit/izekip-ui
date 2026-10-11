@@ -138,6 +138,7 @@ RectDrawData ComputeTextQuadDrawData(const Rect& rect, const UVRect& atlasUV, co
     const float fontIndex = (fontId == FontId::Monospace) ? 1.0f : 0.0f;
     ps.textParams = Float4{1.0f, kOnEdgeValueNormalized, aaWidth, fontIndex};
 
+    ApplyWorldTransform(data, world);
     return data;
 }
 
