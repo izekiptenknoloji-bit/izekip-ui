@@ -1,3 +1,10 @@
+/**
+ * @file
+ * @internal
+ * Tier-2 (see COMPATIBILITY.md) -- internal to Widget.cpp's own animation-tick
+ * implementation, never named in a Tier-1 signature. Not covered by the API compatibility
+ * policy.
+ */
 #pragma once
 
 #include "Core/Color.h"

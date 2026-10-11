@@ -1,0 +1,23 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# GLFW's own exported INTERFACE_LINK_LIBRARIES references Threads::Threads (found by
+# actually running the end-to-end SDK verification: a consumer project that never calls
+# find_package(Threads) itself hit a hard "target was not found" error processing
+# IzekipUITargets.cmake without this).
+find_dependency(Threads)
+
+# Baked in at install time from this build's IZEKIP_RENDER_BACKEND cache variable (see
+# cmake/Options.cmake) -- a consumer's find_package(IzekipUI) picks up whichever backend
+# this particular install was built with; it does not re-select a backend.
+set(IzekipUI_RENDER_BACKEND "@IZEKIP_RENDER_BACKEND@")
+
+if(IzekipUI_RENDER_BACKEND STREQUAL "VULKAN")
+    find_dependency(Vulkan COMPONENTS dxc)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/IzekipUITargets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/IzekipUIAssets.cmake")
+
+check_required_components(IzekipUI)

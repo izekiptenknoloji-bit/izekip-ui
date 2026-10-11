@@ -27,6 +27,29 @@ bool Widget::HasClass(const std::string& className) const {
     return std::find(m_classes.begin(), m_classes.end(), className) != m_classes.end();
 }
 
+bool Widget::RemoveClass(const std::string& className) {
+    const auto newEnd = std::remove(m_classes.begin(), m_classes.end(), className);
+    const bool removed = newEnd != m_classes.end();
+    m_classes.erase(newEnd, m_classes.end());
+    return removed;
+}
+
+void Widget::SetClass(const std::string& className, bool enabled) {
+    if (enabled) {
+        if (!HasClass(className)) {
+            m_classes.push_back(className);
+        }
+    } else {
+        RemoveClass(className);
+    }
+}
+
+bool Widget::ToggleClass(const std::string& className) {
+    const bool enable = !HasClass(className);
+    SetClass(className, enable);
+    return enable;
+}
+
 void Widget::CalculateLayout(float availableWidth, float availableHeight) {
     YGNodeCalculateLayout(m_yogaNode, availableWidth, availableHeight, YGDirectionLTR);
     ResolveAbsoluteRects(0.0f, 0.0f);
@@ -135,8 +158,13 @@ void Widget::OnPaint(Render::IRenderer& renderer) {
             renderer.DrawRect(m_rect, paint);
         }
     }
+    // Hidden (display: none) children are skipped HERE, by the parent, rather than inside
+    // each child's own OnPaint -- Label/TextArea override OnPaint and draw glyphs after
+    // calling the base, so a child-side check would still let their text through.
     for (auto& child : m_children) {
-        child->OnPaint(renderer);
+        if (child->IsDisplayed()) {
+            child->OnPaint(renderer);
+        }
     }
 }
 
@@ -145,6 +173,9 @@ Widget* Widget::HitTest(float x, float y) {
         return nullptr;
     }
     for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
+        if (!(*it)->IsDisplayed()) {
+            continue; // Yoga zeroes a hidden node's rect, but the bounds check is inclusive
+        }
         if (Widget* hit = (*it)->HitTest(x, y)) {
             return hit;
         }
@@ -330,6 +361,13 @@ void ClearActiveRecursive(Widget& root) {
     root.SetActive(false);
     for (const auto& child : root.GetChildren()) {
         ClearActiveRecursive(*child);
+    }
+}
+
+void ClearFocusedRecursive(Widget& root) {
+    root.SetFocused(false);
+    for (const auto& child : root.GetChildren()) {
+        ClearFocusedRecursive(*child);
     }
 }
 

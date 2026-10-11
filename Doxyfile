@@ -1,0 +1,35 @@
+# Minimal Doxyfile -- everything not listed here uses Doxygen's own built-in default.
+# Generate locally with: doxygen Doxyfile  (output: docs/html/index.html, gitignored).
+# Not wired into CI/GitHub Pages -- that is a separate, bigger decision (see COMPATIBILITY.md).
+#
+# PROJECT_NUMBER is not auto-synced with CMakeLists.txt's project(VERSION ...) -- bump both
+# together, per COMPATIBILITY.md's release checklist.
+
+PROJECT_NAME           = "IzekipUI"
+PROJECT_NUMBER         = "1.1.0"
+PROJECT_BRIEF          = "A C++ GUI library with real CSS styling and D3D11/Vulkan rendering"
+PROJECT_LOGO           = docs/nativecss-logo.svg
+
+OUTPUT_DIRECTORY       = docs
+
+INPUT                  = include README.md
+RECURSIVE              = YES
+FILE_PATTERNS          = *.h
+USE_MDFILE_AS_MAINPAGE = README.md
+
+# Tier-2 headers (CssTokenizer.h, Interpolate.h, RectDrawData.h, GlyphAtlas.h -- see
+# COMPATIBILITY.md) are tagged @internal in their own file banner comments. INTERNAL_DOCS=YES
+# renders them grouped/labeled as internal rather than hiding them, consistent with this
+# project's style of naming things explicitly instead of silently omitting them.
+INTERNAL_DOCS          = YES
+
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+WARN_IF_UNDOCUMENTED   = NO
+
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+GENERATE_MAN           = NO
+
+SOURCE_BROWSER         = YES

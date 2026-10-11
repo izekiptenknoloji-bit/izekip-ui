@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -51,6 +52,28 @@ public:
     bool HasClass(const std::string& className) const;
     const std::vector<std::string>& GetClasses() const { return m_classes; }
 
+    // Class mutation after LexborBridge::Build() is fine -- the bridge re-syncs classes on
+    // every StyleApplier::Apply(). The caller still has to trigger that Apply (e.g. via
+    // InteractionController::RequestRestyle(), or by doing it from inside an onClick handler,
+    // whose firing already makes InteractionController::Update() return true).
+    bool RemoveClass(const std::string& className);          // removes every occurrence; true if any
+    void SetClass(const std::string& className, bool enabled); // add-if-absent / remove
+    bool ToggleClass(const std::string& className);          // returns the new state
+
+    // False once CSS resolved `display: none` for this widget. Parents skip hidden children
+    // in OnPaint and HitTest. Hiding the root widget itself is unsupported.
+    bool IsDisplayed() const { return m_style.display.value_or(Display::Flex) != Display::None; }
+
+    // Click handling. Clicks are detected and fired by InteractionController (press +
+    // release over the same clickable widget's subtree); Click() fires one programmatically.
+    void SetOnClick(std::function<void()> onClick) { m_onClick = std::move(onClick); }
+    void Click() { OnClicked(); }
+    bool IsClickable() const { return HandlesClick(); }
+
+    // Whether pressing this widget gives it keyboard focus (TextArea is focusable by default).
+    void SetFocusable(bool focusable) { m_focusable = focusable; }
+    bool IsFocusable() const { return m_focusable; }
+
     const std::string& GetTypeName() const { return m_typeName; }
 
     StyleProperties& GetStyle() { return m_style; }
@@ -73,6 +96,8 @@ public:
     bool IsHovered() const { return m_hovered; }
     void SetActive(bool active) { m_active = active; }
     bool IsActive() const { return m_active; }
+    void SetFocused(bool focused) { m_focused = focused; }
+    bool IsFocused() const { return m_focused; }
 
     // Diff baseline for StyleApplier -- the last CSS-resolved target style, used to detect
     // "this property's value just changed" so it knows whether to animate or snap. Not
@@ -103,6 +128,16 @@ public:
     AnimationTickResult TickAnimations(float deltaSeconds);
 
 protected:
+    // Subclassing hooks for click handling (Checkbox, RadioButton). The default "is
+    // clickable" answer is "has an onClick callback".
+    virtual bool HandlesClick() const { return static_cast<bool>(m_onClick); }
+    virtual void OnClicked() {
+        if (m_onClick) m_onClick();
+    }
+
+    std::function<void()> m_onClick;
+    bool m_focusable = false;
+
     // Reads this node's Yoga-computed layout, offsets it by parentAbsoluteX/Y to produce
     // an absolute Rect, stores it in m_rect, and recurses into children.
     void ResolveAbsoluteRects(float parentAbsoluteX, float parentAbsoluteY);
@@ -127,6 +162,7 @@ protected:
 
     bool m_hovered = false;
     bool m_active = false;
+    bool m_focused = false;
     bool m_hasBeenStyled = false;
     StyleProperties m_targetStyle;
 
@@ -141,6 +177,7 @@ protected:
 // new hover/active ancestor chain each time the hit-tested widget changes.
 void ClearHoveredRecursive(Widget& root);
 void ClearActiveRecursive(Widget& root);
+void ClearFocusedRecursive(Widget& root);
 
 // Ticks every widget in the subtree and ORs their results together.
 AnimationTickResult TickWidgetTreeAnimations(Widget& root, float deltaSeconds);

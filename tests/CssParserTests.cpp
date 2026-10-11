@@ -371,6 +371,130 @@ void TestBackdropFilterUnknownSubFunctionIgnored() {
     std::cout << "TestBackdropFilterUnknownSubFunctionIgnored passed\n";
 }
 
+void TestRemoveClassResyncsCascade() {
+    auto root = std::make_shared<Widget>("Panel");
+    auto child = std::make_shared<Widget>("Panel");
+    root->AddChild(child);
+    child->AddClass("tall");
+
+    StyleSheet sheet = StyleSheet::LoadFromString(".tall { height: 40px; } .wide { width: 70px; }");
+    LexborBridge bridge;
+    bridge.Build(*root);
+    StyleApplier::Apply(bridge, sheet, *root);
+    assert(child->GetTargetStyle().height.has_value() && child->GetTargetStyle().height->value == 40.0f);
+
+    // Class changes AFTER Build() must reach the shadow DOM on the next Apply.
+    assert(child->RemoveClass("tall"));
+    child->AddClass("wide");
+    StyleApplier::Apply(bridge, sheet, *root);
+    assert(!child->GetTargetStyle().height.has_value());
+    assert(child->GetTargetStyle().width.has_value() && child->GetTargetStyle().width->value == 70.0f);
+
+    std::cout << "TestRemoveClassResyncsCascade passed\n";
+}
+
+void TestToggleAndSetClass() {
+    Widget widget("Panel");
+    assert(widget.ToggleClass("a") == true && widget.HasClass("a"));
+    assert(widget.ToggleClass("a") == false && !widget.HasClass("a"));
+    widget.SetClass("b", true);
+    widget.SetClass("b", true); // add-if-absent, no duplicate
+    assert(widget.GetClasses().size() == 1);
+    widget.SetClass("b", false);
+    assert(widget.GetClasses().empty());
+    assert(!widget.RemoveClass("missing"));
+    std::cout << "TestToggleAndSetClass passed\n";
+}
+
+void TestDisplayParsing() {
+    auto root = std::make_shared<Widget>("Panel");
+    auto a = std::make_shared<Widget>("Panel");
+    auto b = std::make_shared<Widget>("Panel");
+    auto c = std::make_shared<Widget>("Panel");
+    a->AddClass("a");
+    b->AddClass("b");
+    c->AddClass("c");
+    root->AddChild(a);
+    root->AddChild(b);
+    root->AddChild(c);
+
+    StyleSheet sheet = StyleSheet::LoadFromString(".a { display: none; } .b { display: flex; } .c { display: grid; }");
+    LexborBridge bridge;
+    bridge.Build(*root);
+    StyleApplier::Apply(bridge, sheet, *root);
+
+    assert(!a->IsDisplayed());
+    assert(YGNodeStyleGetDisplay(a->GetYogaNode()) == YGDisplayNone);
+    assert(b->IsDisplayed());
+    assert(c->IsDisplayed()); // unknown value ignored -> default flex
+    assert(root->IsDisplayed());
+    std::cout << "TestDisplayParsing passed\n";
+}
+
+void TestDisplayResetsWhenHidingClassRemoved() {
+    auto root = std::make_shared<Widget>("Panel");
+    auto page = std::make_shared<Widget>("Panel");
+    root->AddChild(page);
+    page->AddClass("hidden");
+
+    StyleSheet sheet = StyleSheet::LoadFromString(".hidden { display: none; }");
+    LexborBridge bridge;
+    bridge.Build(*root);
+    StyleApplier::Apply(bridge, sheet, *root);
+    assert(!page->IsDisplayed());
+    assert(YGNodeStyleGetDisplay(page->GetYogaNode()) == YGDisplayNone);
+
+    // The cascade is additive -- without the write-always rule, `none` would stick here.
+    page->RemoveClass("hidden");
+    StyleApplier::Apply(bridge, sheet, *root);
+    assert(page->IsDisplayed());
+    assert(page->GetStyle().display == Display::Flex);
+    assert(YGNodeStyleGetDisplay(page->GetYogaNode()) == YGDisplayFlex);
+    std::cout << "TestDisplayResetsWhenHidingClassRemoved passed\n";
+}
+
+void TestHiddenChildSkippedByHitTest() {
+    auto root = std::make_shared<Widget>("Panel");
+    root->SetId("root");
+    auto overlay = std::make_shared<Widget>("Panel");
+    overlay->AddClass("overlay");
+    root->AddChild(overlay);
+
+    StyleSheet sheet = StyleSheet::LoadFromString(
+        "#root { width: 100px; height: 100px; } .overlay { width: 100px; height: 100px; }"
+        ".hidden { display: none; }");
+    LexborBridge bridge;
+    bridge.Build(*root);
+    StyleApplier::Apply(bridge, sheet, *root);
+    root->CalculateLayout(100.0f, 100.0f);
+    assert(root->HitTest(50.0f, 50.0f) == overlay.get());
+
+    overlay->AddClass("hidden");
+    StyleApplier::Apply(bridge, sheet, *root);
+    root->CalculateLayout(100.0f, 100.0f);
+    assert(root->HitTest(50.0f, 50.0f) == root.get());
+    assert(root->HitTest(0.0f, 0.0f) == root.get()); // the zeroed rect sits at the origin
+    std::cout << "TestHiddenChildSkippedByHitTest passed\n";
+}
+
+void TestEmptyClassListRemovesAttribute() {
+    auto root = std::make_shared<Widget>("Panel");
+    auto child = std::make_shared<Widget>("Panel");
+    root->AddChild(child);
+    child->AddClass("x");
+
+    StyleSheet sheet = StyleSheet::LoadFromString(".x { height: 10px; }");
+    LexborBridge bridge;
+    bridge.Build(*root);
+    StyleApplier::Apply(bridge, sheet, *root);
+    assert(child->GetTargetStyle().height.has_value());
+
+    child->RemoveClass("x");
+    StyleApplier::Apply(bridge, sheet, *root);
+    assert(!child->GetTargetStyle().height.has_value());
+    std::cout << "TestEmptyClassListRemovesAttribute passed\n";
+}
+
 } // namespace
 
 int main() {
@@ -391,6 +515,12 @@ int main() {
     TestBackdropFilterSingleFunction();
     TestBackdropFilterMultipleFunctions();
     TestBackdropFilterUnknownSubFunctionIgnored();
+    TestRemoveClassResyncsCascade();
+    TestToggleAndSetClass();
+    TestDisplayParsing();
+    TestDisplayResetsWhenHidingClassRemoved();
+    TestHiddenChildSkippedByHitTest();
+    TestEmptyClassListRemovesAttribute();
     std::cout << "All CssParserTests passed.\n";
     return 0;
 }

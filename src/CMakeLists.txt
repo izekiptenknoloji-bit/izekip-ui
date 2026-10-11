@@ -4,9 +4,16 @@ set(IZEKIP_SOURCES
     Core/Widget.cpp
     Core/Easing.cpp
     Core/Interpolate.cpp
+    Core/TextBuffer.cpp
+    Core/Utf8.cpp
+    Core/InteractionController.cpp
     Widgets/Panel.cpp
     Widgets/Button.cpp
     Widgets/Label.cpp
+    Widgets/TextArea.cpp
+    Widgets/Checkbox.cpp
+    Widgets/RadioButton.cpp
+    Widgets/ProgressBar.cpp
     Platform/Window.cpp
     Renderer/RHI.cpp
     CSS/CssTokenizer.cpp
@@ -25,10 +32,13 @@ endif()
 
 add_library(IzekipUI STATIC ${IZEKIP_SOURCES})
 
+# include(GNUInstallDirs) already called once, at the top-level CMakeLists.txt.
+
 target_include_directories(IzekipUI
     PUBLIC
-        ${CMAKE_SOURCE_DIR}/include
-        ${CMAKE_BINARY_DIR}/generated
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/generated>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/third_party/stb

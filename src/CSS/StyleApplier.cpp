@@ -543,6 +543,14 @@ std::optional<AlignItems> ParseAlignItems(const std::vector<Token>& tokens) {
     return std::nullopt;
 }
 
+std::optional<Display> ParseDisplay(const std::vector<Token>& tokens) {
+    if (tokens.size() != 1 || tokens[0].type != TokenType::Ident) return std::nullopt;
+    const std::string& v = tokens[0].text;
+    if (v == "flex") return Display::Flex;
+    if (v == "none") return Display::None;
+    return std::nullopt; // block/grid/inline/... are not implemented -- ignored
+}
+
 StyleProperties DeclarationToStyleProperties(const MatchedDeclaration& decl) {
     StyleProperties props;
     std::vector<Token> tokens = Tokenizer(decl.rawValueText).Tokenize();
@@ -589,6 +597,8 @@ StyleProperties DeclarationToStyleProperties(const MatchedDeclaration& decl) {
         props.justifyContent = ParseJustifyContent(tokens);
     } else if (decl.propertyName == "align-items") {
         props.alignItems = ParseAlignItems(tokens);
+    } else if (decl.propertyName == "display") {
+        props.display = ParseDisplay(tokens);
     } else if (decl.propertyName == "opacity") {
         if (auto opacity = ParseFilterAmount(tokens)) {
             props.opacity = std::clamp(*opacity, 0.0f, 1.0f);
@@ -730,6 +740,15 @@ void StyleApplier::ApplyToSingleWidget(LexborBridge& bridge, const StyleSheet& s
     widget.GetStyle().MergeFrom(nonAnimatedFields);
 
     YGNodeRef node = widget.GetYogaNode();
+
+    // `display` is ALWAYS written (resolved value or the default `flex`), unlike the
+    // merge-if-set fields above: the cascade is additive, so once a `.hidden { display:
+    // none }` class is removed, `resolved.display` is simply unset -- merging would leave the
+    // stale `none` on both m_style and the Yoga node forever. This is the single write site.
+    const Display display = resolved.display.value_or(Display::Flex);
+    widget.GetStyle().display = display;
+    YGNodeStyleSetDisplay(node, display == Display::None ? YGDisplayNone : YGDisplayFlex);
+
     if (resolved.padding) {
         YGNodeStyleSetPadding(node, YGEdgeTop, resolved.padding->top);
         YGNodeStyleSetPadding(node, YGEdgeRight, resolved.padding->right);

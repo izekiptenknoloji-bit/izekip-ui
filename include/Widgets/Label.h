@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <vector>
 
 #include "Core/Widget.h"
@@ -29,11 +30,12 @@ private:
                                YGMeasureMode heightMode);
     Render::GlyphAtlas& GetAtlas() const;
 
-    std::string m_text;
-    // Lines split from m_text on literal '\n' only -- no automatic word-wrap, no CRLF
-    // normalization (named scope cut, see Phase 7 plan). Recomputed in SetText so
-    // MeasureFunc/OnPaint never re-split per call.
-    std::vector<std::string> m_lines;
+    std::string m_text; // as given to SetText (UTF-8)
+    // m_text decoded from UTF-8 to codepoints, then split on '\n' -- no automatic word-wrap,
+    // no CRLF normalization (named scope cut). Decoded once in SetText so MeasureFunc/OnPaint
+    // never re-decode per call. Codepoints (not bytes) so Turkish characters and the rest of
+    // the glyph atlas's Latin-1 + Latin Extended-A coverage render correctly.
+    std::vector<std::u32string> m_lines;
     Render::FontId m_fontFamily = Render::FontId::Proportional;
 };
 

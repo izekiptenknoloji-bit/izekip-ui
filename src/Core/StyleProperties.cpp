@@ -25,6 +25,7 @@ void StyleProperties::MergeFrom(const StyleProperties& higherPriority) {
     if (higherPriority.flexDirection) flexDirection = higherPriority.flexDirection;
     if (higherPriority.justifyContent) justifyContent = higherPriority.justifyContent;
     if (higherPriority.alignItems) alignItems = higherPriority.alignItems;
+    if (higherPriority.display) display = higherPriority.display;
 }
 
 } // namespace IzekipUI

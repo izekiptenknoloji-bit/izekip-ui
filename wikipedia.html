@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İzekip UI - Vikipedi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Georgia, serif;
+            line-height: 1.6;
+            color: #222;
+            background-color: #f9f9f9;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 40px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 2em;
+            border-bottom: 3px solid #a7d8de;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-weight: normal;
+        }
+
+        h2 {
+            font-size: 1.5em;
+            border-bottom: 1px solid #a7d8de;
+            padding: 10px 0;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        h3 {
+            font-size: 1.2em;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        .lead {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .infobox {
+            float: right;
+            width: 300px;
+            background-color: #f0f0f0;
+            border: 1px solid #aaa;
+            padding: 15px;
+            margin: 0 0 15px 15px;
+            font-size: 0.9em;
+        }
+
+        .infobox-title {
+            text-align: center;
+            font-weight: bold;
+            border-bottom: 1px solid #aaa;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+
+        .infobox-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding: 5px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .infobox-row:last-child {
+            border-bottom: none;
+        }
+
+        .infobox-label {
+            font-weight: bold;
+            padding-right: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            background-color: #f9f9f9;
+        }
+
+        table th, table td {
+            border: 1px solid #aaa;
+            padding: 10px;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #e8e8e8;
+            font-weight: bold;
+        }
+
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 15px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        pre {
+            background-color: #f4f4f4;
+            border: 1px solid #aaa;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 15px 0;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .edit-placeholder {
+            background-color: #fffacd;
+            border: 2px dashed #ff6b6b;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+        }
+
+        .edit-placeholder-title {
+            color: #ff6b6b;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .edit-placeholder-text {
+            color: #666;
+            font-style: italic;
+            font-size: 0.9em;
+        }
+
+        .references {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #aaa;
+        }
+
+        .reference {
+            margin-bottom: 15px;
+            padding-left: 20px;
+            text-indent: -20px;
+            font-size: 0.9em;
+        }
+
+        a {
+            color: #0645ad;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .toc {
+            background-color: #f9f9f9;
+            border: 1px solid #aaa;
+            padding: 15px;
+            margin: 15px 0;
+            float: right;
+            width: 300px;
+            font-size: 0.9em;
+        }
+
+        .toc-title {
+            font-weight: bold;
+            border-bottom: 1px solid #aaa;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+
+        .toc ol {
+            margin-left: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .infobox, .toc {
+                float: none;
+                width: 100%;
+                margin: 15px 0;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- BAŞLIK -->
+        <h1>İzekip UI</h1>
+
+        <!-- İNFOBOX -->
+        <div class="infobox">
+            <div class="infobox-title">İzekip UI</div>
+            <div class="infobox-row">
+                <div class="infobox-label">Tür:</div>
+                <div>GUI Framework</div>
+            </div>
+            <div class="infobox-row">
+                <div class="infobox-label">Geliştirici:</div>
+                <div>Furkan</div>
+            </div>
+            <div class="infobox-row">
+                <div class="infobox-label">İlk sürüm:</div>
+                <div>2026</div>
+            </div>
+            <div class="infobox-row">
+                <div class="infobox-label">Stabil sürüm:</div>
+                <div>1.0.0</div>
+            </div>
+            <div class="infobox-row">
+                <div class="infobox-label">Yazılma dili:</div>
+                <div>C++20</div>
+            </div>
+            <div class="infobox-row">
+                <div class="infobox-label">İşletim sistemi:</div>
+                <div>Windows, Linux, macOS</div>
+            </div>
+            <div class="infobox-row">
+                <div class="infobox-label">Lisans:</div>
+                <div>MIT</div>
+            </div>
+            <div class="infobox-row">
+                <div class="infobox-label">Web sitesi:</div>
+                <div><a href="https://github.com/izekiptenknoloji-bit">GitHub</a></div>
+            </div>
+        </div>
+
+        <!-- GİRİŞ (LEAD) -->
+        <div class="lead">
+            <div class="edit-placeholder">
+                <div class="edit-placeholder-title">✏️ SEN YAZACAK: GİRİŞ YAZINI</div>
+                <div class="edit-placeholder-text">
+                    İzekip UI nedir? Kısaca açıkla (3-4 cümle).
+                    Ne için yapıldı? Qt'den farkı nedir?
+                    Tıpkı Wikipedia'da olduğu gibi başla: "İzekip UI, ... dilinde yazılmış, açık kaynak..."
+                </div>
+            </div>
+        </div>
+
+        <!-- İÇİNDEKİLER TABLOSU -->
+        <div class="toc">
+            <div class="toc-title">İçindekiler</div>
+            <ol>
+                <li><a href="#giris">Giriş</a></li>
+                <li><a href="#ozellikleri">Temel Özellikleri</a></li>
+                <li><a href="#teknik">Teknik Yapı</a></li>
+                <li><a href="#asamalar">Geliştirme Aşamaları</a></li>
+                <li><a href="#kod">Kod Örnekleri</a></li>
+                <li><a href="#vs">Qt ile Karşılaştırma</a></li>
+                <li><a href="#platform">Platform Desteği</a></li>
+                <li><a href="#lisans">Lisans</a></li>
+            </ol>
+        </div>
+
+        <!-- BÖLÜM 1: NE İSTER? NEDEN YAPILDI? -->
+        <h2 id="giris">Neden Yapılmıştır?</h2>
+
+        <div class="edit-placeholder">
+            <div class="edit-placeholder-title">✏️ SEN YAZACAK: NİYETİ VE MOTIVASYON</div>
+            <div class="edit-placeholder-text">
+                Qt öğrenilmesi neden zordur?
+                CSS neden daha iyidir?
+                GPU rendering neden önemlidir?
+                1-2 paragraf yaz.
+            </div>
+        </div>
+
+        <!-- BÖLÜM 2: TEMEL ÖZELLİKLERİ -->
+        <h2 id="ozellikleri">Temel Özellikleri</h2>
+
+        <h3>CSS Styling</h3>
+        <div class="edit-placeholder">
+            <div class="edit-placeholder-title">✏️ SEN YAZACAK: CSS ÖZELLİĞİ</div>
+            <div class="edit-placeholder-text">
+                İzekip UI'ın CSS desteğini anlatır. Web geliştiricilerin CSS'i nasıl kullandığını,
+                hangi selector'ları desteklediğini yaz. Qt'nin QSS'den farkını söyle.
+            </div>
+        </div>
+
+        <h3>GPU Rendering</h3>
+        <div class="edit-placeholder">
+            <div class="edit-placeholder-title">✏️ SEN YAZACAK: GPU RENDERING</div>
+            <div class="edit-placeholder-text">
+                DirectX 11 ve Vulkan backend'lerini anlatır.
+                İkisinin de aynı pixel output ürettiğini söyle.
+                Cross-platform desteğini vurgula.
+            </div>
+        </div>
+
+        <h3>Flexbox Layout</h3>
+        <div class="edit-placeholder">
+            <div class="edit-placeholder-title">✏️ SEN YAZACAK: FLEXBOX</div>
+            <div class="edit-placeholder-text">
+                Yoga motorunu kullanan layout sistemini anlatır.
+                Responsive design yapabilmeyi söyle.
+            </div>
+        </div>
+
+        <h3>SDF Metin Rendering</h3>
+        <div class="edit-placeholder">
+            <div class="edit-placeholder-title">✏️ SEN YAZACAK: METIN</div>
+            <div class="edit-placeholder-text">
+                stb_truetype ile SDF metin rendering.
+                Türkçe karakter desteğini söyle.
+            </div>
+        </div>
+
+        <!-- BÖLÜM 3: TEKNİK YAPI -->
+        <h2 id="teknik">Teknik Yapı</h2>
+
+        <h3>Tech Stack</h3>
+        <table>
+            <tr>
+                <th>Bileşen</th>
+                <th>Seçim</th>
+                <th>Açıklama</th>
+            </tr>
+            <tr>
+                <td>Dil</td>
+                <td>C++20</td>
+                <td>Modern, performans</td>
+            </tr>
+            <tr>
+                <td>Pencere</td>
+                <td>GLFW</td>
+                <td>Cross-platform</td>
+            </tr>
+            <tr>
+                <td>CSS Parser</td>
+                <td>lexbor</td>
+                <td>W3C standartları</td>
+            </tr>
+            <tr>
+                <td>Layout</td>
+                <td>Yoga</td>
+                <td>Facebook flexbox</td>
+            </tr>
+            <tr>
+                <td>Render D3D11</td>
+                <td>DirectX 11</td>
+                <td>Windows</td>
+            </tr>
+            <tr>
+                <td>Render Vulkan</td>
+                <td>Vulkan</td>
+                <td>Cross-platform</td>
+            </tr>
+            <tr>
+                <td>Metin</td>
+                <td>stb_truetype</td>
+                <td>SDF rendering</td>
+            </tr>
+            <tr>
+                <td>Build</td>
+                <td>CMake</td>
+                <td>3.21+</td>
+            </tr>
+        </table>
+
+        <h3>Proje Mimarisi</h3>
+        <div class="edit-placeholder">
+            <div class="edit-placeholder-title">✏️ SEN YAZACAK: PROJE YAPISI</div>
+            <div class="edit-placeholder-text">
+                Dosya yapısını anlatır. include/, src/, third_party/ gibi klasörleri söyle.
+                Public API nerede, implementation nerede?
+            </div>
+        </div>
+
+        <!-- BÖLÜM 4: GELİŞTİRME AŞAMALARI -->
+        <h2 id="asamalar">Geliştirme Aşamaları (Phases)</h2>
+
+        <div class="edit-placeholder">
+            <div class="edit-placeholder-title">✏️ SEN YAZACAK: PHASE 1 MVP</div>
+            <div class="edit-placeholder-text">
+                Phase 1 nedir? Ne yapıldı? Sonucu ne? (2-3 cümle)
+            </div>
+        </div>
+
+        <div class="edit-placeholder">
+            <div class="edit-placeholder-title">✏️ SEN YAZACAK: PHASE 2 INTERACTIVE</div>
+            <div class="edit-placeholder-text">
+                Phase 2 nedir? Mouse events, animasyonlar eklendi mi?
+            </div>
+        </div>
+
+        <div class="edit-placeholder">
+            <div class="edit-placeholder-title">✏️ SEN YAZACAK: PHASE 3 VE ÜSTESİ</div>
+            <div class="edit-placeholder-text">
+                Phase 3 (effects), Phase 4 (Vulkan), Phase 5 (CSS),
+                Phase 6 (Text), Phase 7 (TextArea) neler yaptı?
+                Her biri için 1-2 cümle yaz.
+            </div>
+        </div>
+
+        <!-- BÖLÜM 5: KOD ÖRNEKLERİ -->
+        <h2 id="kod">Kod Örnekleri</h2>
+
+        <h3>Basit Buton Örneği</h3>
+
+        <p><strong>C++ Kodu:</strong></p>
+        <pre><code>auto root = std::make_shared&lt;Widgets::Panel&gt;();
+root-&gt;SetId("root");
+
+auto button = std::make_shared&lt;Widgets::Button&gt;();
+button-&gt;AddClass("primary");
+root-&gt;AddChild(button);
+
+Css::StyleSheet sheet = Css::StyleSheet::LoadFromFile("style.css");
+Css::LexborBridge bridge;
+bridge.Build(*root);
+Css::StyleApplier::Apply(bridge, sheet, *root);</code></pre>
+
+        <p><strong>CSS Kodu:</strong></p>
+        <pre><code>Button.primary {
+    background: linear-gradient(to right, #3366FF, #5588FF);
+    border-radius: 8px;
+    width: 120px;
+    height: 40px;
+    transition: all 300ms ease-in-out;
+}
+
+Button.primary:hover {
+    opacity: 0.8;
+    box-shadow: 0px 6px 18px #00000070;
+}</code></pre>
+
+        <div class="edit-placeholder">
+            <div class="edit-placeholder-title">✏️ SEN YAZACAK: KOD AÇIKLAMASI</div>
+            <div class="edit-placeholder-text">
+                Bu kod ne yapar? Panel oluşturuluyor, buton ekleniyor,
+                CSS yükleniyor ve uygulanıyor. Cümlelerle anlatır.
+            </div>
+        </div>
+
+        <!-- BÖLÜM 6: QT İLE KARŞILAŞTIRMA -->
+        <h2 id="vs">Qt ile Karşılaştırma</h2>
+
+        <table>
+            <tr>
+                <th>Özellik</th>
+                <th>Qt</th>
+                <th>İzekip UI</th>
+            </tr>
+            <tr>
+                <td>Öğrenme Eğrisi</td>
+                <td>Dik</td>
+                <td>Eğimli</td>
+            </tr>
+            <tr>
+                <td>Styling Dili</td>
+                <td>QSS</td>
+                <td>CSS</td>
+            </tr>
+            <tr>
+                <td>Widget Sayısı</td>
+                <td>100+</td>
+                <td>~5</td>
+            </tr>
+            <tr>
+                <td>Rendering</td>
+                <td>Software+GPU</td>
+                <td>Pure GPU</td>
+            </tr>
+            <tr>
+                <td>Cross-Platform</td>
+                <td>✅ Tam</td>
+                <td>🔄 Devam ediyor</td>
+            </tr>
+            <tr>
+                <td>C++ Standard</td>
+                <td>C++11+</td>
+                <td>C++20</td>
+            </tr>
+        </table>
+
+        <div class="edit-placeholder">
+            <div class="edit-placeholder-title">✏️ SEN YAZACAK: KARŞILAŞTIRMA</div>
+            <div class="edit-placeholder-text">
+                Tablonun anlamını açıklar. Qt nerede iyi, İzekip UI nerede iyi?
+                İzekip UI'ın Qt'ye göre avantajları neler?
+            </div>
+        </div>
+
+        <!-- BÖLÜM 7: PLATFORM DESTEĞİ -->
+        <h2 id="platform">Platform Desteği</h2>
+
+        <h3>Şu Anda Test Edilen</h3>
+        <div class="edit-placeholder">
+            <div class="edit-placeholder-title">✏️ SEN YAZACAK: WINDOWS DESTEĞI</div>
+            <div class="edit-placeholder-text">
+                Windows 10/11'de D3D11 ve Vulkan test edildi.
+                Build tools nelerdir? Hangi Visual Studio sürümü?
+                Vulkan SDK sürümü nedir?
+            </div>
+        </div>
+
+        <h3>Planlanmış</h3>
+        <div class="edit-placeholder">
+            <div class="edit-placeholder-title">✏️ SEN YAZACAK: LINUX/MACOS</div>
+            <div class="edit-placeholder-text">
+                Linux ve macOS'ta Vulkan backend planlanıyor.
+                Durumu nedir? Ne zaman?
+            </div>
+        </div>
+
+        <!-- BÖLÜM 8: LİSANS & KATKI -->
+        <h2 id="lisans">Lisans ve Katkı</h2>
+
+        <h3>Lisans</h3>
+        <p>İzekip UI <strong>MIT Lisansı</strong> ile dağıtılmaktadır. Bu lisans eğitimsel ve ticari kullanıma izin verir.</p>
+
+        <div class="edit-placeholder">
+            <div class="edit-placeholder-title">✏️ SEN YAZACAK: BAĞIMLILIKLARLA AÇIKLA</div>
+            <div class="edit-placeholder-text">
+                Bağımlılık kütüphanelerinin lisansları nelerdir?
+                GLFW (zlib), Yoga (MIT), lexbor (Apache 2.0), stb (Public Domain),
+                Inter Font (OFL) gibi.
+            </div>
+        </div>
+
+        <h3>Katkı Alanları</h3>
+        <ul>
+            <li>CSS özellik desteği</li>
+            <li>Yeni widget türleri</li>
+            <li>Performans optimizasyonu</li>
+            <li>Linux/macOS testing</li>
+            <li>Dokümantasyon</li>
+        </ul>
+
+        <!-- REFERANSLAR -->
+        <div class="references">
+            <h2>Referanslar</h2>
+            <div class="edit-placeholder">
+                <div class="edit-placeholder-title">✏️ SEN YAZACAK: KAYNAKLAR</div>
+                <div class="edit-placeholder-text">
+                    GitHub repo linki, README, ARCHITECTURE.md,
+                    bağlantılı projeler (GLFW, Yoga, lexbor) gibi kaynakları listele.
+                </div>
+            </div>
+        </div>
+
+        <p style="margin-top: 40px; text-align: center; color: #999; font-size: 0.9em;">
+            ---<br>
+            Bu sayfa Wikipedia'ya yapıştırmaya hazır şablondur.<br>
+            Sarı kutulardaki yerleri kendin ellerinle doldur!<br>
+            ✏️ = SEN YAZACAKSN
+        </p>
+
+    </div>
+</body>
+</html>

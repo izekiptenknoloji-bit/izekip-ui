@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "Core/Utf8.h"
 #include "Renderer/GlyphAtlas.h"
 #include "Renderer/IRenderer.h"
 
@@ -15,18 +16,18 @@ Label::Label() : Widget("Label") {
 void Label::SetText(std::string text) {
     m_text = std::move(text);
 
-    // Split on literal '\n' only -- see the header's doc comment for the named scope cut
-    // (no word-wrap, no CRLF normalization). Cached here so MeasureFunc/OnPaint (called
-    // every layout pass / every frame) never re-split the same string.
+    // Decode + split on '\n' once here -- see the header's doc comment (no word-wrap, no
+    // CRLF normalization). MeasureFunc/OnPaint run every layout pass / every frame.
+    const std::u32string decoded = detail::DecodeUtf8(m_text);
     m_lines.clear();
     size_t start = 0;
     while (true) {
-        const size_t newlinePos = m_text.find('\n', start);
-        if (newlinePos == std::string::npos) {
-            m_lines.push_back(m_text.substr(start));
+        const size_t newlinePos = decoded.find(U'\n', start);
+        if (newlinePos == std::u32string::npos) {
+            m_lines.push_back(decoded.substr(start));
             break;
         }
-        m_lines.push_back(m_text.substr(start, newlinePos - start));
+        m_lines.push_back(decoded.substr(start, newlinePos - start));
         start = newlinePos + 1;
     }
 
@@ -81,13 +82,13 @@ void Label::OnPaint(Render::IRenderer& renderer) {
     const float lineHeight = atlas.GetLineHeight() * scale;
 
     for (size_t lineIndex = 0; lineIndex < m_lines.size(); ++lineIndex) {
-        const std::string& line = m_lines[lineIndex];
+        const std::u32string& line = m_lines[lineIndex];
         float penX = m_rect.x;
         const float baselineY =
             m_rect.y + atlas.GetAscent() * scale + lineHeight * static_cast<float>(lineIndex);
-        char prev = 0;
+        char32_t prev = 0;
 
-        for (char c : line) {
+        for (char32_t c : line) {
             const auto* glyph = atlas.FindGlyph(c);
             if (!glyph) {
                 prev = 0;

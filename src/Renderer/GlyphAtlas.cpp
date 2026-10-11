@@ -57,16 +57,18 @@ void GlyphAtlas::Build(const std::string& ttfPath, float bakedPixelHeight) {
 
     uint32_t cursorX = 0, shelfY = 0, shelfHeight = 0;
 
-    for (int c = kFirstChar; c <= kLastChar; ++c) {
+    // Shared by the main contiguous range below AND the extended sparse codepoints --
+    // packs into the same shelf-packer state/cursor (never reset between the two), so both
+    // sets land in the same atlas back-to-back.
+    auto bakeOneCodepoint = [&](int c, GlyphInfo& glyph) {
         const int glyphIndex = stbtt_FindGlyphIndex(info, c);
-        GlyphInfo& glyph = m_glyphs[c - kFirstChar];
 
         int advanceWidth = 0, leftSideBearing = 0;
         stbtt_GetCodepointHMetrics(info, c, &advanceWidth, &leftSideBearing);
         glyph.advance = advanceWidth * scale;
 
         if (glyphIndex == 0) {
-            continue; // no glyph for this codepoint in this font
+            return; // no glyph for this codepoint in this font
         }
 
         int w = 0, h = 0, xoff = 0, yoff = 0;
@@ -74,7 +76,7 @@ void GlyphAtlas::Build(const std::string& ttfPath, float bakedPixelHeight) {
                                                 kPixelDistScale, &w, &h, &xoff, &yoff);
         if (!sdf || w <= 0 || h <= 0) {
             if (sdf) stbtt_FreeSDF(sdf, nullptr);
-            continue; // e.g. space has no visible outline
+            return; // e.g. space has no visible outline
         }
 
         if (cursorX + static_cast<uint32_t>(w) > kAtlasWidth) {
@@ -105,26 +107,42 @@ void GlyphAtlas::Build(const std::string& ttfPath, float bakedPixelHeight) {
         shelfHeight = std::max(shelfHeight, static_cast<uint32_t>(h));
 
         stbtt_FreeSDF(sdf, nullptr);
+    };
+
+    for (int c = kFirstChar; c <= kLastChar; ++c) {
+        bakeOneCodepoint(c, m_glyphs[c - kFirstChar]);
+    }
+
+    for (size_t i = 0; i < kExtendedCodepoints.size(); ++i) {
+        const char32_t cp = kExtendedCodepoints[i];
+        m_extendedGlyphs[i].first = cp;
+        bakeOneCodepoint(static_cast<int>(cp), m_extendedGlyphs[i].second);
     }
 }
 
-const GlyphInfo* GlyphAtlas::FindGlyph(char c) const {
-    const int ic = static_cast<unsigned char>(c);
-    if (ic < kFirstChar || ic > kLastChar) {
-        return nullptr;
+const GlyphInfo* GlyphAtlas::FindGlyph(char32_t c) const {
+    if (c >= static_cast<char32_t>(kFirstChar) && c <= static_cast<char32_t>(kLastChar)) {
+        return &m_glyphs[static_cast<size_t>(c) - kFirstChar];
     }
-    return &m_glyphs[static_cast<size_t>(ic - kFirstChar)];
+    for (const auto& [codepoint, info] : m_extendedGlyphs) {
+        if (codepoint == c) {
+            return &info;
+        }
+    }
+    return nullptr;
 }
 
-float GlyphAtlas::GetKerning(char a, char b) const {
-    if (!m_fontInfo) {
+float GlyphAtlas::GetKerning(char32_t a, char32_t b) const {
+    if (!m_fontInfo || a > 0xFF || b > 0xFF) {
+        // stb_truetype's kerning table lookup only makes sense for codepoints we treat as
+        // "narrow" here; the 6 Turkish Latin Extended-A codepoints never kern against
+        // anything in this engine (acceptable -- kerning is a minor visual refinement, not
+        // a correctness requirement).
         return 0.0f;
     }
     auto* info = static_cast<stbtt_fontinfo*>(m_fontInfo);
     const float scale = stbtt_ScaleForPixelHeight(info, m_bakedPixelHeight);
-    return stbtt_GetCodepointKernAdvance(info, static_cast<unsigned char>(a),
-                                          static_cast<unsigned char>(b)) *
-           scale;
+    return stbtt_GetCodepointKernAdvance(info, static_cast<int>(a), static_cast<int>(b)) * scale;
 }
 
 float GlyphAtlas::MeasureTextWidth(const std::string& text, float fontSize) const {
@@ -132,6 +150,25 @@ float GlyphAtlas::MeasureTextWidth(const std::string& text, float fontSize) cons
     float width = 0.0f;
     char prev = 0;
     for (char c : text) {
+        const GlyphInfo* glyph = FindGlyph(static_cast<unsigned char>(c));
+        if (!glyph) {
+            prev = 0;
+            continue;
+        }
+        if (prev) {
+            width += GetKerning(static_cast<unsigned char>(prev), static_cast<unsigned char>(c)) * scale;
+        }
+        width += glyph->advance * scale;
+        prev = c;
+    }
+    return width;
+}
+
+float GlyphAtlas::MeasureTextWidth(const std::u32string& text, float fontSize) const {
+    const float scale = m_bakedPixelHeight > 0.0f ? fontSize / m_bakedPixelHeight : 1.0f;
+    float width = 0.0f;
+    char32_t prev = 0;
+    for (char32_t c : text) {
         const GlyphInfo* glyph = FindGlyph(c);
         if (!glyph) {
             prev = 0;

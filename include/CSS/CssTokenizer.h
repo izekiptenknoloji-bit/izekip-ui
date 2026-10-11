@@ -1,3 +1,9 @@
+/**
+ * @file
+ * @internal
+ * Tier-2 (see COMPATIBILITY.md) -- internal to StyleApplier.cpp's own value-parsing
+ * helpers, not consumer-facing. Not covered by the API compatibility policy.
+ */
 #pragma once
 
 #include <string>

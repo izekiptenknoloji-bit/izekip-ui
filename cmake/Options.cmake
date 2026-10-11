@@ -3,6 +3,8 @@ set_property(CACHE IZEKIP_RENDER_BACKEND PROPERTY STRINGS "D3D11" "VULKAN")
 
 option(IZEKIP_BUILD_EXAMPLES "Build IzekipUI example apps" ${PROJECT_IS_TOP_LEVEL})
 option(IZEKIP_BUILD_TESTS "Build IzekipUI tests" ${PROJECT_IS_TOP_LEVEL})
+option(IZEKIP_BUILD_CLI "Build the cssfr project-scaffolding CLI" ${PROJECT_IS_TOP_LEVEL})
+option(IZEKIP_BUILD_INSTALLER "Build the IzekipUISetup SDK installer (Windows + D3D11 backend only)" OFF)
 
 if(IZEKIP_RENDER_BACKEND STREQUAL "D3D11")
     set(IZEKIP_RENDER_BACKEND_D3D11 1)

@@ -63,6 +63,27 @@ cmake .. -DIZEKIP_RENDER_BACKEND=VULKAN
 cmake --build . --config Release
 ```
 
+## Starting a New Project
+
+**Easiest:** download `IzekipUI-SDK-<version>-win64.zip`, extract it, run `IzekipUISetup.exe`
+(a GUI installer written with İzekip UI itself), then in a new terminal:
+`cssfr create myapp` → `cd myapp` → `cmake -B build` → `cmake --build build`. To build that
+zip yourself: `cmake -DD3D11_BUILD_DIR=build -DVULKAN_BUILD_DIR=build-vulkan -P cmake/PackageSDK.cmake`.
+
+**From source:** once IzekipUI is built (above), install it and scaffold a new project with `cssfr`:
+
+```bash
+cmake --install build --prefix /path/to/izekip-install
+/path/to/izekip-install/bin/cssfr create myapp --izekip-path /path/to/izekip-install
+cd myapp
+cmake -B build
+cmake --build build
+```
+
+This generates a `CMakeLists.txt` already wired for `find_package(IzekipUI)`, a minimal
+`main.cpp`, and a starter `style.css` — see `cli/README.md` for details, and
+`COMPATIBILITY.md` for what the installed package promises across future IzekipUI updates.
+
 ## Quick Start
 
 ```cpp
@@ -155,20 +176,24 @@ Button.primary:hover {
 
 ## Roadmap
 
-### Phase 6 ✅ (Current)
+### Phase 6 ✅
 - SDF text rendering via `stb_truetype`
 - `Widgets::Label` with font sizing
 - D3D11 + Vulkan texture/sampler support
 
-### Phase 7 (Planned)
-- Input widget (text entry)
-- Keyboard event handling
-- Focus/blur pseudo-classes
+### Phase 7 ✅ (Current)
+- `Widgets::TextArea` (multi-line editable text entry)
+- Real keyboard event handling (`Platform::Window::SetKeyCallback`/`SetCharCallback`)
+- `:focus` pseudo-class
+- Turkish character glyph support (ASCII + Latin-1 + 6 Latin Extended-A codepoints)
+
+### Planned
 - More widget types (Checkbox, Select, Slider)
+- Text selection, clipboard, undo/redo in `TextArea`
 
 ### Future
-- Unicode text support (currently ASCII 32-126)
-- Text wrapping & multi-line
+- Full Unicode text support (currently ASCII + Latin-1 + Turkish-specific characters only)
+- Text wrapping & multi-line for `Label` (currently explicit `\n` only)
 - CSS Grid layout
 - Position (absolute, relative, fixed)
 - Z-index / layer ordering
@@ -199,6 +224,13 @@ Unit tests verify CSS parsing and selector matching:
 cd build/tests/Release
 ./IzekipUICssParserTests.exe
 ```
+
+## Compatibility
+
+İzekip UI follows semantic versioning starting at `1.0.0`. See `COMPATIBILITY.md` for what
+that promises (source-level compatibility for the Tier-1 public headers listed there), what
+it doesn't cover, and the automated `tools/api_diff.py` check that enforces it across
+releases. See `CHANGELOG.md` for release history.
 
 ## License
 

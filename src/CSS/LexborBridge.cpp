@@ -35,6 +35,15 @@ void SetOrClearFlagAttribute(lxb_dom_element_t* element, const char* name, size_
     }
 }
 
+std::string JoinClasses(const Widget& widget) {
+    std::string classAttr;
+    for (const auto& cls : widget.GetClasses()) {
+        if (!classAttr.empty()) classAttr += ' ';
+        classAttr += cls;
+    }
+    return classAttr;
+}
+
 } // namespace
 
 LexborBridge::LexborBridge() = default;
@@ -72,11 +81,7 @@ void LexborBridge::BuildRecursive(Widget& widget, lxb_dom_element* parentShadowE
     }
 
     if (!widget.GetClasses().empty()) {
-        std::string classAttr;
-        for (const auto& cls : widget.GetClasses()) {
-            if (!classAttr.empty()) classAttr += ' ';
-            classAttr += cls;
-        }
+        const std::string classAttr = JoinClasses(widget);
         lxb_dom_element_set_attribute(element, reinterpret_cast<const lxb_char_t*>("class"), 5,
                                        reinterpret_cast<const lxb_char_t*>(classAttr.c_str()),
                                        classAttr.size());
@@ -110,6 +115,20 @@ void LexborBridge::SyncPseudoState(Widget& widget) {
     }
     SetOrClearFlagAttribute(element, "hover", 5, widget.IsHovered());
     SetOrClearFlagAttribute(element, "active", 6, widget.IsActive());
+    SetOrClearFlagAttribute(element, "focus", 5, widget.IsFocused());
+
+    // Classes are live too (Widget::AddClass/RemoveClass/SetClass after Build()) -- lexbor's
+    // class selector reads the attribute value directly on every match, so rewriting it here
+    // each Apply is enough. The shadow tree's STRUCTURE (children, id) is still frozen at
+    // Build(); only classes and pseudo-state flags are synced.
+    const std::string classAttr = JoinClasses(widget);
+    if (classAttr.empty()) {
+        lxb_dom_element_remove_attribute(element, reinterpret_cast<const lxb_char_t*>("class"), 5);
+    } else {
+        lxb_dom_element_set_attribute(element, reinterpret_cast<const lxb_char_t*>("class"), 5,
+                                       reinterpret_cast<const lxb_char_t*>(classAttr.c_str()),
+                                       classAttr.size());
+    }
 }
 
 std::vector<MatchedDeclaration> LexborBridge::MatchedDeclarationsFor(const StyleSheet& sheet,

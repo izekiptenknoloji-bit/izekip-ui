@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İzekip UI - Vikipedi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Georgia, serif;
+            line-height: 1.6;
+            color: #222;
+            background-color: #f9f9f9;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 40px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 2em;
+            border-bottom: 3px solid #a7d8de;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-weight: normal;
+        }
+
+        h2 {
+            font-size: 1.5em;
+            border-bottom: 1px solid #a7d8de;
+            padding: 10px 0;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        h3 {
+            font-size: 1.2em;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        .lead {
+            font-size: 1.1em;
+            font-style: italic;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-left: 4px solid #a7d8de;
+        }
+
+        .infobox {
+            float: right;
+            width: 300px;
+            background-color: #f0f0f0;
+            border: 1px solid #aaa;
+            padding: 15px;
+            margin: 0 0 15px 15px;
+            font-size: 0.9em;
+        }
+
+        .infobox-title {
+            text-align: center;
+            font-weight: bold;
+            border-bottom: 1px solid #aaa;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+
+        .infobox-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .infobox-row:last-child {
+            border-bottom: none;
+        }
+
+        .infobox-label {
+            font-weight: bold;
+            padding-right: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            background-color: #f9f9f9;
+        }
+
+        table th, table td {
+            border: 1px solid #aaa;
+            padding: 10px;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #e8e8e8;
+            font-weight: bold;
+        }
+
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 15px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        pre {
+            background-color: #f4f4f4;
+            border: 1px solid #aaa;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 15px 0;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .toc {
+            background-color: #f9f9f9;
+            border: 1px solid #aaa;
+            padding: 15px;
+            margin: 15px 0;
+            float: right;
+            width: 300px;
+            font-size: 0.9em;
+        }
+
+        .toc-title {
+            font-weight: bold;
+            border-bottom: 1px solid #aaa;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+
+        .toc ol {
+            margin-left: 20px;
+        }
+
+        a {
+            color: #0645ad;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .infobox, .toc {
+                float: none;
+                width: 100%;
+                margin: 15px 0;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- BAŞLIK -->
+        <h1>İzekip UI</h1>
+
+        <!-- İNFOBOX -->
+        <div class="infobox">
+            <div class="infobox-title">İzekip UI</div>
+            <div class="infobox-row">
+                <div class="infobox-label">Tür:</div>
+                <div>GUI Framework</div>
+            </div>
+            <div class="infobox-row">
+                <div class="infobox-label">Geliştirici:</div>
+                <div>Furkan</div>
+            </div>
+            <div class="infobox-row">
+                <div class="infobox-label">İlk sürüm:</div>
+                <div>2026</div>
+            </div>
+            <div class="infobox-row">
+                <div class="infobox-label">Stabil sürüm:</div>
+                <div>1.0.0</div>
+            </div>
+            <div class="infobox-row">
+                <div class="infobox-label">Yazılma dili:</div>
+                <div>C++20</div>
+            </div>
+            <div class="infobox-row">
+                <div class="infobox-label">İşletim sistemi:</div>
+                <div>Windows, Linux, macOS</div>
+            </div>
+            <div class="infobox-row">
+                <div class="infobox-label">Lisans:</div>
+                <div>MIT</div>
+            </div>
+            <div class="infobox-row">
+                <div class="infobox-label">Web sitesi:</div>
+                <div><a href="https://github.com/izekiptenknoloji-bit">GitHub</a></div>
+            </div>
+        </div>
+
+        <!-- GİRİŞ -->
+        <div class="lead">
+            İzekip UI, 2026 yılında Furkan tarafından geliştirilmeye başlanan açık kaynak C++ grafik arayüz (GUI) kütüphanesidir.
+            Qt kütüphanesine daha basit ve web geliştiricileri için daha uyumlu bir alternatif sunmayı hedeflemektedir.
+            Gerçek CSS (Cascading Style Sheets) stil desteği, GPU tabanlı hızlı rendering (DirectX 11 ve Vulkan) ve
+            Facebook'un Yoga flexbox motorunu kullanarak modern, responsive arayüzler oluşturmaya imkan verir.
+        </div>
+
+        <!-- İÇİNDEKİLER -->
+        <div class="toc">
+            <div class="toc-title">İçindekiler</div>
+            <ol>
+                <li><a href="#giris">Giriş</a></li>
+                <li><a href="#ozellikleri">Temel Özellikleri</a></li>
+                <li><a href="#teknik">Teknik Yapı</a></li>
+                <li><a href="#asamalar">Geliştirme Aşamaları</a></li>
+                <li><a href="#kod">Kod Örnekleri</a></li>
+                <li><a href="#vs">Qt ile Karşılaştırma</a></li>
+                <li><a href="#platform">Platform Desteği</a></li>
+                <li><a href="#lisans">Lisans</a></li>
+            </ol>
+        </div>
+
+        <!-- BÖLÜM 1: GİRİŞ -->
+        <h2 id="giris">Neden Yapılmıştır?</h2>
+
+        <p>
+            Qt kütüphanesinin karmaşık yapısı ve öğrenilmesinin güç olması, İzekip UI'ın geliştirilmesinin temel
+            nedenlerindedir. Qt'nin MOC (Meta-Object Compiler) pre-compiler'ı, Signal/Slot mekanizması ve karmaşık
+            CMake kurulumu, yeni başlayanlar için ciddi bir engel oluşturmaktadır.
+        </p>
+
+        <p>
+            Öte yandan, web geliştiricileri CSS (Cascading Style Sheets) dilini çok iyi bilmektedirler. Eğer GUI
+            arayüzleri de CSS ile tasarlanabilirse, öğrenme eğrisi çok daha eğimli hale gelir. İzekip UI tam da
+            bu ihtiyacı karşılamak için geliştirilmiştir: C++ ile mantık ve veri yapıları, CSS ile stil ve tasarım.
+        </p>
+
+        <p>
+            Ayrıca modern GPU'ların (Graphics Processing Unit - grafik kartları) gücünden tam olarak faydalanmak,
+            pure GPU rendering (saf GPU render) ile Windows (DirectX 11), Linux ve macOS (Vulkan) arasında
+            pixel-perfect (piksel-mükemmel) aynı görüntü oluşturmak hedeflenmektedir.
+        </p>
+
+        <!-- BÖLÜM 2: TEMEL ÖZELLİKLERİ -->
+        <h2 id="ozellikleri">Temel Özellikleri</h2>
+
+        <h3>CSS Styling</h3>
+        <p>
+            İzekip UI'ın en ayırt edici özelliği gerçek CSS (Cascading Style Sheets) dilini kullanmasıdır.
+            Bu, web geliştiricilerin CSS'i ve W3C web standartlarını doğrudan C++ GUI geliştirmeye aktarmasını sağlar.
+            Desteklenen CSS selectors'ları arasında type selectors (Button, Panel), class selectors (.primary, .large),
+            ID selectors (#root), descendant combinators (Panel > Button) ve pseudo-classes (:hover, :active, :focus)
+            bulunmaktadır. Renk formatları (hex #FF6B6B, rgb, rgba, adlandırılmış renkler), boyutlandırma birimleri
+            (px, %) ve flexbox properties desteği mevcuttur.
+        </p>
+
+        <h3>GPU Rendering</h3>
+        <p>
+            İzekip UI sadece GPU (Graphics Processing Unit) kullanarak rendering yapar, yazılım rendering
+            (software rendering) kullanmaz. Bu, hızlı ve keskin grafiklerin oluşturulmasını sağlar. İki farklı
+            backend desteği mevcuttur: DirectX 11 (Windows native GPU API) ve Vulkan (Khronos standardı,
+            cross-platform). Önemli bir özelliği, her iki backend'in pixel-identical (piksel-aynı) output
+            üretmesi ve görüntü kalitesinin farksız olmasıdır.
+        </p>
+
+        <h3>Flexbox Layout</h3>
+        <p>
+            Facebook'un geliştirdiği Yoga layout motorunu kullanan responsive (uyumlu) design desteği sunmaktadır.
+            flex-direction (row, column), justify-content (flex-start, center, space-between) ve align-items
+            (flex-start, center, stretch) gibi flexbox properties ile modern, ekran boyutuna uyumlu arayüzler
+            oluşturabilir.
+        </p>
+
+        <h3>SDF Metin Rendering</h3>
+        <p>
+            stb_truetype kütüphanesi kullanılarak TrueType fontları SDF (Signed Distance Field) teknolojisi ile
+            512x512 piksellik texture'a dönüştürülür. Bu yöntem, zoom'lanırken bile temiz ve keskin yazı
+            görüntüsü sağlar. Türkçe karakter desteği (ş, ğ, ı, İ vb.) yapılmıştır.
+        </p>
+
+        <!-- BÖLÜM 3: TEKNİK YAPI -->
+        <h2 id="teknik">Teknik Yapı</h2>
+
+        <h3>Tech Stack</h3>
+        <table>
+            <tr>
+                <th>Bileşen</th>
+                <th>Seçim</th>
+                <th>Açıklama</th>
+            </tr>
+            <tr>
+                <td>Dil</td>
+                <td>C++20</td>
+                <td>Modern features, performans</td>
+            </tr>
+            <tr>
+                <td>Pencere</td>
+                <td>GLFW 3.x</td>
+                <td>Cross-platform windowing</td>
+            </tr>
+            <tr>
+                <td>CSS Parser</td>
+                <td>lexbor</td>
+                <td>W3C standartları uyumlu</td>
+            </tr>
+            <tr>
+                <td>Layout</td>
+                <td>Yoga</td>
+                <td>Facebook flexbox motor</td>
+            </tr>
+            <tr>
+                <td>GPU D3D11</td>
+                <td>DirectX 11</td>
+                <td>Windows native</td>
+            </tr>
+            <tr>
+                <td>GPU Vulkan</td>
+                <td>Vulkan 1.4</td>
+                <td>Cross-platform</td>
+            </tr>
+            <tr>
+                <td>Metin</td>
+                <td>stb_truetype</td>
+                <td>SDF rendering</td>
+            </tr>
+            <tr>
+                <td>Build</td>
+                <td>CMake 3.21+</td>
+                <td>Standard C++ build</td>
+            </tr>
+        </table>
+
+        <h3>Proje Mimarisi</h3>
+        <p>
+            Proje yapısı net bir şekilde public API (include/) ve implementation (src/) ayrımı yapılmıştır.
+            <code>include/Core/</code> klasöründe Widget, animasyon ve layout matematikleri;
+            <code>include/CSS/</code>'de CSS parser ve style uygulayıcı;
+            <code>include/Renderer/</code>'da GPU abstraction interface bulunmaktadır.
+            Implementation dosyaları <code>src/</code> altında benzer yapıda organizedir.
+            <code>third_party/</code> klasöründe GLFW, Yoga, lexbor ve stb_truetype gibi bağımlılıklar
+            vendored (satın alınmış/dahil edilmiş) şekilde bulunmaktadır. Render backend'leri
+            (<code>src/Renderer/D3D11/</code> ve <code>src/Renderer/Vulkan/</code>) private
+            implementasyonlar olarak kalır ve public API'den gizlidir. Şader kodu
+            (<code>RectShader.hlsl</code>) her iki backend tarafından paylaşılmaktadır.
+        </p>
+
+        <!-- BÖLÜM 4: GELİŞTİRME AŞAMALARI -->
+        <h2 id="asamalar">Geliştirme Aşamaları (Phases)</h2>
+
+        <h3>Phase 1: MVP (Minimum Viable Product)</h3>
+        <p>
+            İlk aşamada GLFW penceresi, DirectX 11 device ve swap chain, hand-rolled CSS parser
+            (sadece type/.class/#id selectors), Yoga layout engine ve düz renkli dikdörtgen rendering
+            oluşturulmuştur. <code>examples/01_basic_panel_button</code> örneği bu aşamayı temsil etmektedir.
+        </p>
+
+        <h3>Phase 2: Interactive UI</h3>
+        <p>
+            GLFW mouse/cursor callbacks, Widget::HitTest (hit detection), hover state management
+            ve :hover/:active CSS pseudo-classes eklenmişdir. CSS transition özelliği ile cubic-bezier
+            easing engine (Newton-Raphson solver) uygulanarak smooth animasyonlar (renk, boyut, margin)
+            sağlanmıştır.
+        </p>
+
+        <h3>Phase 3: Visual Effects</h3>
+        <p>
+            border-radius (SDF shader ile yuvarlak köşeler), box-shadow (gölge efekti), linear-gradient
+            (geçişli renkler) ve premultiplied alpha blending eklenmişdir. Bu özellikler henüz
+            animate edilmemektedir (snap-only).
+        </p>
+
+        <h3>Phase 4: Vulkan Backend</h3>
+        <p>
+            DirectX 11'e paralel olarak ikinci IRenderer implementasyonu olan Vulkan backend geliştirilmiştir.
+            SPIR-V shader compilation (build-time dxc), Vulkan surface creation, swapchain management
+            ve validation layer testing yapılmıştır. Test makinesi Intel UHD Graphics ile Vulkan 1.4'ü
+            kullanmış ve D3D11 ile pixel-identical output alınmıştır.
+        </p>
+
+        <h3>Phase 5: Standards-Compliant CSS</h3>
+        <p>
+            Hand-rolled CSS parser'ı lexbor kütüphanesine geçilmiştir. Descendant combinators (> operatörü),
+            multi-value CSS shorthands (margin: 10px 20px 30px 40px), flex-direction/justify-content/align-items
+            Yoga'ya wiring yapılmış ve proper CSS cascade ile specificity uygulanmıştır.
+        </p>
+
+        <h3>Phase 6: Text Rendering (SDF)</h3>
+        <p>
+            stb_truetype ile glyph rasterization, 512x512 SDF atlas texture, RectShader.hlsl'e text mode flag,
+            Widgets::Label (single-line text), Yoga'nın YGNodeSetMeasureFunc ile font sizing,
+            Latin-1 + Turkish extended characters ve D3D11 + Vulkan texture/sampler support eklenmiştir.
+        </p>
+
+        <h3>Phase 7: TextArea & Keyboard (Devam Ediyor)</h3>
+        <p>
+            Widgets::TextArea (multi-line editable), TextBuffer data structure, keyboard event handling,
+            Platform::Window callbacks, :focus pseudo-class ve cursor positioning aşaması devam etmektedir.
+            <code>examples/03_notepad</code> örneği bu aşamayı göstermektedir.
+        </p>
+
+        <!-- BÖLÜM 5: KOD ÖRNEKLERİ -->
+        <h2 id="kod">Kod Örnekleri</h2>
+
+        <h3>Basit Buton Örneği</h3>
+
+        <p><strong>C++ Kodu:</strong></p>
+        <pre><code>// Widget ağacı oluştur
+auto root = std::make_shared&lt;Widgets::Panel&gt;();
+root-&gt;SetId("root");
+root-&gt;AddClass("container");
+
+auto button = std::make_shared&lt;Widgets::Button&gt;();
+button-&gt;AddClass("primary");
+root-&gt;AddChild(button);
+
+// CSS yükle ve uygula
+Css::StyleSheet sheet = Css::StyleSheet::LoadFromFile("style.css");
+Css::LexborBridge bridge;
+bridge.Build(*root);
+Css::StyleApplier::Apply(bridge, sheet, *root);</code></pre>
+
+        <p><strong>CSS Kodu:</strong></p>
+        <pre><code>Panel#root.container {
+    background-color: #F5F5F5;
+    width: 800px;
+    height: 600px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+Button.primary {
+    background: linear-gradient(to right, #3366FF, #5588FF);
+    border-radius: 8px;
+    width: 120px;
+    height: 40px;
+    opacity: 1.0;
+    transition: all 300ms ease-in-out;
+}
+
+Button.primary:hover {
+    opacity: 0.8;
+    box-shadow: 0px 6px 18px #00000070;
+}</code></pre>
+
+        <p>
+            Bu örnek, kök panelin (açık gri background, centered layout) ve gradient butonun (mavi gradyan)
+            oluşturulmasını göstermektedir. Buton hover'da opaklik azalır ve gölge çıkar. 300ms boyunca
+            smooth transition ile animasyon yapılır.
+        </p>
+
+        <!-- BÖLÜM 6: QT İLE KARŞILAŞTIRMA -->
+        <h2 id="vs">Qt ile Karşılaştırma</h2>
+
+        <table>
+            <tr>
+                <th>Özellik</th>
+                <th>Qt</th>
+                <th>İzekip UI</th>
+            </tr>
+            <tr>
+                <td>Öğrenme Eğrisi</td>
+                <td>Dik</td>
+                <td>Eğimli</td>
+            </tr>
+            <tr>
+                <td>Styling Dili</td>
+                <td>QSS (özel syntax)</td>
+                <td>CSS (Web standartı)</td>
+            </tr>
+            <tr>
+                <td>Widget Sayısı</td>
+                <td>100+</td>
+                <td>~5 (minimal)</td>
+            </tr>
+            <tr>
+                <td>Rendering</td>
+                <td>Software + GPU hybrid</td>
+                <td>Pure GPU</td>
+            </tr>
+            <tr>
+                <td>Cross-Platform</td>
+                <td>✅ Tam desteklenen</td>
+                <td>🔄 Windows + Vulkan devam</td>
+            </tr>
+            <tr>
+                <td>C++ Standard</td>
+                <td>C++11+</td>
+                <td>C++20</td>
+            </tr>
+            <tr>
+                <td>Setup Karmaşıklığı</td>
+                <td>Ağır, kompleks</td>
+                <td>Hafif, CMake basit</td>
+            </tr>
+            <tr>
+                <td>Hedef Kitle</td>
+                <td>Genel amaçlı</td>
+                <td>Web dev'ler</td>
+            </tr>
+        </table>
+
+        <p>
+            Qt, geleneksel "tüm şeyi C++ kodunda yapmak" yaklaşımı izlerken, İzekip UI web paradigmasını
+            kullanır: "C++ ile logic, CSS ile style". Bu, web geçmişi olan geliştiriciler için çok daha
+            doğal ve öğrenmesi kolaydır. İzekip UI'ın minimal widget seti ve pure GPU rendering'i
+            onu hafif ve hızlı kılmaktadır.
+        </p>
+
+        <!-- BÖLÜM 7: PLATFORM DESTEĞİ -->
+        <h2 id="platform">Platform Desteği</h2>
+
+        <h3>Şu Anda Test Edilen</h3>
+        <p>
+            <strong>Windows 10/11:</strong> DirectX 11 backend'i tam desteklenmektedir (MSVC 2026 ile derlenir).
+            Vulkan backend de test edilmiş ve çalışmaktadır (Vulkan SDK 1.4.363.0).
+            Build tools'lar arasında Visual Studio 2026, CMake 4.3.1 ve Windows SDK 10.0.26100.0 bulunmaktadır.
+        </p>
+
+        <h3>Planlanmış</h3>
+        <p>
+            <strong>Linux ve macOS:</strong> Vulkan backend'i için altyapı hazır olmasına rağmen,
+            henüz native test ve doğrulama yapılmamıştır. Cross-platform Vulkan desteği nedeniyle,
+            Linux ve macOS'ta Vulkan backend'i çalışması beklenmektedir.
+        </p>
+
+        <!-- BÖLÜM 8: LİSANS -->
+        <h2 id="lisans">Lisans ve Katkı</h2>
+
+        <h3>Lisans</h3>
+        <p>
+            İzekip UI <strong>MIT Lisansı</strong> ile dağıtılmaktadır. Bu lisans eğitimsel ve ticari
+            kullanıma izin vermektedir. Bağımlılık kütüphanelerinin lisansları şu şekildedir:
+        </p>
+        <ul>
+            <li>GLFW: zlib License</li>
+            <li>Yoga: MIT License</li>
+            <li>lexbor: Apache 2.0 License</li>
+            <li>stb_truetype: Public Domain</li>
+            <li>Inter Font: OFL (Open Font License)</li>
+        </ul>
+
+        <h3>Katkı Alanları</h3>
+        <p>
+            Aşağıdaki alanlarda katkılar açık olarak kabul edilmektedir:
+        </p>
+        <ul>
+            <li>CSS özellik desteği (backdrop-filter enhancements, yeni özellikler)</li>
+            <li>Yeni widget türleri (Checkbox, Select, Slider)</li>
+            <li>Performans optimizasyonu (batching, invalidation tracking)</li>
+            <li>Linux/macOS native testing ve doğrulama</li>
+            <li>Dokümantasyon ve örnek uygulamalar</li>
+        </ul>
+
+        <h3>İnce Kararlar (Intentional Scope Cuts)</h3>
+        <p>
+            Qt'nin Signal/Slot mekanizması bilerek çıkarılmıştır. Minimal widget seti tercih edilmiş,
+            100+ widget yerine ~5 widget kullanılmıştır. Absolute positioning ve z-index henüz
+            uygulanmamıştır (flexbox only).
+        </p>
+
+        <!-- REFERANSLAR -->
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #aaa;">
+            <h2>Referanslar</h2>
+            <ul>
+                <li>GitHub Repository: <a href="https://github.com/izekiptenknoloji-bit">https://github.com/izekiptenknoloji-bit</a></li>
+                <li>GLFW: <a href="https://github.com/glfw/glfw">https://github.com/glfw/glfw</a></li>
+                <li>Yoga: <a href="https://github.com/facebook/yoga">https://github.com/facebook/yoga</a></li>
+                <li>lexbor: <a href="https://github.com/lexbor/lexbor">https://github.com/lexbor/lexbor</a></li>
+                <li>stb: <a href="https://github.com/nothings/stb">https://github.com/nothings/stb</a></li>
+                <li>W3C CSS Specification: <a href="https://www.w3.org/Style/CSS/">https://www.w3.org/Style/CSS/</a></li>
+                <li>Vulkan API: <a href="https://www.khronos.org/vulkan/">https://www.khronos.org/vulkan/</a></li>
+            </ul>
+        </div>
+
+        <p style="margin-top: 40px; text-align: center; color: #999; font-size: 0.85em;">
+            ---<br>
+            <strong>İzekip UI Vikipedi Sayfası</strong><br>
+            Türkçe Açık Kaynak GUI Framework<br>
+            © 2026 Furkan | MIT License
+        </p>
+
+    </div>
+</body>
+</html>

@@ -17,6 +17,9 @@ enum class GradientDirection { ToRight, ToLeft, ToTop, ToBottom };
 enum class FlexDirection { Row, Column, RowReverse, ColumnReverse };
 enum class JustifyContent { FlexStart, FlexEnd, Center, SpaceBetween, SpaceAround };
 enum class AlignItems { FlexStart, FlexEnd, Center, Stretch };
+// CSS `display`. Only `flex` (the default) and `none` are recognized -- `none` removes the
+// widget from layout AND from painting/hit-testing (parents skip hidden children).
+enum class Display { Flex, None };
 
 // A CSS <length-percentage>: either a definite pixel value or a percentage of the
 // parent's resolved size. Yoga resolves the percentage case natively (YGNodeStyleSet
@@ -141,6 +144,7 @@ struct StyleProperties {
     std::optional<FlexDirection> flexDirection;
     std::optional<JustifyContent> justifyContent;
     std::optional<AlignItems> alignItems;
+    std::optional<Display> display;
 
     void MergeFrom(const StyleProperties& higherPriority);
 };

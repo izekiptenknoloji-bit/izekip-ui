@@ -1,0 +1,55 @@
+/* ---- Notepad demo: real keyboard input + a multi-line editable TextArea widget, plus
+   Turkish character support (glyph atlas widened to Latin-1 Supplement + a sparse set of
+   Latin Extended-A codepoints for s-cedilla/g-breve/dotless-i and their capitals -- see
+   Renderer/GlyphAtlas.h). Click into the box, type. Click away to blur. ---- */
+
+#root {
+    background-color: #14161A;
+    width: 900px;
+    height: 700px;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px;
+}
+
+.toolbar {
+    width: 760px;
+    flex-direction: row;
+    align-items: center;
+    background-color: #1E2227;
+    border-radius: 10px;
+    padding: 10px 18px;
+    margin: 0px 0px 20px 0px;
+    box-shadow: 0px 4px 14px #00000060;
+}
+
+.toolbar-title {
+    color: #D7DAE0;
+    font-size: 15px;
+}
+
+.toolbar-hint {
+    color: #6B7280;
+    font-size: 12px;
+    margin: 0px 0px 0px 16px;
+}
+
+/* NOTE: `border`/`border-color` parse but this engine never actually strokes a border
+   (Widget::OnPaint only ever reads borderRadius, see src/Core/Widget.cpp) -- a pre-existing
+   limitation, same one noted in examples/01's showcase CSS. Focus feedback below therefore
+   uses background-color + box-shadow instead, both of which do render. */
+.notepad-area {
+    width: 760px;
+    height: 560px;
+    padding: 16px;
+    font-size: 16px;
+    background-color: #F7F5EF;
+    color: #1C1E22;
+    border-radius: 6px;
+    box-shadow: 0px 0px 0px #3366FF00;
+}
+
+.notepad-area:focus {
+    background-color: #FFFFFF;
+    box-shadow: 0px 0px 14px #3366FF90;
+}

@@ -1,3 +1,10 @@
+/**
+ * @file
+ * @internal
+ * Tier-2 (see COMPATIBILITY.md) -- shared D3D11/Vulkan backend plumbing, used only by
+ * src/Renderer/D3D11/D3D11Renderer.cpp and src/Renderer/Vulkan/VulkanRenderer.cpp. Not
+ * consumer-facing, not covered by the API compatibility policy.
+ */
 #pragma once
 
 #include "Renderer/IRenderer.h"

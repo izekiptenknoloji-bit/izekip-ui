@@ -1,1 +1,4 @@
 add_subdirectory(01_basic_panel_button)
+add_subdirectory(02_text_document)
+add_subdirectory(03_notepad)
+add_subdirectory(04_glassmorphism)
