@@ -1351,20 +1351,34 @@ void VulkanRenderer::Shutdown() {
     }
     vkDeviceWaitIdle(m_device);
 
+    // Every handle is reset to VK_NULL_HANDLE after destruction: recovery rebuilds the device and
+    // several Create* paths test "already created?" by null-checking these members.
     if (m_fontAtlasImageView) vkDestroyImageView(m_device, m_fontAtlasImageView, nullptr);
     if (m_fontAtlasImage) vkDestroyImage(m_device, m_fontAtlasImage, nullptr);
     if (m_fontAtlasImageMemory) vkFreeMemory(m_device, m_fontAtlasImageMemory, nullptr);
     if (m_fontAtlasSampler) vkDestroySampler(m_device, m_fontAtlasSampler, nullptr);
+    m_fontAtlasImageView = VK_NULL_HANDLE;
+    m_fontAtlasImage = VK_NULL_HANDLE;
+    m_fontAtlasImageMemory = VK_NULL_HANDLE;
+    m_fontAtlasSampler = VK_NULL_HANDLE;
 
     if (m_fontAtlasImageView2) vkDestroyImageView(m_device, m_fontAtlasImageView2, nullptr);
     if (m_fontAtlasImage2) vkDestroyImage(m_device, m_fontAtlasImage2, nullptr);
     if (m_fontAtlasImageMemory2) vkFreeMemory(m_device, m_fontAtlasImageMemory2, nullptr);
     if (m_fontAtlasSampler2) vkDestroySampler(m_device, m_fontAtlasSampler2, nullptr);
+    m_fontAtlasImageView2 = VK_NULL_HANDLE;
+    m_fontAtlasImage2 = VK_NULL_HANDLE;
+    m_fontAtlasImageMemory2 = VK_NULL_HANDLE;
+    m_fontAtlasSampler2 = VK_NULL_HANDLE;
 
     if (m_backdropScratchImageView) vkDestroyImageView(m_device, m_backdropScratchImageView, nullptr);
     if (m_backdropScratchImage) vkDestroyImage(m_device, m_backdropScratchImage, nullptr);
     if (m_backdropScratchImageMemory) vkFreeMemory(m_device, m_backdropScratchImageMemory, nullptr);
     if (m_backdropSampler) vkDestroySampler(m_device, m_backdropSampler, nullptr);
+    m_backdropScratchImageView = VK_NULL_HANDLE;
+    m_backdropScratchImage = VK_NULL_HANDLE;
+    m_backdropScratchImageMemory = VK_NULL_HANDLE;
+    m_backdropSampler = VK_NULL_HANDLE;
 
     if (m_quadVertexBuffer) vkDestroyBuffer(m_device, m_quadVertexBuffer, nullptr);
     if (m_quadVertexMemory) vkFreeMemory(m_device, m_quadVertexMemory, nullptr);
@@ -1372,6 +1386,12 @@ void VulkanRenderer::Shutdown() {
     if (m_vsUniformMemory) vkFreeMemory(m_device, m_vsUniformMemory, nullptr);
     if (m_psUniformBuffer) vkDestroyBuffer(m_device, m_psUniformBuffer, nullptr);
     if (m_psUniformMemory) vkFreeMemory(m_device, m_psUniformMemory, nullptr);
+    m_quadVertexBuffer = VK_NULL_HANDLE;
+    m_quadVertexMemory = VK_NULL_HANDLE;
+    m_vsUniformBuffer = VK_NULL_HANDLE;
+    m_vsUniformMemory = VK_NULL_HANDLE;
+    m_psUniformBuffer = VK_NULL_HANDLE;
+    m_psUniformMemory = VK_NULL_HANDLE;
 
     if (m_descriptorPool) vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
     if (m_pipeline) vkDestroyPipeline(m_device, m_pipeline, nullptr);
@@ -1379,12 +1399,24 @@ void VulkanRenderer::Shutdown() {
     if (m_descriptorSetLayout) vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
     if (m_renderPass) vkDestroyRenderPass(m_device, m_renderPass, nullptr);
     if (m_renderPassResume) vkDestroyRenderPass(m_device, m_renderPassResume, nullptr);
+    m_descriptorPool = VK_NULL_HANDLE;
+    m_pipeline = VK_NULL_HANDLE;
+    m_pipelineLayout = VK_NULL_HANDLE;
+    m_descriptorSetLayout = VK_NULL_HANDLE;
+    m_renderPass = VK_NULL_HANDLE;
+    m_renderPassResume = VK_NULL_HANDLE;
 
     DestroySwapchainAndDependents(); // also destroys m_renderFinishedSemaphores
 
     if (m_imageAvailableSemaphore) vkDestroySemaphore(m_device, m_imageAvailableSemaphore, nullptr);
     if (m_inFlightFence) vkDestroyFence(m_device, m_inFlightFence, nullptr);
     if (m_commandPool) vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+    m_imageAvailableSemaphore = VK_NULL_HANDLE;
+    m_inFlightFence = VK_NULL_HANDLE;
+    m_commandPool = VK_NULL_HANDLE;
+    m_commandBuffer = VK_NULL_HANDLE;
+    m_vsUniformMapped = nullptr;
+    m_psUniformMapped = nullptr;
 
     vkDestroyDevice(m_device, nullptr);
     m_device = VK_NULL_HANDLE;

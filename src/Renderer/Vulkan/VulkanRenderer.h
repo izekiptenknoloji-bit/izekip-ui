@@ -35,6 +35,8 @@ public:
     void DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPaint& paint) override;
     void DrawImage(const std::string& imagePath, const Rect& rect, float opacity) override;
     void SetWorldTransform(const Transform2D& transform) override { m_worldTransform = transform; }
+    void SimulateDeviceLossForTesting() override { MarkDeviceLost(); }
+    bool IsDeviceLostForTesting() const override { return m_deviceLost; }
 
     RendererBackend GetBackend() const override { return RendererBackend::Vulkan; }
 

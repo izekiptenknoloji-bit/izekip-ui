@@ -129,6 +129,11 @@ public:
     // Widget::OnPaint sets it to the widget's world transform before drawing its own content.
     virtual void SetWorldTransform(const Transform2D& transform) = 0;
 
+    // Test-only hooks for device-loss recovery: the next Present() rebuilds the device. Not
+    // covered by the API stability policy. Backends without recovery leave the defaults.
+    virtual void SimulateDeviceLossForTesting() {}
+    virtual bool IsDeviceLostForTesting() const { return false; }
+
     virtual RendererBackend GetBackend() const = 0;
 };
 
