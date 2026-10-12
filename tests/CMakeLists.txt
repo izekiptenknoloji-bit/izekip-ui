@@ -64,6 +64,14 @@ target_compile_definitions(IzekipUIGlyphAtlasTests PRIVATE
     IZEKIP_TEST_FONT_DIR="${CMAKE_SOURCE_DIR}/third_party/fonts")
 add_test(NAME GlyphAtlasTests COMMAND IzekipUIGlyphAtlasTests)
 
+add_executable(IzekipUITextAreaTests TextAreaTests.cpp)
+target_link_libraries(IzekipUITextAreaTests PRIVATE IzekipUI)
+# TextArea resolves its font by file name next to the executable, so the test copies Inter there.
+add_custom_command(TARGET IzekipUITextAreaTests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/third_party/fonts/Inter.ttf" "$<TARGET_FILE_DIR:IzekipUITextAreaTests>/Inter.ttf")
+add_test(NAME TextAreaTests COMMAND IzekipUITextAreaTests)
+
 add_executable(IzekipUIDiagnosticsTests DiagnosticsTests.cpp)
 target_link_libraries(IzekipUIDiagnosticsTests PRIVATE IzekipUI)
 add_test(NAME DiagnosticsTests COMMAND IzekipUIDiagnosticsTests)

@@ -48,6 +48,9 @@ public:
     // BuiltGeneration(); StyleApplier::Apply rebuilds it when the tree has changed since.
     bool IsBuilt() const { return m_document != nullptr; }
     std::uint64_t BuiltGeneration() const { return m_builtGeneration; }
+    // The stylesheet the widgets were last restyled against; a different sheet forces a full restyle.
+    const StyleSheet* AppliedSheet() const { return m_appliedSheet; }
+    void SetAppliedSheet(const StyleSheet* sheet) { m_appliedSheet = sheet; }
 
     // Reflects widget.IsHovered()/IsActive() onto the shadow element's "hover"/"active"
     // attributes -- lexbor's selector matcher checks for exactly these attributes when
@@ -67,6 +70,7 @@ private:
     lxb_dom_document* m_document = nullptr;
     lxb_selectors* m_selectors = nullptr;
     std::uint64_t m_builtGeneration = 0;
+    const StyleSheet* m_appliedSheet = nullptr;
     std::unordered_map<const Widget*, lxb_dom_element*> m_widgetToShadow;
 };
 

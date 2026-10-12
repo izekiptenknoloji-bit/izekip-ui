@@ -9,6 +9,7 @@
 #include "CSS/StyleSheet.h"
 #include "Core/Transition.h"
 #include "Core/Widget.h"
+#include "Platform/Diagnostics.h"
 #include "Widgets/Label.h"
 
 using namespace IzekipUI;
@@ -797,6 +798,48 @@ void TestOpacityInheritsThroughWidgetTree() {
     std::cout << "TestOpacityInheritsThroughWidgetTree passed\n";
 }
 
+// Restyle work is limited to dirty subtrees: a steady tree costs nothing, a leaf change costs one
+// widget, and a change on an inner widget costs that widget plus its descendants.
+void TestDirtyRestyleLimitedToChangedSubtree() {
+    using Platform::Diagnostics::Counter;
+    using Platform::Diagnostics::Get;
+
+    auto root = std::make_shared<Widget>("Panel");
+    auto inner = std::make_shared<Widget>("Button");
+    auto leaf = std::make_shared<Widget>("Button");
+    auto innerChild = std::make_shared<Widget>("Button");
+    assert(root->AddChild(inner));
+    assert(root->AddChild(leaf));
+    assert(inner->AddChild(innerChild));
+
+    StyleSheet sheet = StyleSheet::LoadFromString(
+        "Button { color: #000000; } .hot { color: #FF0000; }");
+
+    LexborBridge bridge;
+    bridge.Build(*root);
+    const std::uint64_t firstApply = Get(Counter::WidgetRestyles);
+    StyleApplier::Apply(bridge, sheet, *root);
+    assert(Get(Counter::WidgetRestyles) - firstApply == 4); // first apply restyles everything
+
+    const std::uint64_t steady = Get(Counter::WidgetRestyles);
+    StyleApplier::Apply(bridge, sheet, *root);
+    assert(Get(Counter::WidgetRestyles) == steady); // nothing changed, nothing restyled
+
+    const std::uint64_t beforeLeaf = Get(Counter::WidgetRestyles);
+    leaf->AddClass("hot");
+    StyleApplier::Apply(bridge, sheet, *root);
+    assert(Get(Counter::WidgetRestyles) - beforeLeaf == 1);
+    assert(leaf->GetStyle().textColor.has_value() && leaf->GetStyle().textColor->r > 0.9f);
+
+    const std::uint64_t beforeInner = Get(Counter::WidgetRestyles);
+    inner->AddClass("hot");
+    StyleApplier::Apply(bridge, sheet, *root);
+    assert(Get(Counter::WidgetRestyles) - beforeInner == 2); // inner and its child, not root/leaf
+    assert(inner->GetStyle().textColor.has_value() && inner->GetStyle().textColor->r > 0.9f);
+
+    std::cout << "TestDirtyRestyleLimitedToChangedSubtree passed\n";
+}
+
 } // namespace
 
 void TestRebuildingBridgeKeepsSelectorMatching() {
@@ -894,6 +937,7 @@ int main() {
     TestEmptyClassListRemovesAttribute();
     TestKeyframeAnimationAndReducedMotion();
     TestOpacityInheritsThroughWidgetTree();
+    TestDirtyRestyleLimitedToChangedSubtree();
     std::cout << "All CssParserTests passed.\n";
     return 0;
 }

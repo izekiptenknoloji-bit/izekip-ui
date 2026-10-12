@@ -18,7 +18,8 @@ namespace IzekipUI::Widgets {
 //
 // Sizing: a fixed CSS width/height box, like Panel -- no intrinsic Yoga MeasureFunc like
 // Label has. There is no scroll/clip mechanism anywhere in this engine; text overflowing
-// the box is drawn anyway (visually uncapped), a named, inherited scope cut.
+// the box is not drawn: OnPaint culls lines and glyphs outside the widget's rect. Scrolling is
+// still absent, a named, inherited scope cut.
 class TextArea : public Widget {
 public:
     TextArea();

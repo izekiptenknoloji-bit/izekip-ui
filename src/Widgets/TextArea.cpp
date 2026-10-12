@@ -57,9 +57,24 @@ void TextArea::OnPaint(Render::IRenderer& renderer) {
     const Rect visualRect = GetVisualRect();
     const Render::FontId fontId = FontSelect::ResolveFontId(m_style.fontFamily, Render::FontId::Proportional);
 
+    // Culling works in layout space (the world transform is applied by the shader), so the
+    // widget's visual rect is the visible window. Lines are ordered top to bottom, so the
+    // vertical loop can stop at the first line below the window.
+    const float visibleTop = visualRect.y;
+    const float visibleBottom = visualRect.y + visualRect.height;
+    const float visibleRight = visualRect.x + visualRect.width;
+
     const auto& lines = m_buffer.Lines();
     renderer.SetWorldTransform(GetWorldTransform());
     for (size_t lineIndex = 0; lineIndex < lines.size(); ++lineIndex) {
+        const float lineTop = visualRect.y + padding.top + lineHeight * static_cast<float>(lineIndex);
+        if (lineTop >= visibleBottom) {
+            break;
+        }
+        if (lineTop + lineHeight <= visibleTop) {
+            continue;
+        }
+
         const std::u32string& line = lines[lineIndex];
         float penX = visualRect.x + padding.left;
         const float baselineY =
@@ -75,6 +90,9 @@ void TextArea::OnPaint(Render::IRenderer& renderer) {
             }
             if (prev) {
                 penX += atlas.GetKerning(prev, c) * scale;
+            }
+            if (penX >= visibleRight) {
+                break; // the rest of this line starts past the right edge
             }
 
             if (glyph->width > 0.0f && glyph->height > 0.0f) {

@@ -14,6 +14,7 @@ enum class Counter {
     TextRejected,       // text edits or input refused because a text limit was reached
     OutOfMemory,        // frames that ended with std::bad_alloc or a GPU out-of-memory result
     WidgetRejected,     // AddChild refused: invalid child, cycle, or live-widget limit
+    WidgetRestyles,     // widgets restyled (style-dirty subtrees only)
     Count
 };
 

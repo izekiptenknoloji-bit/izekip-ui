@@ -60,10 +60,10 @@ public:
     const std::vector<std::shared_ptr<Widget>>& GetChildren() const { return m_children; }
     Widget* GetParent() const { return m_parent; }
 
-    void SetId(std::string id) { m_id = std::move(id); }
+    void SetId(std::string id) { m_id = std::move(id); m_styleDirty = true; }
     const std::string& GetId() const { return m_id; }
 
-    void AddClass(std::string className) { m_classes.push_back(std::move(className)); }
+    void AddClass(std::string className) { m_classes.push_back(std::move(className)); m_styleDirty = true; }
     bool HasClass(const std::string& className) const;
     const std::vector<std::string>& GetClasses() const { return m_classes; }
 
@@ -91,7 +91,7 @@ public:
 
     // Disabled widgets remain visible and hoverable, but cannot be focused or activated.
     // A disabled ancestor disables its entire subtree; request a restyle after changing it.
-    void SetDisabled(bool disabled) { m_disabled = disabled; }
+    void SetDisabled(bool disabled) { if (m_disabled != disabled) { m_disabled = disabled; m_styleDirty = true; } }
     bool IsDisabled() const { return m_disabled; }
     bool IsEnabled() const {
         for (const Widget* widget = this; widget != nullptr; widget = widget->m_parent) {
@@ -134,12 +134,17 @@ public:
     // same absolute pixel space as GetLocalRect(). Returns nullptr on a total miss.
     Widget* HitTest(float x, float y);
 
-    void SetHovered(bool hovered) { m_hovered = hovered; }
+    void SetHovered(bool hovered) { if (m_hovered != hovered) { m_hovered = hovered; m_styleDirty = true; } }
     bool IsHovered() const { return m_hovered; }
-    void SetActive(bool active) { m_active = active; }
+    void SetActive(bool active) { if (m_active != active) { m_active = active; m_styleDirty = true; } }
     bool IsActive() const { return m_active; }
-    void SetFocused(bool focused) { m_focused = focused; }
+    void SetFocused(bool focused) { if (m_focused != focused) { m_focused = focused; m_styleDirty = true; } }
     bool IsFocused() const { return m_focused; }
+    // Dirty tracking for restyle: a dirty widget restyles its whole subtree (descendant selectors
+    // depend on ancestors). Set by every mutator that selectors can observe.
+    void MarkStyleDirty() { m_styleDirty = true; }
+    bool IsStyleDirty() const { return m_styleDirty; }
+    void ClearStyleDirty() { m_styleDirty = false; }
 
     // Diff baseline for StyleApplier -- the last CSS-resolved target style, used to detect
     // "this property's value just changed" so it knows whether to animate or snap. Not
@@ -210,6 +215,7 @@ protected:
     StyleProperties m_style;
     Rect m_rect;
 
+    bool m_styleDirty = true; // selector-visible state changed since the last restyle of this widget
     bool m_hovered = false;
     bool m_active = false;
     bool m_focused = false;

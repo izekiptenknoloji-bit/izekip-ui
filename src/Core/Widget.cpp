@@ -48,6 +48,8 @@ bool Widget::AddChild(std::shared_ptr<Widget> child) {
     child->m_parent = this;
     YGNodeInsertChild(m_yogaNode, child->m_yogaNode, YGNodeGetChildCount(m_yogaNode));
     m_children.push_back(std::move(child));
+    m_children.back()->m_styleDirty = true;
+    m_styleDirty = true;
     ++g_treeGeneration;
     return true;
 }
@@ -62,6 +64,7 @@ std::shared_ptr<Widget> Widget::RemoveChild(const Widget* child) {
     YGNodeRemoveChild(m_yogaNode, removed->m_yogaNode);
     removed->m_parent = nullptr;
     m_children.erase(found);
+    m_styleDirty = true;
     ++g_treeGeneration;
     return removed;
 }
@@ -74,6 +77,7 @@ bool Widget::RemoveClass(const std::string& className) {
     const auto newEnd = std::remove(m_classes.begin(), m_classes.end(), className);
     const bool removed = newEnd != m_classes.end();
     m_classes.erase(newEnd, m_classes.end());
+    m_styleDirty = m_styleDirty || removed;
     return removed;
 }
 
@@ -81,6 +85,7 @@ void Widget::SetClass(const std::string& className, bool enabled) {
     if (enabled) {
         if (!HasClass(className)) {
             m_classes.push_back(className);
+            m_styleDirty = true;
         }
     } else {
         RemoveClass(className);

@@ -1128,14 +1128,42 @@ void StyleApplier::ApplyToSingleWidget(LexborBridge& bridge, const StyleSheet& s
 
 void StyleApplier::Apply(LexborBridge& bridge, const StyleSheet& sheet, Widget& root) {
     Platform::Diagnostics::Increment(Platform::Diagnostics::Counter::StyleApplies);
-    // The shadow DOM mirrors the widget tree's structure, so a changed tree needs a new shadow tree.
+
+    // The shadow DOM mirrors the widget tree's structure, so a changed tree needs a new shadow tree;
+    // a new tree or a different stylesheet invalidates every cached style, so everything is restyled.
+    bool fullRestyle = false;
     if (bridge.IsBuilt() && bridge.BuiltGeneration() != WidgetTreeGeneration()) {
         bridge.Build(root);
+        fullRestyle = true;
     }
-    ApplyToSingleWidget(bridge, sheet, root);
-    for (const auto& child : root.GetChildren()) {
-        Apply(bridge, sheet, *child);
+    if (bridge.AppliedSheet() != &sheet) {
+        bridge.SetAppliedSheet(&sheet);
+        fullRestyle = true;
     }
+    if (fullRestyle) {
+        const auto markAll = [](auto&& self, Widget& widget) -> void {
+            widget.MarkStyleDirty();
+            for (const auto& child : widget.GetChildren()) {
+                self(self, *child);
+            }
+        };
+        markAll(markAll, root);
+    }
+
+    // Only widgets whose selector-visible state changed are restyled. A dirty widget restyles its
+    // whole subtree, because descendant selectors (`.a .b`) read their ancestors.
+    const auto restyleDirty = [&bridge, &sheet](auto&& self, Widget& widget, bool ancestorRestyled) -> void {
+        const bool restyle = ancestorRestyled || widget.IsStyleDirty();
+        if (restyle) {
+            ApplyToSingleWidget(bridge, sheet, widget);
+            widget.ClearStyleDirty();
+            Platform::Diagnostics::Increment(Platform::Diagnostics::Counter::WidgetRestyles);
+        }
+        for (const auto& child : widget.GetChildren()) {
+            self(self, *child, restyle);
+        }
+    };
+    restyleDirty(restyleDirty, root, false);
 }
 
 } // namespace IzekipUI::Css

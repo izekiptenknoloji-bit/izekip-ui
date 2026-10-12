@@ -33,7 +33,13 @@ All notable changes to İzekip UI are documented here. Format follows
   limits live widgets: `AddChild` refuses past it. `WidgetTreeGeneration()` changes with every
   structural edit; the lexbor shadow tree and the interaction controller follow it.
 
+- Restyle is dirty-tracked: a class, id, hover, active, focus or disabled change restyles only
+  that widget and its subtree. A steady frame restyles nothing. Counted as `WidgetRestyles` in
+  Diagnostics.
+
 ### Changed
+- `TextArea` paints only the lines and glyphs inside its box. Text past the bottom or right edge
+  is no longer drawn; it used to overflow visibly, which is not possible without scrolling.
 - `Widget::AddChild` returns `bool` (was `void`). It refuses a null child, a child that already
   has a parent, a cycle, or a child past the live-widget limit; refusals are counted as
   `WidgetRejected` in Diagnostics.
