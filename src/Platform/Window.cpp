@@ -2,8 +2,10 @@
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+#if defined(_WIN32)
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
+#endif
 
 #include <stdexcept>
 
@@ -97,7 +99,11 @@ void Window::PollEvents() {
 }
 
 void* Window::GetNativeHandle() const {
+#if defined(_WIN32)
     return glfwGetWin32Window(m_handle);
+#else
+    return nullptr; // only the Windows D3D11 backend consumes the HWND
+#endif
 }
 
 void* Window::GetGLFWHandle() const {
