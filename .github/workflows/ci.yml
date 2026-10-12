@@ -29,13 +29,15 @@ jobs:
       - name: GLFW and graphics build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev
+          sudo apt-get install -y pkg-config build-essential libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev libwayland-dev libxkbcommon-dev
+      # dxc (shader compiler) ships only in the full LunarG SDK, not in the component builds that
+      # setup-vulkan-sdk offers. The pinned version matches the one used for local Linux builds.
       - name: Vulkan SDK (provides dxc for shader compilation)
-        uses: humbletim/setup-vulkan-sdk@v1.2.1
-        with:
-          vulkan-query-version: 1.4.309.0
-          vulkan-components: Vulkan-Headers,Vulkan-Loader,Vulkan-Tools
-          vulkan-use-cache: true
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/vulkan-sdk.tar.xz" https://sdk.lunarg.com/sdk/download/1.4.363.0/linux/vulkan-sdk.tar.xz
+          tar xf "$RUNNER_TEMP/vulkan-sdk.tar.xz" -C "$HOME"
+          echo "VULKAN_SDK=$HOME/1.4.363.0/x86_64" >> "$GITHUB_ENV"
+          echo "$HOME/1.4.363.0/x86_64/bin" >> "$GITHUB_PATH"
       - name: Configure (Vulkan, AddressSanitizer + UBSan)
         run: >
           cmake -S . -B build -DIZEKIP_RENDER_BACKEND=VULKAN -DIZEKIP_TEST_GPU=OFF
