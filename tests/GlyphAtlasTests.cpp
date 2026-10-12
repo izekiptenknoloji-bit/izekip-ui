@@ -59,9 +59,25 @@ void TestEveryBakedGlyphStaysInsideTheAtlas() {
 
 } // namespace
 
+void TestRebuildingAtlasReplacesFont() {
+    GlyphAtlas atlas;
+    const std::string path = std::string(IZEKIP_TEST_FONT_DIR) + "/Inter.ttf";
+    atlas.Build(path);
+    const GlyphInfo* first = atlas.FindGlyph(U'A');
+    assert(first && first->width > 0.0f);
+    const float firstAdvance = first->advance;
+
+    atlas.Build(path); // replaces the previous font state without leaking it
+    const GlyphInfo* second = atlas.FindGlyph(U'A');
+    assert(second && second->width > 0.0f);
+    assert(second->advance == firstAdvance);
+    std::cout << "TestRebuildingAtlasReplacesFont passed\n";
+}
+
 int RunGlyphAtlasTests() {
     TestMissingAndEmptyFontFilesAreRejected();
     TestEveryBakedGlyphStaysInsideTheAtlas();
+    TestRebuildingAtlasReplacesFont();
     std::cout << "All GlyphAtlasTests passed.\n";
     return 0;
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -54,11 +55,12 @@ public:
 
 private:
     void BuildRecursive(Widget& widget, lxb_dom_element* parentShadowElement);
+    void ReleaseShadowTree();
     lxb_dom_element* ShadowElementFor(Widget& widget) const;
 
     lxb_dom_document* m_document = nullptr;
     lxb_selectors* m_selectors = nullptr;
-    std::vector<std::pair<Widget*, lxb_dom_element*>> m_widgetToShadow;
+    std::unordered_map<const Widget*, lxb_dom_element*> m_widgetToShadow;
 };
 
 } // namespace IzekipUI::Css

@@ -30,6 +30,12 @@ All notable changes to İzekip UI are documented here. Format follows
   the same mode and do not trigger a device rebuild. Counted as `OutOfMemory` in Diagnostics.
 
 ### Changed
+- `LexborBridge`: widget-to-shadow lookup is a hash map (was a linear scan on every restyle);
+  a second `Build` replaces the previous shadow tree instead of leaking it; lexbor allocation
+  failures leave a widget without a shadow element; stylesheet offsets are clamped.
+- `GlyphAtlas::Build` replaces the previous font state (no leak on a second call).
+
+### Changed
 - D3D11 falls back to WARP when the hardware device cannot be created.
 - The `IzekipUI` library is built with warnings as errors (`-Wall -Wextra -Wpedantic -Wshadow
   -Werror`, MSVC `/W4 /WX`).

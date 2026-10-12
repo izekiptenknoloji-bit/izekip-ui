@@ -39,6 +39,17 @@ void SetOrClearFlagAttribute(lxb_dom_element_t* element, const char* name, size_
     }
 }
 
+// Offsets come from lexbor's parser over the same source text. They are clamped rather than
+// trusted, so a malformed span can never read outside the stylesheet.
+std::string SourceSlice(const std::string& source, size_t begin, size_t end) {
+    begin = std::min(begin, source.size());
+    end = std::min(end, source.size());
+    if (end <= begin) {
+        return {};
+    }
+    return source.substr(begin, end - begin);
+}
+
 std::string JoinClasses(const Widget& widget) {
     std::string classAttr;
     for (const auto& cls : widget.GetClasses()) {
@@ -53,23 +64,42 @@ std::string JoinClasses(const Widget& widget) {
 LexborBridge::LexborBridge() = default;
 
 LexborBridge::~LexborBridge() {
+    ReleaseShadowTree();
+}
+
+void LexborBridge::ReleaseShadowTree() {
     if (m_selectors) {
         lxb_selectors_destroy(m_selectors, true);
+        m_selectors = nullptr;
     }
     if (m_document) {
         lxb_dom_document_destroy(m_document);
+        m_document = nullptr;
     }
+    m_widgetToShadow.clear();
 }
 
 void LexborBridge::Build(Widget& root) {
+    // A second Build replaces the first tree; without this the old document and selectors leak.
+    ReleaseShadowTree();
+
     m_document = lxb_dom_document_create(nullptr);
-    lxb_dom_document_init(m_document, nullptr, lxb_dom_interface_create, lxb_dom_interface_clone,
-                           lxb_dom_interface_destroy, LXB_DOM_DOCUMENT_DTYPE_UNDEF, LXB_NS__UNDEF);
+    if (!m_document) {
+        return; // no shadow tree: every match reports nothing rather than dereferencing null
+    }
+    if (lxb_dom_document_init(m_document, nullptr, lxb_dom_interface_create, lxb_dom_interface_clone,
+                              lxb_dom_interface_destroy, LXB_DOM_DOCUMENT_DTYPE_UNDEF,
+                              LXB_NS__UNDEF) != LXB_STATUS_OK) {
+        ReleaseShadowTree();
+        return;
+    }
 
     m_selectors = lxb_selectors_create();
-    lxb_selectors_init(m_selectors);
+    if (!m_selectors || lxb_selectors_init(m_selectors) != LXB_STATUS_OK) {
+        ReleaseShadowTree();
+        return;
+    }
 
-    m_widgetToShadow.clear();
     BuildRecursive(root, nullptr);
 }
 
@@ -77,6 +107,9 @@ void LexborBridge::BuildRecursive(Widget& widget, lxb_dom_element* parentShadowE
     const std::string& typeName = widget.GetTypeName();
     lxb_dom_element_t* element = lxb_dom_document_create_element(
         m_document, reinterpret_cast<const lxb_char_t*>(typeName.c_str()), typeName.size(), nullptr);
+    if (!element) {
+        return; // out of memory: this widget and its subtree get no shadow element
+    }
 
     if (!widget.GetId().empty()) {
         const std::string& id = widget.GetId();
@@ -96,7 +129,7 @@ void LexborBridge::BuildRecursive(Widget& widget, lxb_dom_element* parentShadowE
                                    lxb_dom_interface_node(element));
     }
 
-    m_widgetToShadow.emplace_back(&widget, element);
+    m_widgetToShadow[&widget] = element;
 
     for (const auto& child : widget.GetChildren()) {
         BuildRecursive(*child, element);
@@ -104,12 +137,8 @@ void LexborBridge::BuildRecursive(Widget& widget, lxb_dom_element* parentShadowE
 }
 
 lxb_dom_element_t* LexborBridge::ShadowElementFor(Widget& widget) const {
-    for (const auto& [w, element] : m_widgetToShadow) {
-        if (w == &widget) {
-            return element;
-        }
-    }
-    return nullptr;
+    const auto found = m_widgetToShadow.find(&widget);
+    return found == m_widgetToShadow.end() ? nullptr : found->second;
 }
 
 void LexborBridge::SyncPseudoState(Widget& widget) {
@@ -176,14 +205,15 @@ std::vector<MatchedDeclaration> LexborBridge::MatchedDeclarationsFor(const Style
                 lxb_selectors_match_node(m_selectors, lxb_dom_interface_node(element),
                                          style->selector, OnSelectorMatch, &ctx);
                 if (ctx.matched) {
-                    for (lxb_css_rule_t* declNode = style->declarations->first; declNode;
-                         declNode = declNode->next) {
+                    for (lxb_css_rule_t* declNode = style->declarations ? style->declarations->first : nullptr;
+                         declNode; declNode = declNode->next) {
                         auto* decl = lxb_css_rule_declaration(declNode);
+                        if (!decl) {
+                            continue;
+                        }
                         MatchedDeclaration md;
-                        md.propertyName.assign(source.data() + decl->offset.name_begin,
-                                               decl->offset.name_end - decl->offset.name_begin);
-                        md.rawValueText.assign(source.data() + decl->offset.value_begin,
-                                               decl->offset.value_end - decl->offset.value_begin);
+                        md.propertyName = SourceSlice(source, decl->offset.name_begin, decl->offset.name_end);
+                        md.rawValueText = SourceSlice(source, decl->offset.value_begin, decl->offset.value_end);
                         md.specificity = ctx.specificity;
                         md.sourceOrder = sourceOrder;
                         result.push_back(std::move(md));

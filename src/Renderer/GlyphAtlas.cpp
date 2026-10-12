@@ -19,6 +19,11 @@ GlyphAtlas::~GlyphAtlas() {
 }
 
 void GlyphAtlas::Build(const std::string& ttfPath, float bakedPixelHeight) {
+    // Rebuilding replaces the previous font; without this the old stbtt_fontinfo leaks.
+    delete static_cast<stbtt_fontinfo*>(m_fontInfo);
+    m_fontInfo = nullptr;
+    m_fontFileData.clear();
+
     std::ifstream file(ResolveAssetPath(ttfPath), std::ios::binary | std::ios::ate);
     if (!file) {
         throw std::runtime_error("GlyphAtlas: could not open font file: " + ttfPath);

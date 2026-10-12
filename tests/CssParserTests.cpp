@@ -799,6 +799,22 @@ void TestOpacityInheritsThroughWidgetTree() {
 
 } // namespace
 
+void TestRebuildingBridgeKeepsSelectorMatching() {
+    auto root = std::make_shared<Widget>("Panel");
+    auto child = std::make_shared<Widget>("Label");
+    child->AddClass("hit");
+    root->AddChild(child);
+    StyleSheet sheet = StyleSheet::LoadFromString(".hit { opacity: 0.5; }");
+
+    LexborBridge bridge;
+    bridge.Build(*root);
+    bridge.Build(*root); // second build must replace the tree, not leak or break matching
+    StyleApplier::Apply(bridge, sheet, *root);
+    assert(child->GetStyle().opacity.has_value());
+    assert(std::abs(*child->GetStyle().opacity - 0.5f) < 0.001f);
+    std::cout << "TestRebuildingBridgeKeepsSelectorMatching passed\n";
+}
+
 int main() {
     TestTypeClassIdSelectorMatching();
     TestCommaSeparatedSelectorGroup();
@@ -829,6 +845,7 @@ int main() {
     TestFontWeightAndCursorParsingAndInheritance();
     TestScaleRotateParsingAndTransformMath();
     TestFontFamilyNamesMapToBundledFaces();
+    TestRebuildingBridgeKeepsSelectorMatching();
     TestDisplayResetsWhenHidingClassRemoved();
     TestHiddenChildSkippedByHitTest();
     TestEmptyClassListRemovesAttribute();
