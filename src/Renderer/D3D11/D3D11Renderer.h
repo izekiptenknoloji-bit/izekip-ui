@@ -12,6 +12,10 @@
 
 namespace IzekipUI::Render {
 
+namespace detail {
+struct RectDrawData;
+}
+
 // D3D11 backend. Draws flat/gradient-filled, optionally rounded and drop-shadowed
 // rectangles via a signed-distance-field pixel shader -- a single reusable unit-quad
 // vertex buffer (expanded per-draw to fit any shadow halo) and one embedded shader pair.
@@ -38,6 +42,10 @@ public:
     RendererBackend GetBackend() const override { return RendererBackend::D3D11; }
 
 private:
+    // Maps both constant buffers and copies the draw data; false when a Map fails (draw skipped).
+    bool UploadConstants(const detail::RectDrawData& data);
+    void NoteConstantUploadFailure();
+
     // Creates the device, swapchain and every GPU resource at m_width x m_height on m_hwnd.
     // Used by Initialize and by device-loss recovery.
     void CreateDeviceResources();

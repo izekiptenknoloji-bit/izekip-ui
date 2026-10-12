@@ -6,6 +6,7 @@ set(IZEKIP_SOURCES
     Core/Interpolate.cpp
     Core/TextBuffer.cpp
     Core/Utf8.cpp
+    Core/AssetPath.cpp
     Core/InteractionController.cpp
     Widgets/Panel.cpp
     Widgets/Button.cpp

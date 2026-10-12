@@ -10,6 +10,7 @@
 #include <stdexcept>
 
 #include "Renderer/GlyphAtlas.h"
+#include "Core/AssetPath.h"
 #include "Renderer/RectDrawData.h"
 
 using Microsoft::WRL::ComPtr;
@@ -30,7 +31,7 @@ void ThrowIfFailed(HRESULT hr, const char* what) {
 // here at runtime via D3DCompile -- unchanged from before this file was extracted to a
 // shared .hlsl, just reading from disk instead of an embedded string literal.
 std::string ReadShaderSource() {
-    std::ifstream file("RectShader.hlsl");
+    std::ifstream file(ResolveAssetPath("RectShader.hlsl"));
     if (!file) {
         throw std::runtime_error("Could not open RectShader.hlsl next to the executable");
     }
@@ -414,6 +415,32 @@ void D3D11Renderer::Present() {
     }
 }
 
+bool D3D11Renderer::UploadConstants(const detail::RectDrawData& data) {
+    // A failed Map leaves pData null; writing through it would crash. The draw is skipped, and a
+    // removed device is recorded so Present() rebuilds it.
+    D3D11_MAPPED_SUBRESOURCE mapped = {};
+    if (FAILED(m_context->Map(m_vsConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped))) {
+        NoteConstantUploadFailure();
+        return false;
+    }
+    std::memcpy(mapped.pData, &data.vs, sizeof(data.vs));
+    m_context->Unmap(m_vsConstantBuffer.Get(), 0);
+
+    if (FAILED(m_context->Map(m_psConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped))) {
+        NoteConstantUploadFailure();
+        return false;
+    }
+    std::memcpy(mapped.pData, &data.ps, sizeof(data.ps));
+    m_context->Unmap(m_psConstantBuffer.Get(), 0);
+    return true;
+}
+
+void D3D11Renderer::NoteConstantUploadFailure() {
+    if (m_device && m_device->GetDeviceRemovedReason() != S_OK) {
+        m_deviceLost = true;
+    }
+}
+
 void D3D11Renderer::DrawRect(const Rect& rect, const RectPaint& paint) {
     if (m_deviceLost) {
         return;
@@ -422,14 +449,9 @@ void D3D11Renderer::DrawRect(const Rect& rect, const RectPaint& paint) {
         ComputeRectDrawData(rect, paint, static_cast<float>(m_width), static_cast<float>(m_height),
                             m_worldTransform);
 
-    D3D11_MAPPED_SUBRESOURCE mapped = {};
-    m_context->Map(m_vsConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-    std::memcpy(mapped.pData, &data.vs, sizeof(data.vs));
-    m_context->Unmap(m_vsConstantBuffer.Get(), 0);
-
-    m_context->Map(m_psConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-    std::memcpy(mapped.pData, &data.ps, sizeof(data.ps));
-    m_context->Unmap(m_psConstantBuffer.Get(), 0);
+    if (!UploadConstants(data)) {
+        return;
+    }
 
     m_context->Draw(6, 0);
 }
@@ -443,14 +465,9 @@ void D3D11Renderer::DrawTextQuad(const Rect& rect, const UVRect& atlasUV, const 
                                                        static_cast<float>(m_width),
                                                        static_cast<float>(m_height), m_worldTransform);
 
-    D3D11_MAPPED_SUBRESOURCE mapped = {};
-    m_context->Map(m_vsConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-    std::memcpy(mapped.pData, &data.vs, sizeof(data.vs));
-    m_context->Unmap(m_vsConstantBuffer.Get(), 0);
-
-    m_context->Map(m_psConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-    std::memcpy(mapped.pData, &data.ps, sizeof(data.ps));
-    m_context->Unmap(m_psConstantBuffer.Get(), 0);
+    if (!UploadConstants(data)) {
+        return;
+    }
 
     m_context->Draw(6, 0);
 }
@@ -483,14 +500,9 @@ void D3D11Renderer::DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPai
                                                             static_cast<float>(m_height),
                                                             m_worldTransform);
 
-    D3D11_MAPPED_SUBRESOURCE mapped = {};
-    m_context->Map(m_vsConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-    std::memcpy(mapped.pData, &data.vs, sizeof(data.vs));
-    m_context->Unmap(m_vsConstantBuffer.Get(), 0);
-
-    m_context->Map(m_psConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-    std::memcpy(mapped.pData, &data.ps, sizeof(data.ps));
-    m_context->Unmap(m_psConstantBuffer.Get(), 0);
+    if (!UploadConstants(data)) {
+        return;
+    }
 
     m_context->Draw(6, 0);
 }

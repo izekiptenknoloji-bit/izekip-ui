@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <chrono>
 #include <memory>
 #include <string>
@@ -76,7 +77,10 @@ int main() {
     rendererInfo.glfwWindow = window.GetGLFWHandle();
     rendererInfo.initialWidth = window.GetWidth();
     rendererInfo.initialHeight = window.GetHeight();
-    renderer->Initialize(rendererInfo);
+    if (!renderer->Initialize(rendererInfo)) {
+        std::fprintf(stderr, "renderer initialization failed\n");
+        return 1;
+    }
 
     window.SetResizeCallback([&](uint32_t width, uint32_t height) { renderer->Resize(width, height); });
 

@@ -48,6 +48,8 @@ private:
     // the next Present() retries instead of throwing into the host application.
     void TryRecoverDevice();
     void MarkDeviceLost();
+    // Frame draw budget exceeded: the remaining draws of this frame are skipped; one warning per frame.
+    void ReportDrawOverflow(const char* what);
     void DestroyInstanceAndSurface();
 
     void CreateInstance();
@@ -90,6 +92,7 @@ private:
     Transform2D m_worldTransform;
     GLFWwindow* m_glfwWindow = nullptr;
     bool m_deviceLost = false;
+    bool m_overflowReported = false;
     VkInstance m_instance = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;

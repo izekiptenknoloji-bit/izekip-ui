@@ -7,11 +7,27 @@
 #include <GLFW/glfw3native.h>
 #endif
 
+#include <cstdio>
+#include <exception>
 #include <stdexcept>
+#include <utility>
 
 namespace IzekipUI::Platform {
 
 namespace {
+
+// GLFW calls these thunks from C code, where an escaping C++ exception is undefined behaviour.
+// A throwing application callback is logged and dropped instead of unwinding into GLFW.
+template <typename Callback, typename... Args>
+void RunUserCallback(const char* what, Callback& callback, Args&&... args) {
+    try {
+        callback(std::forward<Args>(args)...);
+    } catch (const std::exception& error) {
+        std::fprintf(stderr, "IzekipUI: %s callback threw: %s\n", what, error.what());
+    } catch (...) {
+        std::fprintf(stderr, "IzekipUI: %s callback threw a non-standard exception\n", what);
+    }
+}
 int s_glfwRefCount = 0;
 
 void EnsureGlfwInitialized() {
@@ -146,14 +162,14 @@ void Window::FramebufferSizeCallback(GLFWwindow* window, int width, int height) 
     self->m_width = static_cast<uint32_t>(width);
     self->m_height = static_cast<uint32_t>(height);
     if (self->m_onResize) {
-        self->m_onResize(self->m_width, self->m_height);
+        RunUserCallback("resize", self->m_onResize, self->m_width, self->m_height);
     }
 }
 
 void Window::CursorPosCallbackThunk(GLFWwindow* window, double x, double y) {
     auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (self && self->m_onCursorPos) {
-        self->m_onCursorPos(x, y);
+        RunUserCallback("cursor", self->m_onCursorPos, x, y);
     }
 }
 
@@ -172,7 +188,7 @@ void Window::MouseButtonCallbackThunk(GLFWwindow* window, int button, int action
     else if (button == GLFW_MOUSE_BUTTON_MIDDLE) mouseButton = MouseButton::Middle;
 
     const MouseAction mouseAction = action == GLFW_PRESS ? MouseAction::Press : MouseAction::Release;
-    self->m_onMouseButton(mouseButton, mouseAction);
+    RunUserCallback("mouse button", self->m_onMouseButton, mouseButton, mouseAction);
 }
 
 void Window::KeyCallbackThunk(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mods*/) {
@@ -204,13 +220,13 @@ void Window::KeyCallbackThunk(GLFWwindow* window, int key, int /*scancode*/, int
     else if (action == GLFW_REPEAT) translatedAction = KeyAction::Repeat;
     else return;
 
-    self->m_onKey(translatedKey, translatedAction);
+    RunUserCallback("key", self->m_onKey, translatedKey, translatedAction);
 }
 
 void Window::CharCallbackThunk(GLFWwindow* window, unsigned int codepoint) {
     auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (self && self->m_onChar) {
-        self->m_onChar(static_cast<char32_t>(codepoint));
+        RunUserCallback("char", self->m_onChar, static_cast<char32_t>(codepoint));
     }
 }
 

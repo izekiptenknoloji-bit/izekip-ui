@@ -41,8 +41,15 @@ std::u32string DecodeUtf8(const std::string& utf8Text) {
             codepoint = (codepoint << 6) | (cont & 0x3F);
         }
 
+        // Reject overlong encodings, UTF-16 surrogates, and values above U+10FFFF.
+        const char32_t minimum = extraBytes == 0 ? 0 : extraBytes == 1 ? 0x80 : extraBytes == 2 ? 0x800 : 0x10000;
+        const bool surrogate = codepoint >= 0xD800 && codepoint <= 0xDFFF;
+        if (codepoint < minimum || surrogate || codepoint > 0x10FFFF) {
+            valid = false;
+        }
+
         if (!valid) {
-            ++i; // invalid continuation byte -- skip just the lead byte
+            ++i; // invalid sequence -- skip just the lead byte
             continue;
         }
 

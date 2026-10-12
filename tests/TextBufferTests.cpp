@@ -107,6 +107,21 @@ void TestSetTextUtf8RoundTripsTurkishCharacters() {
 
 } // namespace
 
+void TestMalformedUtf8IsDroppedNotDecoded() {
+    // Overlong NUL (C0 80), overlong '/' (E0 80 AF), surrogate (ED A0 80), above U+10FFFF (F4 90 80 80).
+    const char* malformed[] = {"\xC0\x80", "\xE0\x80\xAF", "\xED\xA0\x80", "\xF4\x90\x80\x80"};
+    for (const char* bytes : malformed) {
+        TextBuffer buffer;
+        buffer.SetTextUtf8(bytes);
+        assert(buffer.GetTextUtf8().empty());
+    }
+    // Valid Turkish ğ (C4 9F) and a 4-byte character (F0 9F 98 80) round-trip unchanged.
+    TextBuffer valid;
+    valid.SetTextUtf8("\xC4\x9F\xF0\x9F\x98\x80");
+    assert(valid.GetTextUtf8() == "\xC4\x9F\xF0\x9F\x98\x80");
+    std::cout << "TestMalformedUtf8IsDroppedNotDecoded passed\n";
+}
+
 int main() {
     TestInitialState();
     TestInsertCodepointIncludingTurkish();
@@ -115,6 +130,7 @@ int main() {
     TestDeleteForwardAtEndOfLineMergesLines();
     TestMovementAcrossLinesOfDifferentLengths();
     TestSetTextUtf8RoundTripsTurkishCharacters();
+    TestMalformedUtf8IsDroppedNotDecoded();
     std::cout << "All TextBufferTests passed.\n";
     return 0;
 }

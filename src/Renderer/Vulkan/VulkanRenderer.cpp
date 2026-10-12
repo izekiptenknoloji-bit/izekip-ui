@@ -4,6 +4,9 @@
 #include <GLFW/glfw3.h>
 
 #include <algorithm>
+#include <cstdio>
+
+#include "Core/AssetPath.h"
 #include <array>
 #include <cstring>
 #include <fstream>
@@ -32,7 +35,7 @@ VkDeviceSize AlignUp(VkDeviceSize value, VkDeviceSize alignment) {
 }
 
 std::vector<char> ReadBinaryFile(const char* path) {
-    std::ifstream file(path, std::ios::binary | std::ios::ate);
+    std::ifstream file(ResolveAssetPath(path), std::ios::binary | std::ios::ate);
     if (!file) {
         throw std::runtime_error(std::string("Could not open ") + path);
     }
@@ -1024,7 +1027,16 @@ void VulkanRenderer::Resize(uint32_t width, uint32_t height) {
     }
 }
 
+void VulkanRenderer::ReportDrawOverflow(const char* what) {
+    if (!m_overflowReported) {
+        m_overflowReported = true;
+        std::fprintf(stderr, "IzekipUI: draw budget of %u %s exceeded in one frame; the rest is skipped\n",
+                     kMaxDrawsPerFrame, what);
+    }
+}
+
 void VulkanRenderer::BeginFrame() {
+    m_overflowReported = false;
     if (m_deviceLost) {
         m_frameSkipped = true;
         return;
@@ -1182,7 +1194,8 @@ void VulkanRenderer::DrawRect(const Rect& rect, const RectPaint& paint) {
         return;
     }
     if (m_currentDrawSlot >= kMaxDrawsPerFrame) {
-        throw std::runtime_error("VulkanRenderer: exceeded kMaxDrawsPerFrame rects in a single frame");
+        ReportDrawOverflow("rects");
+        return;
     }
 
     const RectDrawData data =
@@ -1209,7 +1222,8 @@ void VulkanRenderer::DrawTextQuad(const Rect& rect, const UVRect& atlasUV, const
         return;
     }
     if (m_currentDrawSlot >= kMaxDrawsPerFrame) {
-        throw std::runtime_error("VulkanRenderer: exceeded kMaxDrawsPerFrame glyphs in a single frame");
+        ReportDrawOverflow("glyphs");
+        return;
     }
 
     const RectDrawData data = ComputeTextQuadDrawData(rect, atlasUV, color, glyphScale, fontId,
@@ -1235,8 +1249,8 @@ void VulkanRenderer::DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPa
         return;
     }
     if (m_currentDrawSlot >= kMaxDrawsPerFrame) {
-        throw std::runtime_error(
-            "VulkanRenderer: exceeded kMaxDrawsPerFrame backdrop-blur rects in a single frame");
+        ReportDrawOverflow("backdrop-blur rects");
+        return;
     }
 
     // Copy region: the element's own bounds padded by the (unclamped) blur radius, so the

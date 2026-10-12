@@ -1,4 +1,5 @@
 #include "Renderer/GlyphAtlas.h"
+#include "Core/AssetPath.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -18,7 +19,7 @@ GlyphAtlas::~GlyphAtlas() {
 }
 
 void GlyphAtlas::Build(const std::string& ttfPath, float bakedPixelHeight) {
-    std::ifstream file(ttfPath, std::ios::binary | std::ios::ate);
+    std::ifstream file(ResolveAssetPath(ttfPath), std::ios::binary | std::ios::ate);
     if (!file) {
         throw std::runtime_error("GlyphAtlas: could not open font file: " + ttfPath);
     }
