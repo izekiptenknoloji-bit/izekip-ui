@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=İzekip UI Demo
+Name[tr]=İzekip UI Demo
+GenericName=Arayüz kütüphanesi örneği
+GenericName[tr]=Arayüz kütüphanesi örneği
+Comment=İzekip UI ile yapılmış cam efektli örnek arayüz
+Comment[tr]=İzekip UI ile yapılmış cam efektli örnek arayüz
+Exec=izekip-ui-demo
+Icon=applications-graphics
+Terminal=false
+Categories=Development;Graphics;
+Keywords=izekip;css;arayuz;

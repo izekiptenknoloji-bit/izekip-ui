@@ -145,3 +145,23 @@ install(FILES
     "${CMAKE_SOURCE_DIR}/cmake/IzekipUIAssets.cmake"
     DESTINATION lib/cmake/IzekipUI
 )
+
+# Linux desktop demo: the glassmorphism example is installed next to its assets, with a launcher in
+# bin/ and a menu entry. Users find it under their applications menu after installing the package.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND TARGET IzekipUIExample04)
+    set(IZEKIP_DEMO_DIR "${CMAKE_INSTALL_LIBEXECDIR}/izekip-ui-demo")
+    install(TARGETS IzekipUIExample04 RUNTIME DESTINATION "${IZEKIP_DEMO_DIR}")
+    install(FILES "${CMAKE_SOURCE_DIR}/examples/04_glassmorphism/assets/style.css"
+            "${CMAKE_SOURCE_DIR}/third_party/fonts/Inter.ttf"
+            "${CMAKE_SOURCE_DIR}/third_party/fonts/SpaceMono-Regular.ttf"
+            "${CMAKE_SOURCE_DIR}/third_party/fonts/Arimo-Regular.ttf"
+            "${CMAKE_SOURCE_DIR}/third_party/fonts/Tinos-Regular.ttf"
+            "${CMAKE_SOURCE_DIR}/third_party/fonts/Cousine-Regular.ttf"
+            "${CMAKE_BINARY_DIR}/generated/Shaders/RectShader.vert.spv"
+            "${CMAKE_BINARY_DIR}/generated/Shaders/RectShader.frag.spv"
+            DESTINATION "${IZEKIP_DEMO_DIR}")
+    install(PROGRAMS "${CMAKE_SOURCE_DIR}/cmake/izekip-ui-demo.sh"
+            RENAME izekip-ui-demo DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    install(FILES "${CMAKE_SOURCE_DIR}/cmake/izekip-ui-demo.desktop"
+            DESTINATION "${CMAKE_INSTALL_DATADIR}/applications")
+endif()
