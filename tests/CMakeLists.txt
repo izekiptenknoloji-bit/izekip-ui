@@ -67,3 +67,7 @@ add_test(NAME GlyphAtlasTests COMMAND IzekipUIGlyphAtlasTests)
 add_executable(IzekipUIDiagnosticsTests DiagnosticsTests.cpp)
 target_link_libraries(IzekipUIDiagnosticsTests PRIVATE IzekipUI)
 add_test(NAME DiagnosticsTests COMMAND IzekipUIDiagnosticsTests)
+
+add_executable(IzekipUIFrameTests FrameTests.cpp)
+target_link_libraries(IzekipUIFrameTests PRIVATE IzekipUI)
+add_test(NAME FrameTests COMMAND IzekipUIFrameTests)

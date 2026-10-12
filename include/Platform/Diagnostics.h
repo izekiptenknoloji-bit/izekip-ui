@@ -12,6 +12,7 @@ enum class Counter {
     DrawBudgetExceeded, // draws dropped because a frame exceeded the per-frame budget
     DeviceRecoveries,   // successful device rebuilds after a loss or a failed submit
     TextRejected,       // text edits or input refused because a text limit was reached
+    OutOfMemory,        // frames that ended with std::bad_alloc or a GPU out-of-memory result
     Count
 };
 
@@ -23,6 +24,12 @@ struct ProcessMemory {
     std::uint64_t residentBytes = 0; // working set (Windows) or VmRSS (Linux)
     std::uint64_t privateBytes = 0;  // committed private bytes (Windows) or RssAnon (Linux)
 };
+
+// Degraded mode: entered after an out-of-memory frame or result, and left after a run of healthy
+// frames. While degraded, optional memory-heavy effects (backdrop blur) are skipped.
+void EnterDegradedMode();
+bool IsDegraded();
+void NoteHealthyFrame();
 
 // Zeros when the platform cannot report it.
 ProcessMemory ReadProcessMemory();

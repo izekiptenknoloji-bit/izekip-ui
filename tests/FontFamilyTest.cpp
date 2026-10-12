@@ -8,6 +8,7 @@
 #include "CSS/LexborBridge.h"
 #include "CSS/StyleApplier.h"
 #include "CSS/StyleSheet.h"
+#include "Core/Frame.h"
 #include "Platform/Window.h"
 #include "Renderer/IRenderer.h"
 #include "Widgets/Label.h"
@@ -66,10 +67,7 @@ int RunFontFamilyTest() {
 
     for (int frame = 0; frame < kFrames && !window.ShouldClose(); ++frame) {
         window.PollEvents();
-        renderer->BeginFrame();
-        root->OnPaint(*renderer);
-        renderer->EndFrame();
-        renderer->Present();
+        PaintFrame(*renderer, *root);
     }
 
     renderer->Shutdown();

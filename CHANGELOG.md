@@ -24,6 +24,11 @@ All notable changes to İzekip UI are documented here. Format follows
   Diagnostics (`TextRejected`); oversized input is truncated. The limits are public constants
   (`TextBuffer::kMaxCharacters`, `kMaxLines`, `kMaxInputBytes`).
 
+- `IzekipUI::PaintFrame` (`Core/Frame.h`) runs one frame and catches `std::bad_alloc` at the frame
+  boundary: the partial frame is closed out and presented, and the library enters degraded mode
+  for 600 healthy frames. Degraded mode skips the backdrop blur. GPU out-of-memory results enter
+  the same mode and do not trigger a device rebuild. Counted as `OutOfMemory` in Diagnostics.
+
 ### Changed
 - D3D11 falls back to WARP when the hardware device cannot be created.
 - The `IzekipUI` library is built with warnings as errors (`-Wall -Wextra -Wpedantic -Wshadow

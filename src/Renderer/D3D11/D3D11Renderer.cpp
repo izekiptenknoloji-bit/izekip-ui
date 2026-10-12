@@ -431,6 +431,8 @@ void D3D11Renderer::Present() {
     if (SUCCEEDED(hr)) {
         Platform::SafeMode::MarkHealthy(m_appId); // first presented frame ends the crash-loop count
         Platform::Diagnostics::MaybeLogPeriodically();
+    } else if (hr == E_OUTOFMEMORY) {
+        Platform::Diagnostics::EnterDegradedMode();
     } else if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
         m_deviceLost = true;
         TryRecoverDevice();
@@ -495,6 +497,9 @@ void D3D11Renderer::DrawTextQuad(const Rect& rect, const UVRect& atlasUV, const 
 }
 
 void D3D11Renderer::DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPaint& paint) {
+    if (Platform::Diagnostics::IsDegraded()) {
+        return; // degraded mode: the blur needs a full-viewport scratch copy
+    }
     if (m_deviceLost) {
         return;
     }

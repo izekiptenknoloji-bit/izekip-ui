@@ -27,6 +27,10 @@ std::array<std::uint64_t, kCounterCount> g_counters{};
 
 constexpr auto kLogInterval = std::chrono::minutes(1);
 
+// Healthy frames needed before leaving degraded mode (about ten seconds at 60 Hz).
+constexpr std::uint32_t kDegradedFrames = 600;
+std::uint32_t g_degradedFramesLeft = 0;
+
 }  // namespace
 
 void Increment(Counter counter) {
@@ -42,6 +46,24 @@ void Decrement(Counter counter) {
 
 std::uint64_t Get(Counter counter) {
     return g_counters[static_cast<std::size_t>(counter)];
+}
+
+void EnterDegradedMode() {
+    Increment(Counter::OutOfMemory);
+    if (g_degradedFramesLeft == 0) {
+        std::fprintf(stderr, "IzekipUI: out of memory; entering degraded mode (effects reduced)\n");
+    }
+    g_degradedFramesLeft = kDegradedFrames;
+}
+
+bool IsDegraded() {
+    return g_degradedFramesLeft > 0;
+}
+
+void NoteHealthyFrame() {
+    if (g_degradedFramesLeft > 0) {
+        --g_degradedFramesLeft;
+    }
 }
 
 ProcessMemory ReadProcessMemory() {

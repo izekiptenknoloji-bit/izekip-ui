@@ -8,6 +8,7 @@
 #include "CSS/LexborBridge.h"
 #include "CSS/StyleApplier.h"
 #include "CSS/StyleSheet.h"
+#include "Core/Frame.h"
 #include "Core/InteractionController.h"
 #include "Core/Version.h"
 #include "InstallEngine.h"
@@ -610,10 +611,7 @@ int App::Run() {
             m_root->CalculateLayout(kWidth, kHeight);
         }
 
-        renderer->BeginFrame();
-        m_root->OnPaint(*renderer);
-        renderer->EndFrame();
-        renderer->Present();
+        PaintFrame(*renderer, *m_root);
     }
 
     renderer->Shutdown();

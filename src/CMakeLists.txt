@@ -9,6 +9,7 @@ set(IZEKIP_SOURCES
     Core/AssetPath.cpp
     Platform/SafeMode.cpp
     Platform/Diagnostics.cpp
+    Core/Frame.cpp
     Core/InteractionController.cpp
     Widgets/Panel.cpp
     Widgets/Button.cpp

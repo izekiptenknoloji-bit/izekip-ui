@@ -7,6 +7,7 @@
 #include "CSS/LexborBridge.h"
 #include "CSS/StyleApplier.h"
 #include "CSS/StyleSheet.h"
+#include "Core/Frame.h"
 #include "Platform/Window.h"
 #include "Renderer/IRenderer.h"
 #include "Widgets/Panel.h"
@@ -57,10 +58,7 @@ int RunRecoveryTest() {
             }
         }
 
-        renderer->BeginFrame();
-        root->OnPaint(*renderer);
-        renderer->EndFrame();
-        renderer->Present();
+        PaintFrame(*renderer, *root);
 
         if (renderer->IsDeviceLostForTesting()) {
             std::fprintf(stderr, "frame %d: device still lost after Present(); recovery failed\n", frame);

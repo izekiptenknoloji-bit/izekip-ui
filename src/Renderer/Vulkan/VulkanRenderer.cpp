@@ -1186,6 +1186,9 @@ void VulkanRenderer::Present() {
     submitInfo.pSignalSemaphores = signalSemaphores;
     const VkResult submitResult = vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFence);
     if (submitResult != VK_SUCCESS) {
+        if (submitResult == VK_ERROR_OUT_OF_DEVICE_MEMORY) {
+            Platform::Diagnostics::EnterDegradedMode();
+        }
         // A failed submit leaves the image-available semaphore in an unknown state, so the
         // device is rebuilt rather than trying to continue this frame.
         std::fprintf(stderr, "IzekipUI: vkQueueSubmit failed (%d); rebuilding the Vulkan device\n",
@@ -1203,6 +1206,9 @@ void VulkanRenderer::Present() {
     presentInfo.pImageIndices = &m_currentImageIndex;
     const VkResult presentResult = vkQueuePresentKHR(m_graphicsQueue, &presentInfo);
 
+    if (presentResult == VK_ERROR_OUT_OF_DEVICE_MEMORY) {
+        Platform::Diagnostics::EnterDegradedMode();
+    }
     if (presentResult == VK_ERROR_DEVICE_LOST) {
         MarkDeviceLost();
         TryRecoverDevice();
@@ -1297,6 +1303,9 @@ void VulkanRenderer::DrawTextQuad(const Rect& rect, const UVRect& atlasUV, const
 }
 
 void VulkanRenderer::DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPaint& paint) {
+    if (Platform::Diagnostics::IsDegraded()) {
+        return; // degraded mode: the blur needs a full-viewport scratch copy
+    }
     if (m_frameSkipped) {
         return;
     }
