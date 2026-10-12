@@ -10,6 +10,7 @@
 #include <utility>
 
 #include "CSS/CssTokenizer.h"
+#include "Platform/Diagnostics.h"
 #include "Core/Transition.h"
 
 namespace IzekipUI::Css {
@@ -1126,6 +1127,7 @@ void StyleApplier::ApplyToSingleWidget(LexborBridge& bridge, const StyleSheet& s
 }
 
 void StyleApplier::Apply(LexborBridge& bridge, const StyleSheet& sheet, Widget& root) {
+    Platform::Diagnostics::Increment(Platform::Diagnostics::Counter::StyleApplies);
     ApplyToSingleWidget(bridge, sheet, root);
     for (const auto& child : root.GetChildren()) {
         Apply(bridge, sheet, *child);

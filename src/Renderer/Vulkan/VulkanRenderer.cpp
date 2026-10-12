@@ -7,6 +7,7 @@
 #include <cstdio>
 
 #include "Core/AssetPath.h"
+#include "Platform/Diagnostics.h"
 #include <array>
 #include <cstring>
 #include <fstream>
@@ -1051,6 +1052,7 @@ void VulkanRenderer::Resize(uint32_t width, uint32_t height) {
 }
 
 void VulkanRenderer::ReportDrawOverflow(const char* what) {
+    Platform::Diagnostics::Increment(Platform::Diagnostics::Counter::DrawBudgetExceeded);
     if (!m_overflowReported) {
         m_overflowReported = true;
         std::fprintf(stderr, "IzekipUI: draw budget of %u %s exceeded in one frame; the rest is skipped\n",
@@ -1208,6 +1210,7 @@ void VulkanRenderer::Present() {
     }
     if (presentResult == VK_SUCCESS) {
         Platform::SafeMode::MarkHealthy(m_appId); // first presented frame ends the crash-loop count
+        Platform::Diagnostics::MaybeLogPeriodically();
     }
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
         try {
@@ -1229,6 +1232,7 @@ void VulkanRenderer::TryRecoverDevice() {
     try {
         CreateDeviceResources();
         m_deviceLost = false;
+        Platform::Diagnostics::Increment(Platform::Diagnostics::Counter::DeviceRecoveries);
         m_frameSkipped = false;
     } catch (const std::exception&) {
         // Driver still resetting or device not yet available: stay lost, skip drawing, and

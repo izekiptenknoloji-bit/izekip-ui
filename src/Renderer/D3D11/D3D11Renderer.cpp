@@ -11,6 +11,7 @@
 
 #include "Renderer/GlyphAtlas.h"
 #include "Core/AssetPath.h"
+#include "Platform/Diagnostics.h"
 #include "Platform/SafeMode.h"
 #include <cstdio>
 #include "Renderer/RectDrawData.h"
@@ -109,6 +110,7 @@ void D3D11Renderer::TryRecoverDevice() {
     try {
         CreateDeviceResources();
         m_deviceLost = false;
+        Platform::Diagnostics::Increment(Platform::Diagnostics::Counter::DeviceRecoveries);
     } catch (const std::exception&) {
         // Driver still resetting or no adapter yet: stay in the lost state, skip drawing,
         // and retry on the next Present(). Throwing here would crash the host application.
@@ -428,6 +430,7 @@ void D3D11Renderer::Present() {
     const HRESULT hr = m_swapChain->Present(1, 0);
     if (SUCCEEDED(hr)) {
         Platform::SafeMode::MarkHealthy(m_appId); // first presented frame ends the crash-loop count
+        Platform::Diagnostics::MaybeLogPeriodically();
     } else if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
         m_deviceLost = true;
         TryRecoverDevice();

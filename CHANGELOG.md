@@ -14,6 +14,11 @@ All notable changes to İzekip UI are documented here. Format follows
   a software device the hardware device is used and a message says so. `IZEKIP_SAFE_MODE=1`
   forces it.
 
+- Diagnostics (`Platform/Diagnostics.h`): always-on counters (live widgets, style applies,
+  dropped draws, device recoveries) and process memory readers (Windows working set and
+  private bytes, Linux VmRSS and RssAnon). `IZEKIP_DIAG=1` prints one line per minute from the
+  presentation path.
+
 ### Changed
 - D3D11 falls back to WARP when the hardware device cannot be created.
 - The `IzekipUI` library is built with warnings as errors (`-Wall -Wextra -Wpedantic -Wshadow

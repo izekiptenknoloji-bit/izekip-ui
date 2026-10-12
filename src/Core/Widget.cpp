@@ -1,5 +1,7 @@
 #include "Core/Widget.h"
 
+#include "Platform/Diagnostics.h"
+
 #include <algorithm>
 
 #include "Core/Interpolate.h"
@@ -8,10 +10,12 @@
 namespace IzekipUI {
 
 Widget::Widget(std::string typeName) : m_typeName(std::move(typeName)) {
+    Platform::Diagnostics::Increment(Platform::Diagnostics::Counter::LiveWidgets);
     m_yogaNode = YGNodeNew();
 }
 
 Widget::~Widget() {
+    Platform::Diagnostics::Decrement(Platform::Diagnostics::Counter::LiveWidgets);
     if (m_yogaNode) {
         YGNodeFree(m_yogaNode);
     }

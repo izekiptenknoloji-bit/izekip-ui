@@ -63,3 +63,7 @@ target_link_libraries(IzekipUIGlyphAtlasTests PRIVATE IzekipUI)
 target_compile_definitions(IzekipUIGlyphAtlasTests PRIVATE
     IZEKIP_TEST_FONT_DIR="${CMAKE_SOURCE_DIR}/third_party/fonts")
 add_test(NAME GlyphAtlasTests COMMAND IzekipUIGlyphAtlasTests)
+
+add_executable(IzekipUIDiagnosticsTests DiagnosticsTests.cpp)
+target_link_libraries(IzekipUIDiagnosticsTests PRIVATE IzekipUI)
+add_test(NAME DiagnosticsTests COMMAND IzekipUIDiagnosticsTests)

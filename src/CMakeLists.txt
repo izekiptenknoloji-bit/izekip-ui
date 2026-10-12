@@ -8,6 +8,7 @@ set(IZEKIP_SOURCES
     Core/Utf8.cpp
     Core/AssetPath.cpp
     Platform/SafeMode.cpp
+    Platform/Diagnostics.cpp
     Core/InteractionController.cpp
     Widgets/Panel.cpp
     Widgets/Button.cpp
