@@ -1,3 +1,4 @@
+#undef NDEBUG // tests must check their assertions in every configuration, including Release
 #include <cassert>
 #include <cstdio>
 #include <filesystem>

@@ -272,15 +272,16 @@ std::optional<float> ParseAngleRadians(const std::vector<Token>& tokens) {
     if (value.size() >= 3 && value.substr(value.size() - 3) == "deg") {
         multiplier = 0.01745329251994329577f;
         suffixLength = 3;
-    } else if (value.size() >= 3 && value.substr(value.size() - 3) == "rad") {
-        multiplier = 1.0f;
-        suffixLength = 3;
     } else if (value.size() >= 4 && value.substr(value.size() - 4) == "turn") {
         multiplier = 6.28318530717958647692f;
         suffixLength = 4;
     } else if (value.size() >= 4 && value.substr(value.size() - 4) == "grad") {
+        // Checked before "rad": "100grad" also ends in "rad".
         multiplier = 0.01570796326794896619f;
         suffixLength = 4;
+    } else if (value.size() >= 3 && value.substr(value.size() - 3) == "rad") {
+        multiplier = 1.0f;
+        suffixLength = 3;
     } else {
         return std::nullopt;
     }
@@ -1027,6 +1028,20 @@ void StyleApplier::ApplyToSingleWidget(LexborBridge& bridge, const StyleSheet& s
             widget.AnimateOpacityTo(*resolved.opacity, transition->durationSeconds, transition->easing);
         } else {
             widget.SnapOpacity(*resolved.opacity);
+        }
+    }
+
+    // Merging keeps the previous value when a rule stops matching, so a `:disabled` opacity would
+    // stick forever. Without a resolved opacity, return to the default (animated when a transition
+    // covers opacity), as `display` already does.
+    if (!resolved.opacity && !preserveAnimatedOpacity && previous.opacity) {
+        const TransitionSpec* transition =
+            !firstApply ? FindCoveringTransition(transitions, TransitionProperty::Opacity) : nullptr;
+        if (transition) {
+            widget.AnimateOpacityTo(1.0f, transition->durationSeconds, transition->easing);
+        } else {
+            widget.SnapOpacity(1.0f);
+            widget.GetStyle().opacity.reset();
         }
     }
 
