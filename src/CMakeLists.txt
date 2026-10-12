@@ -92,5 +92,13 @@ endif()
 if(MSVC)
     target_compile_options(IzekipUI PRIVATE /W4 /WX)
 else()
-    target_compile_options(IzekipUI PRIVATE -Wall -Wextra -Wpedantic -Wshadow -Werror)
+    # Vulkan create-info structs are initialized partially on purpose (sType is set by hand and
+    # the rest default to zero); -Wextra's missing-field-initializers flags every one of them.
+    target_compile_options(IzekipUI PRIVATE -Wall -Wextra -Wpedantic -Wshadow -Werror
+        -Wno-missing-field-initializers)
 endif()
+
+# lexbor's headers are not ours to fix: include them as system headers so the strict warnings
+# above do not apply to them (GCC reports -Wshadow inside lexbor's own inline helpers).
+target_include_directories(IzekipUI SYSTEM PRIVATE
+    $<TARGET_PROPERTY:lexbor_static,INTERFACE_INCLUDE_DIRECTORIES>)
