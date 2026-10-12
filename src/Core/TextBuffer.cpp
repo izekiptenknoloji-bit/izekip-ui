@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "Core/Utf8.h"
+#include "Platform/Diagnostics.h"
 
 namespace IzekipUI {
 
@@ -11,10 +12,24 @@ TextBuffer::TextBuffer() {
 }
 
 void TextBuffer::SetTextUtf8(const std::string& utf8Text) {
-    const std::u32string decoded = detail::DecodeUtf8(utf8Text);
+    std::string input = utf8Text;
+    if (input.size() > kMaxInputBytes) {
+        input.resize(kMaxInputBytes); // the decoder drops a cut-off trailing sequence
+        Platform::Diagnostics::Increment(Platform::Diagnostics::Counter::TextRejected);
+    }
+    std::u32string decoded = detail::DecodeUtf8(input);
+    if (decoded.size() > kMaxCharacters) {
+        decoded.resize(kMaxCharacters);
+        Platform::Diagnostics::Increment(Platform::Diagnostics::Counter::TextRejected);
+    }
+
     m_lines.clear();
     size_t start = 0;
     while (true) {
+        if (m_lines.size() >= kMaxLines) {
+            Platform::Diagnostics::Increment(Platform::Diagnostics::Counter::TextRejected);
+            break;
+        }
         const size_t newlinePos = decoded.find(U'\n', start);
         if (newlinePos == std::u32string::npos) {
             m_lines.push_back(decoded.substr(start));
@@ -24,6 +39,7 @@ void TextBuffer::SetTextUtf8(const std::string& utf8Text) {
         start = newlinePos + 1;
     }
     m_cursor = Position{};
+    RecountCharacters();
     ClampCursor();
 }
 
@@ -39,19 +55,29 @@ std::string TextBuffer::GetTextUtf8() const {
 }
 
 void TextBuffer::InsertCodepoint(char32_t codepoint) {
+    if (m_characterCount >= kMaxCharacters) {
+        Platform::Diagnostics::Increment(Platform::Diagnostics::Counter::TextRejected);
+        return;
+    }
     std::u32string& line = m_lines[m_cursor.line];
     line.insert(line.begin() + static_cast<ptrdiff_t>(m_cursor.column), codepoint);
     ++m_cursor.column;
+    ++m_characterCount;
     ClampCursor();
 }
 
 void TextBuffer::InsertNewline() {
+    if (m_characterCount >= kMaxCharacters || m_lines.size() >= kMaxLines) {
+        Platform::Diagnostics::Increment(Platform::Diagnostics::Counter::TextRejected);
+        return;
+    }
     std::u32string& line = m_lines[m_cursor.line];
     std::u32string tail = line.substr(m_cursor.column);
     line.resize(m_cursor.column);
     m_lines.insert(m_lines.begin() + static_cast<ptrdiff_t>(m_cursor.line) + 1, std::move(tail));
     ++m_cursor.line;
     m_cursor.column = 0;
+    ++m_characterCount;
     ClampCursor();
 }
 
@@ -60,12 +86,14 @@ void TextBuffer::Backspace() {
         std::u32string& line = m_lines[m_cursor.line];
         line.erase(line.begin() + static_cast<ptrdiff_t>(m_cursor.column) - 1);
         --m_cursor.column;
+        --m_characterCount;
     } else if (m_cursor.line > 0) {
         const size_t prevLineLength = m_lines[m_cursor.line - 1].size();
         m_lines[m_cursor.line - 1] += m_lines[m_cursor.line];
         m_lines.erase(m_lines.begin() + static_cast<ptrdiff_t>(m_cursor.line));
         --m_cursor.line;
         m_cursor.column = prevLineLength;
+        --m_characterCount; // the removed newline
     }
     ClampCursor();
 }
@@ -74,11 +102,23 @@ void TextBuffer::DeleteForward() {
     std::u32string& line = m_lines[m_cursor.line];
     if (m_cursor.column < line.size()) {
         line.erase(line.begin() + static_cast<ptrdiff_t>(m_cursor.column));
+        --m_characterCount;
     } else if (m_cursor.line + 1 < m_lines.size()) {
         line += m_lines[m_cursor.line + 1];
         m_lines.erase(m_lines.begin() + static_cast<ptrdiff_t>(m_cursor.line) + 1);
+        --m_characterCount; // the removed newline
     }
     ClampCursor();
+}
+
+void TextBuffer::RecountCharacters() {
+    m_characterCount = 0;
+    for (const auto& line : m_lines) {
+        m_characterCount += line.size();
+    }
+    if (!m_lines.empty()) {
+        m_characterCount += m_lines.size() - 1; // one newline between consecutive lines
+    }
 }
 
 void TextBuffer::MoveLeft() {

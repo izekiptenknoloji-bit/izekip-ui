@@ -19,6 +19,11 @@ All notable changes to İzekip UI are documented here. Format follows
   private bytes, Linux VmRSS and RssAnon). `IZEKIP_DIAG=1` prints one line per minute from the
   presentation path.
 
+- Text limits in `TextBuffer`: 1 000 000 characters (a newline counts as one), 50 000 lines,
+  4 MiB of input per `SetTextUtf8`. Edits past a limit are refused and counted in
+  Diagnostics (`TextRejected`); oversized input is truncated. The limits are public constants
+  (`TextBuffer::kMaxCharacters`, `kMaxLines`, `kMaxInputBytes`).
+
 ### Changed
 - D3D11 falls back to WARP when the hardware device cannot be created.
 - The `IzekipUI` library is built with warnings as errors (`-Wall -Wextra -Wpedantic -Wshadow

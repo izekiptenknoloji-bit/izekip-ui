@@ -20,12 +20,19 @@ public:
         bool operator!=(const Position& other) const { return !(*this == other); }
     };
 
+    // Hard limits. A newline counts as one character. Input beyond a limit is dropped and counted
+    // in Platform::Diagnostics (Counter::TextRejected); the edit is refused rather than growing.
+    static constexpr std::size_t kMaxCharacters = 1000000;
+    static constexpr std::size_t kMaxLines = 50000;
+    static constexpr std::size_t kMaxInputBytes = 4 * 1024 * 1024;
+
     TextBuffer(); // one empty line, cursor at (0, 0)
 
     void SetTextUtf8(const std::string& utf8Text);
     std::string GetTextUtf8() const; // lines joined with '\n', encoded as UTF-8
     const std::vector<std::u32string>& Lines() const { return m_lines; }
     Position GetCursor() const { return m_cursor; }
+    std::size_t CharacterCount() const { return m_characterCount; }
 
     void InsertCodepoint(char32_t codepoint);
     void InsertNewline();
@@ -41,9 +48,11 @@ public:
 
 private:
     void ClampCursor();
+    void RecountCharacters();
 
     std::vector<std::u32string> m_lines;
     Position m_cursor;
+    std::size_t m_characterCount = 0;
 };
 
 } // namespace IzekipUI

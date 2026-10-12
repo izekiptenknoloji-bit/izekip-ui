@@ -3,6 +3,8 @@
 #include <iostream>
 
 #include "Core/TextBuffer.h"
+#include "Platform/Diagnostics.h"
+#include <cstdint>
 
 using namespace IzekipUI;
 
@@ -123,6 +125,67 @@ void TestMalformedUtf8IsDroppedNotDecoded() {
     std::cout << "TestMalformedUtf8IsDroppedNotDecoded passed\n";
 }
 
+void TestCharacterLimitRefusesFurtherInput() {
+    using Platform::Diagnostics::Counter;
+    using Platform::Diagnostics::Get;
+    const std::uint64_t rejectedBefore = Get(Counter::TextRejected);
+
+    TextBuffer buffer;
+    for (std::size_t i = 0; i < TextBuffer::kMaxCharacters + 5; ++i) {
+        buffer.InsertCodepoint(U'a');
+    }
+    assert(buffer.CharacterCount() == TextBuffer::kMaxCharacters);
+    assert(Get(Counter::TextRejected) == rejectedBefore + 5);
+    std::cout << "TestCharacterLimitRefusesFurtherInput passed\n";
+}
+
+void TestLineLimitRefusesNewlines() {
+    TextBuffer buffer;
+    for (std::size_t i = 0; i < TextBuffer::kMaxLines + 10; ++i) {
+        buffer.InsertNewline();
+    }
+    assert(buffer.Lines().size() == TextBuffer::kMaxLines);
+    std::cout << "TestLineLimitRefusesNewlines passed\n";
+}
+
+void TestCharacterCountMatchesContentAfterEdits() {
+    TextBuffer buffer;
+    unsigned seed = 12345;
+    const auto next = [&seed]() {
+        seed = seed * 1103515245u + 12345u;
+        return (seed >> 16) & 0x7FFF;
+    };
+    for (int step = 0; step < 20000; ++step) {
+        switch (next() % 6) {
+            case 0: buffer.InsertCodepoint(U'x'); break;
+            case 1: buffer.InsertNewline(); break;
+            case 2: buffer.Backspace(); break;
+            case 3: buffer.DeleteForward(); break;
+            case 4: buffer.MoveLeft(); break;
+            default: buffer.MoveRight(); break;
+        }
+        std::size_t expected = 0;
+        for (const auto& line : buffer.Lines()) {
+            expected += line.size();
+        }
+        expected += buffer.Lines().size() - 1;
+        assert(buffer.CharacterCount() == expected);
+    }
+    std::cout << "TestCharacterCountMatchesContentAfterEdits passed\n";
+}
+
+void TestOversizedInputIsTruncated() {
+    using Platform::Diagnostics::Counter;
+    using Platform::Diagnostics::Get;
+    const std::uint64_t rejectedBefore = Get(Counter::TextRejected);
+
+    TextBuffer buffer;
+    buffer.SetTextUtf8(std::string(TextBuffer::kMaxInputBytes + 100, 'a'));
+    assert(buffer.CharacterCount() == TextBuffer::kMaxCharacters);
+    assert(Get(Counter::TextRejected) > rejectedBefore);
+    std::cout << "TestOversizedInputIsTruncated passed\n";
+}
+
 int main() {
     TestInitialState();
     TestInsertCodepointIncludingTurkish();
@@ -132,6 +195,10 @@ int main() {
     TestMovementAcrossLinesOfDifferentLengths();
     TestSetTextUtf8RoundTripsTurkishCharacters();
     TestMalformedUtf8IsDroppedNotDecoded();
+    TestCharacterLimitRefusesFurtherInput();
+    TestLineLimitRefusesNewlines();
+    TestCharacterCountMatchesContentAfterEdits();
+    TestOversizedInputIsTruncated();
     std::cout << "All TextBufferTests passed.\n";
     return 0;
 }

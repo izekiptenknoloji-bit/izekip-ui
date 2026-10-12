@@ -11,6 +11,7 @@ enum class Counter {
     StyleApplies,       // StyleApplier::Apply calls
     DrawBudgetExceeded, // draws dropped because a frame exceeded the per-frame budget
     DeviceRecoveries,   // successful device rebuilds after a loss or a failed submit
+    TextRejected,       // text edits or input refused because a text limit was reached
     Count
 };
 
