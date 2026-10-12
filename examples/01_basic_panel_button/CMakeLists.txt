@@ -35,3 +35,5 @@ elseif(IZEKIP_RENDER_BACKEND STREQUAL "VULKAN")
             "$<TARGET_FILE_DIR:IzekipUIExample01>/RectShader.frag.spv"
     )
 endif()
+
+izekip_example_fonts(IzekipUIExample01)
