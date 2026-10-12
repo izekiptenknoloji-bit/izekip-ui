@@ -31,13 +31,27 @@ std::string Trim(std::string value) {
 
 } // namespace
 
+namespace {
+
+// lxb_css_parser_destroy does not free the selector pool that lxb_css_parser_selectors_init
+// allocates (lexbor 3.0.1), so release that pool first or every parsed sheet leaks it.
+void DestroyParser(lxb_css_parser_t* parser) {
+    if (!parser) {
+        return;
+    }
+    if (parser->selectors) {
+        parser->selectors = lxb_css_selectors_destroy(parser->selectors, true);
+    }
+    lxb_css_parser_destroy(parser, true);
+}
+
+} // namespace
+
 StyleSheet::~StyleSheet() {
     if (m_sheet) {
         lxb_css_stylesheet_destroy(m_sheet, true);
     }
-    if (m_parser) {
-        lxb_css_parser_destroy(m_parser, true);
-    }
+    DestroyParser(m_parser);
 }
 
 StyleSheet::StyleSheet(StyleSheet&& other) noexcept
@@ -51,7 +65,7 @@ StyleSheet::StyleSheet(StyleSheet&& other) noexcept
 StyleSheet& StyleSheet::operator=(StyleSheet&& other) noexcept {
     if (this != &other) {
         if (m_sheet) lxb_css_stylesheet_destroy(m_sheet, true);
-        if (m_parser) lxb_css_parser_destroy(m_parser, true);
+        DestroyParser(m_parser);
 
         m_sourceText = std::move(other.m_sourceText);
         m_keyframes = std::move(other.m_keyframes);
