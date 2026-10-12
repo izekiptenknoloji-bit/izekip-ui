@@ -38,7 +38,9 @@ struct Length {
     bool operator!=(const Length& other) const { return !(*this == other); }
 };
 
-enum class CssFontFamily { Proportional, Monospace };
+// Named faces: sans-serif/system-ui -> Proportional (Inter), monospace -> Monospace (SpaceMono),
+// arial/helvetica -> Arial (Arimo), serif/times -> Serif (Tinos), courier -> Courier (Cousine).
+enum class CssFontFamily { Proportional, Monospace, Arial, Serif, Courier };
 
 // Mouse cursor shape requested by CSS `cursor`. Applied by the app via Platform::Window::SetCursor
 // for whichever widget is hovered; inherited from ancestors when unset (as in CSS).

@@ -107,9 +107,6 @@ void D3D11Renderer::Shutdown() {
     m_fontAtlasTexture.Reset();
     m_fontAtlasSRV.Reset();
     m_fontAtlasSampler.Reset();
-    m_fontAtlasTexture2.Reset();
-    m_fontAtlasSRV2.Reset();
-    m_fontAtlasSampler2.Reset();
     m_backdropScratchTexture.Reset();
     m_backdropScratchSRV.Reset();
     m_backdropSampler.Reset();
@@ -260,28 +257,51 @@ void D3D11Renderer::CreateBlendState() {
 }
 
 namespace {
-void UploadFontAtlasTexture(ID3D11Device* device, const GlyphAtlas& atlas,
-                             Microsoft::WRL::ComPtr<ID3D11Texture2D>& outTexture,
-                             Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& outSRV,
-                             Microsoft::WRL::ComPtr<ID3D11SamplerState>& outSampler) {
+// All font faces live in one Texture2DArray, one slice per FontId. Every GlyphAtlas is built at
+// the same size (kAtlasWidth x kAtlasHeight), so a single texture description covers them all.
+void CreateFontAtlasArray(ID3D11Device* device, Microsoft::WRL::ComPtr<ID3D11Texture2D>& outTexture,
+                           Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& outSRV,
+                           Microsoft::WRL::ComPtr<ID3D11SamplerState>& outSampler) {
+    const GlyphAtlas* atlases[kFontCount] = {
+        &GlyphAtlas::ForFont(FontId::Proportional), &GlyphAtlas::ForFont(FontId::Monospace),
+        &GlyphAtlas::ForFont(FontId::Arial), &GlyphAtlas::ForFont(FontId::Serif),
+        &GlyphAtlas::ForFont(FontId::Courier)};
+    const uint32_t width = atlases[0]->GetAtlasWidth();
+    const uint32_t height = atlases[0]->GetAtlasHeight();
+    for (const GlyphAtlas* atlas : atlases) {
+        if (atlas->GetAtlasWidth() != width || atlas->GetAtlasHeight() != height) {
+            throw std::runtime_error("font atlases must share one size for the texture array");
+        }
+    }
+
     D3D11_TEXTURE2D_DESC texDesc = {};
-    texDesc.Width = atlas.GetAtlasWidth();
-    texDesc.Height = atlas.GetAtlasHeight();
+    texDesc.Width = width;
+    texDesc.Height = height;
     texDesc.MipLevels = 1;
-    texDesc.ArraySize = 1;
+    texDesc.ArraySize = kFontCount;
     texDesc.Format = DXGI_FORMAT_R8_UNORM;
     texDesc.SampleDesc.Count = 1;
     texDesc.Usage = D3D11_USAGE_IMMUTABLE;
     texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 
-    D3D11_SUBRESOURCE_DATA initData = {};
-    initData.pSysMem = atlas.GetAtlasPixels().data();
-    initData.SysMemPitch = atlas.GetAtlasWidth();
+    D3D11_SUBRESOURCE_DATA initData[kFontCount] = {};
+    for (int slice = 0; slice < kFontCount; ++slice) {
+        initData[slice].pSysMem = atlases[slice]->GetAtlasPixels().data();
+        initData[slice].SysMemPitch = width;
+    }
 
-    ThrowIfFailed(device->CreateTexture2D(&texDesc, &initData, outTexture.GetAddressOf()),
-                  "CreateTexture2D(fontAtlas) failed");
-    ThrowIfFailed(device->CreateShaderResourceView(outTexture.Get(), nullptr, outSRV.GetAddressOf()),
-                  "CreateShaderResourceView(fontAtlas) failed");
+    ThrowIfFailed(device->CreateTexture2D(&texDesc, initData, outTexture.GetAddressOf()),
+                  "CreateTexture2D(fontAtlasArray) failed");
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format = DXGI_FORMAT_R8_UNORM;
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+    srvDesc.Texture2DArray.MostDetailedMip = 0;
+    srvDesc.Texture2DArray.MipLevels = 1;
+    srvDesc.Texture2DArray.FirstArraySlice = 0;
+    srvDesc.Texture2DArray.ArraySize = kFontCount;
+    ThrowIfFailed(device->CreateShaderResourceView(outTexture.Get(), &srvDesc, outSRV.GetAddressOf()),
+                  "CreateShaderResourceView(fontAtlasArray) failed");
 
     D3D11_SAMPLER_DESC samplerDesc = {};
     samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -292,15 +312,12 @@ void UploadFontAtlasTexture(ID3D11Device* device, const GlyphAtlas& atlas,
     samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
     ThrowIfFailed(device->CreateSamplerState(&samplerDesc, outSampler.GetAddressOf()),
-                  "CreateSamplerState(fontAtlas) failed");
+                  "CreateSamplerState(fontAtlasArray) failed");
 }
 } // namespace
 
 void D3D11Renderer::CreateFontAtlasTexture() {
-    UploadFontAtlasTexture(m_device.Get(), GlyphAtlas::GetDefault(), m_fontAtlasTexture, m_fontAtlasSRV,
-                            m_fontAtlasSampler);
-    UploadFontAtlasTexture(m_device.Get(), GlyphAtlas::GetMonospaceDefault(), m_fontAtlasTexture2,
-                            m_fontAtlasSRV2, m_fontAtlasSampler2);
+    CreateFontAtlasArray(m_device.Get(), m_fontAtlasTexture, m_fontAtlasSRV, m_fontAtlasSampler);
 }
 
 void D3D11Renderer::CreateBackdropScratchTexture() {
@@ -370,12 +387,15 @@ void D3D11Renderer::BeginFrame() {
     ID3D11Buffer* psCb = m_psConstantBuffer.Get();
     m_context->PSSetConstantBuffers(0, 1, &psCb);
 
-    ID3D11ShaderResourceView* srvs[3] = {m_fontAtlasSRV.Get(), m_fontAtlasSRV2.Get(),
-                                          m_backdropScratchSRV.Get()};
-    m_context->PSSetShaderResources(0, 3, srvs);
-    ID3D11SamplerState* samplers[3] = {m_fontAtlasSampler.Get(), m_fontAtlasSampler2.Get(),
-                                        m_backdropSampler.Get()};
-    m_context->PSSetSamplers(0, 3, samplers);
+    // Register slots match RectShader.hlsl: font array t0/s0, backdrop t2/s2.
+    ID3D11ShaderResourceView* fontSrv = m_fontAtlasSRV.Get();
+    m_context->PSSetShaderResources(0, 1, &fontSrv);
+    ID3D11ShaderResourceView* backdropSrv = m_backdropScratchSRV.Get();
+    m_context->PSSetShaderResources(2, 1, &backdropSrv);
+    ID3D11SamplerState* fontSampler = m_fontAtlasSampler.Get();
+    m_context->PSSetSamplers(0, 1, &fontSampler);
+    ID3D11SamplerState* backdropSamplerState = m_backdropSampler.Get();
+    m_context->PSSetSamplers(2, 1, &backdropSamplerState);
 }
 
 void D3D11Renderer::EndFrame() {

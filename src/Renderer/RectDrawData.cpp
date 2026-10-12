@@ -135,7 +135,7 @@ RectDrawData ComputeTextQuadDrawData(const Rect& rect, const UVRect& atlasUV, co
     constexpr float kAtlasDistancePerPixel = 45.0f / 255.0f;
     const float safeScale = glyphScale > 0.01f ? glyphScale : 0.01f;
     const float aaWidth = kAtlasDistancePerPixel / safeScale;
-    const float fontIndex = (fontId == FontId::Monospace) ? 1.0f : 0.0f;
+    const float fontIndex = static_cast<float>(static_cast<int>(fontId));
     ps.textParams = Float4{1.0f, kOnEdgeValueNormalized, aaWidth, fontIndex};
 
     ApplyWorldTransform(data, world);

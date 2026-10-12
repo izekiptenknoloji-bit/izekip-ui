@@ -59,7 +59,7 @@ cbuffer PSConstants : register(b0) {
     float4 shadowColor;
     float4 params; // x=cornerRadius, y=shadowBlurRadius,
                     // z=gradientMode(0=flat,1=right,2=left,3=top,4=bottom), w=shadowEnabled(0/1)
-    float4 textParams; // x=textMode(0/1), y=onEdgeValue/255, z=aaWidth, w=fontId(0=Proportional,1=Monospace)
+    float4 textParams; // x=textMode(0/1), y=onEdgeValue/255, z=aaWidth, w=font array slice (FontId)
     float4 gradientPositions; // x,y,z = stop0/1/2 position in [0,1] along the axis, w = stop count (2 or 3)
     float4 backdropParams;      // x=backdropMode(0/1), y=blurRadiusPx, z=viewportW, w=viewportH
     float4 backdropColorAdjust; // x=brightness, y=contrast, z=saturate, w=grayscale
@@ -67,18 +67,15 @@ cbuffer PSConstants : register(b0) {
     float4 psWorldXform;        // same Transform2D as vsWorldXform; inverted per pixel below
 };
 
+// One array slice per font face (FontId order); every slice is the same size.
 #if VK_BACKEND
-[[vk::binding(2, 0)]] Texture2D fontAtlasTex : register(t0);
+[[vk::binding(2, 0)]] Texture2DArray fontAtlasArray : register(t0);
 [[vk::binding(3, 0)]] SamplerState fontAtlasSampler : register(s0);
-[[vk::binding(4, 0)]] Texture2D fontAtlasTex2 : register(t1);
-[[vk::binding(5, 0)]] SamplerState fontAtlasSampler2 : register(s1);
 [[vk::binding(6, 0)]] Texture2D backdropTex : register(t2);
 [[vk::binding(7, 0)]] SamplerState backdropSampler : register(s2);
 #else
-Texture2D fontAtlasTex : register(t0);
+Texture2DArray fontAtlasArray : register(t0);
 SamplerState fontAtlasSampler : register(s0);
-Texture2D fontAtlasTex2 : register(t1);
-SamplerState fontAtlasSampler2 : register(s1);
 Texture2D backdropTex : register(t2);
 SamplerState backdropSampler : register(s2);
 #endif
@@ -163,9 +160,7 @@ float4 PSMain(VSOutput input) : SV_TARGET {
         // Glyph quad: the atlas texel is itself an SDF (distance to the glyph outline,
         // encoded 0..1), so this is the same smoothstep-around-the-boundary technique
         // as the rect path's AA ramp, just sourced from a texture instead of sdRoundBox.
-        float distance = (textParams.w > 0.5)
-            ? fontAtlasTex2.Sample(fontAtlasSampler2, input.atlasUV).r
-            : fontAtlasTex.Sample(fontAtlasSampler, input.atlasUV).r;
+        float distance = fontAtlasArray.Sample(fontAtlasSampler, float3(input.atlasUV, textParams.w)).r;
         float onEdge = textParams.y;
         float aa = max(textParams.z, 0.001);
         float alpha = smoothstep(onEdge - aa, onEdge + aa, distance);

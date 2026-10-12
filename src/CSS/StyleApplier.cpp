@@ -1,6 +1,7 @@
 #include "CSS/StyleApplier.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdlib>
 #include <optional>
@@ -746,17 +747,32 @@ std::optional<Display> ParseDisplay(const std::vector<Token>& tokens) {
     return std::nullopt; // block/grid/inline/... are not implemented -- ignored
 }
 
+// Multi-word family names arrive as several identifiers ("Times New Roman"); they are joined
+// with single spaces before matching.
 std::optional<CssFontFamily> ParseFontFamily(const std::vector<Token>& tokens) {
-    if (tokens.empty() || tokens[0].type != TokenType::Ident) {
+    std::string name;
+    for (const Token& token : tokens) {
+        if (token.type == TokenType::Ident) {
+            if (!name.empty()) name += ' ';
+            name += token.text;
+        } else if (token.type == TokenType::Comma) {
+            break; // only the first family in the list is used
+        } else {
+            return std::nullopt;
+        }
+    }
+    if (name.empty()) {
         return std::nullopt;
     }
-    if (tokens[0].text == "monospace") {
-        return CssFontFamily::Monospace;
+    std::transform(name.begin(), name.end(), name.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    if (name == "monospace") return CssFontFamily::Monospace;
+    if (name == "sans-serif" || name == "system-ui") return CssFontFamily::Proportional;
+    if (name == "arial" || name == "helvetica") return CssFontFamily::Arial;
+    if (name == "serif" || name == "times" || name == "times new roman" || name == "georgia") {
+        return CssFontFamily::Serif;
     }
-    if (tokens[0].text == "sans-serif" || tokens[0].text == "serif" ||
-        tokens[0].text == "system-ui") {
-        return CssFontFamily::Proportional;
-    }
+    if (name == "courier" || name == "courier new") return CssFontFamily::Courier;
     return std::nullopt;
 }
 

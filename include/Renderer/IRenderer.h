@@ -71,7 +71,10 @@ struct UVRect {
 
 // Which baked glyph atlas (and GPU texture/sampler slot) a DrawTextQuad call samples from.
 // Font selection is deliberately limited to the two atlases bundled with the renderer.
-enum class FontId { Proportional = 0, Monospace = 1 };
+// Index into the font atlas array in both backends: the value is the array slice the shader
+// samples. Keep this order in sync with GlyphAtlas's font getters and the renderers' uploads.
+enum class FontId { Proportional = 0, Monospace = 1, Arial = 2, Serif = 3, Courier = 4 };
+inline constexpr int kFontCount = 5;
 
 // backdrop-filter parameters, already defaulted to "no-op" for any field the CSS didn't
 // set (see StyleProperties::BackdropFilter, the CSS-side equivalent -- Widget::OnPaint is

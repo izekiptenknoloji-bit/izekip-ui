@@ -28,6 +28,15 @@ function(izekip_ui_copy_runtime_assets)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${_fonts_dir}/SpaceMono-Regular.ttf"
             "$<TARGET_FILE_DIR:${ARG_TARGET}>/SpaceMono-Regular.ttf"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${_fonts_dir}/Arimo-Regular.ttf"
+            "$<TARGET_FILE_DIR:${ARG_TARGET}>/Arimo-Regular.ttf"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${_fonts_dir}/Tinos-Regular.ttf"
+            "$<TARGET_FILE_DIR:${ARG_TARGET}>/Tinos-Regular.ttf"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${_fonts_dir}/Cousine-Regular.ttf"
+            "$<TARGET_FILE_DIR:${ARG_TARGET}>/Cousine-Regular.ttf"
     )
 
     if(IzekipUI_RENDER_BACKEND STREQUAL "VULKAN")

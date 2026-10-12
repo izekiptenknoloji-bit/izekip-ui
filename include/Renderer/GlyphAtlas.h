@@ -12,6 +12,8 @@
 #include <utility>
 #include <vector>
 
+#include "Renderer/IRenderer.h"
+
 namespace IzekipUI::Render {
 
 // One glyph's metrics and its location in the shared SDF atlas texture. All distances
@@ -61,6 +63,12 @@ public:
     // convention RectShader.hlsl already uses for "RectShader.hlsl"/style.css.
     static GlyphAtlas& GetDefault();
     static GlyphAtlas& GetMonospaceDefault();
+    // Open-licensed stand-ins for the classic web fonts (SIL OFL, shipped in share/IzekipUI/fonts):
+    // Arimo ~ Arial, Tinos ~ Times New Roman, Cousine ~ Courier New.
+    static GlyphAtlas& GetArialDefault();
+    static GlyphAtlas& GetSerifDefault();
+    static GlyphAtlas& GetCourierDefault();
+    static GlyphAtlas& ForFont(FontId id);
 
 private:
     // 1024 wide (was 512): widening kLastChar to 0xFF bakes ~90 more real Latin-1

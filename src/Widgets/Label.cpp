@@ -5,6 +5,7 @@
 #include "Core/Utf8.h"
 #include "Renderer/GlyphAtlas.h"
 #include "Renderer/IRenderer.h"
+#include "Widgets/FontSelection.h"
 
 namespace IzekipUI::Widgets {
 
@@ -40,11 +41,7 @@ void Label::SetFontFamily(Render::FontId fontFamily) {
 }
 
 Render::GlyphAtlas& Label::GetAtlas() const {
-    const bool monospace = m_style.fontFamily
-                               ? *m_style.fontFamily == CssFontFamily::Monospace
-                               : m_fontFamily == Render::FontId::Monospace;
-    return monospace ? Render::GlyphAtlas::GetMonospaceDefault()
-                     : Render::GlyphAtlas::GetDefault();
+    return Render::GlyphAtlas::ForFont(FontSelect::ResolveFontId(m_style.fontFamily, m_fontFamily));
 }
 
 YGSize Label::MeasureFunc(YGNodeConstRef node, float width, YGMeasureMode widthMode, float height,
@@ -85,11 +82,7 @@ void Label::OnPaint(Render::IRenderer& renderer) {
     const float scale = fontSize / atlas.GetBakedPixelHeight();
     const float lineHeight = atlas.GetLineHeight() * scale;
     const Rect visualRect = GetVisualRect();
-    const Render::FontId fontId =
-        (m_style.fontFamily && *m_style.fontFamily == CssFontFamily::Monospace) ||
-                (!m_style.fontFamily && m_fontFamily == Render::FontId::Monospace)
-            ? Render::FontId::Monospace
-            : Render::FontId::Proportional;
+    const Render::FontId fontId = FontSelect::ResolveFontId(m_style.fontFamily, m_fontFamily);
 
     // Synthetic bold: no bold font ships with IzekipUI, so weight >= 600 draws each glyph a
     // second time shifted right by a fraction of the font size.

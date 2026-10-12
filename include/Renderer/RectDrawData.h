@@ -39,7 +39,7 @@ struct PSConstants {
     Float4 shadowRectCenterHalfSize;
     Float4 shadowColor;
     Float4 params;
-    Float4 textParams;       // x=textMode(0/1), y=onEdgeValue/255, z=aaWidth, w=fontId(0=Proportional,1=Monospace)
+    Float4 textParams;       // x=textMode(0/1), y=onEdgeValue/255, z=aaWidth, w=font array slice (FontId)
     Float4 gradientPositions; // x,y,z = stop0/1/2 position in [0,1] along the axis, w = stop count (2 or 3)
     Float4 backdropParams;      // x=backdropMode(0/1), y=blurRadiusPx, z=viewportW, w=viewportH
     Float4 backdropColorAdjust; // x=brightness, y=contrast, z=saturate, w=grayscale

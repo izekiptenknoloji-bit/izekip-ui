@@ -639,6 +639,36 @@ void TestScaleRotateParsingAndTransformMath() {
     std::cout << "TestScaleRotateParsingAndTransformMath passed\n";
 }
 
+void TestFontFamilyNamesMapToBundledFaces() {
+    auto root = std::make_shared<Widget>("Panel");
+    const char* classes[] = {"sans", "arial", "times", "courier", "mono", "unknown"};
+    for (const char* name : classes) {
+        auto child = std::make_shared<Widget>("Label");
+        child->AddClass(name);
+        root->AddChild(child);
+    }
+
+    StyleSheet sheet = StyleSheet::LoadFromString(
+        ".sans { font-family: sans-serif; } "
+        ".arial { font-family: Helvetica; } "
+        ".times { font-family: Times New Roman; } "
+        ".courier { font-family: Courier New; } "
+        ".mono { font-family: monospace; } "
+        ".unknown { font-family: Comic Sans MS; }");
+    LexborBridge bridge;
+    bridge.Build(*root);
+    StyleApplier::Apply(bridge, sheet, *root);
+
+    const auto& kids = root->GetChildren();
+    assert(kids[0]->GetStyle().fontFamily == CssFontFamily::Proportional);
+    assert(kids[1]->GetStyle().fontFamily == CssFontFamily::Arial);
+    assert(kids[2]->GetStyle().fontFamily == CssFontFamily::Serif);
+    assert(kids[3]->GetStyle().fontFamily == CssFontFamily::Courier);
+    assert(kids[4]->GetStyle().fontFamily == CssFontFamily::Monospace);
+    assert(!kids[5]->GetStyle().fontFamily.has_value());
+    std::cout << "TestFontFamilyNamesMapToBundledFaces passed\n";
+}
+
 void TestDisplayResetsWhenHidingClassRemoved() {
     auto root = std::make_shared<Widget>("Panel");
     auto page = std::make_shared<Widget>("Panel");
@@ -797,6 +827,7 @@ int main() {
     TestDisplayParsing();
     TestFontWeightAndCursorParsingAndInheritance();
     TestScaleRotateParsingAndTransformMath();
+    TestFontFamilyNamesMapToBundledFaces();
     TestDisplayResetsWhenHidingClassRemoved();
     TestHiddenChildSkippedByHitTest();
     TestEmptyClassListRemovesAttribute();

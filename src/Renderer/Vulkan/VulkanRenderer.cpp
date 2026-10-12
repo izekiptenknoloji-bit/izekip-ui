@@ -378,14 +378,13 @@ void VulkanRenderer::CreateFramebuffers() {
 }
 
 void VulkanRenderer::CreateDescriptorSetLayoutAndPool() {
-    // RectShader.hlsl declares `Texture2D fontAtlasTex`/`fontAtlasTex2`/`backdropTex` and
-    // `SamplerState fontAtlasSampler`/`fontAtlasSampler2`/`backdropSampler` as independent
+    // RectShader.hlsl declares `Texture2DArray fontAtlasArray`/`Texture2D backdropTex` and
+    // `SamplerState fontAtlasSampler`/`backdropSampler` as independent
     // HLSL resources (not combined sampler2Ds) -- dxc's default SPIR-V codegen for that
     // pattern is separate descriptors (SAMPLED_IMAGE + SAMPLER) per texture/sampler pair,
     // not COMBINED_IMAGE_SAMPLER. The layout below must match that, binding-for-binding
-    // (vk::binding(2,0)/(3,0) -> proportional font, (4,0)/(5,0) -> monospace font,
-    // (6,0)/(7,0) -> backdrop-blur scratch texture).
-    VkDescriptorSetLayoutBinding bindings[8]{};
+    // (vk::binding(2,0)/(3,0) -> font array + sampler, (6,0)/(7,0) -> backdrop-blur scratch texture).
+    VkDescriptorSetLayoutBinding bindings[6]{};
     bindings[0].binding = 0;
     bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
     bindings[0].descriptorCount = 1;
@@ -406,28 +405,18 @@ void VulkanRenderer::CreateDescriptorSetLayoutAndPool() {
     bindings[3].descriptorCount = 1;
     bindings[3].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    bindings[4].binding = 4;
+    bindings[4].binding = 6;
     bindings[4].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     bindings[4].descriptorCount = 1;
     bindings[4].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    bindings[5].binding = 5;
+    bindings[5].binding = 7;
     bindings[5].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
     bindings[5].descriptorCount = 1;
     bindings[5].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    bindings[6].binding = 6;
-    bindings[6].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    bindings[6].descriptorCount = 1;
-    bindings[6].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    bindings[7].binding = 7;
-    bindings[7].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-    bindings[7].descriptorCount = 1;
-    bindings[7].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
     VkDescriptorSetLayoutCreateInfo layoutInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-    layoutInfo.bindingCount = 8;
+    layoutInfo.bindingCount = 6;
     layoutInfo.pBindings = bindings;
     VkCheck(vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayout),
             "vkCreateDescriptorSetLayout");
@@ -685,28 +674,28 @@ void VulkanRenderer::CreateUniformRingBuffers() {
 }
 
 void VulkanRenderer::CreateFontAtlasTexture() {
-    UploadFontAtlasTexture(GlyphAtlas::GetDefault(), m_fontAtlasImage, m_fontAtlasImageMemory,
-                            m_fontAtlasImageView, m_fontAtlasSampler, 2, 3);
-    UploadFontAtlasTexture(GlyphAtlas::GetMonospaceDefault(), m_fontAtlasImage2, m_fontAtlasImageMemory2,
-                            m_fontAtlasImageView2, m_fontAtlasSampler2, 4, 5);
-}
+    // Every face lives in one 2D array image (one layer per FontId), uploaded through one staging
+    // buffer and one synchronous copy. All GlyphAtlases share a size, which is checked here.
+    const GlyphAtlas* atlases[kFontCount] = {
+        &GlyphAtlas::ForFont(FontId::Proportional), &GlyphAtlas::ForFont(FontId::Monospace),
+        &GlyphAtlas::ForFont(FontId::Arial), &GlyphAtlas::ForFont(FontId::Serif),
+        &GlyphAtlas::ForFont(FontId::Courier)};
+    const uint32_t atlasWidth = atlases[0]->GetAtlasWidth();
+    const uint32_t atlasHeight = atlases[0]->GetAtlasHeight();
+    for (const GlyphAtlas* atlas : atlases) {
+        if (atlas->GetAtlasWidth() != atlasWidth || atlas->GetAtlasHeight() != atlasHeight) {
+            throw std::runtime_error("font atlases must share one size for the texture array");
+        }
+    }
+    const VkDeviceSize layerSize = static_cast<VkDeviceSize>(atlasWidth) * atlasHeight;
+    const VkDeviceSize totalSize = layerSize * kFontCount;
 
-void VulkanRenderer::UploadFontAtlasTexture(const GlyphAtlas& atlas, VkImage& outImage,
-                                             VkDeviceMemory& outMemory, VkImageView& outView,
-                                             VkSampler& outSampler, uint32_t imageBinding,
-                                             uint32_t samplerBinding) {
-    const uint32_t atlasWidth = atlas.GetAtlasWidth();
-    const uint32_t atlasHeight = atlas.GetAtlasHeight();
-    const VkDeviceSize imageSize = static_cast<VkDeviceSize>(atlasWidth) * atlasHeight;
-
-    // Staging buffer: host-visible, holds the raw atlas bytes before the GPU-side copy.
-    // This is the first staging-buffer upload in the codebase -- everything else so far
-    // (vertex buffer, uniform ring buffers) is HOST_VISIBLE directly, no staging needed.
+    // Staging buffer: host-visible, holds every layer's raw bytes back to back.
     VkBuffer stagingBuffer = VK_NULL_HANDLE;
     VkDeviceMemory stagingMemory = VK_NULL_HANDLE;
     {
         VkBufferCreateInfo bufferInfo{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-        bufferInfo.size = imageSize;
+        bufferInfo.size = totalSize;
         bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         VkCheck(vkCreateBuffer(m_device, &bufferInfo, nullptr, &stagingBuffer),
@@ -723,38 +712,38 @@ void VulkanRenderer::UploadFontAtlasTexture(const GlyphAtlas& atlas, VkImage& ou
         vkBindBufferMemory(m_device, stagingBuffer, stagingMemory, 0);
 
         void* mapped = nullptr;
-        vkMapMemory(m_device, stagingMemory, 0, imageSize, 0, &mapped);
-        std::memcpy(mapped, atlas.GetAtlasPixels().data(), static_cast<size_t>(imageSize));
+        vkMapMemory(m_device, stagingMemory, 0, totalSize, 0, &mapped);
+        for (int layer = 0; layer < kFontCount; ++layer) {
+            std::memcpy(static_cast<char*>(mapped) + layer * layerSize, atlases[layer]->GetAtlasPixels().data(),
+                        static_cast<size_t>(layerSize));
+        }
         vkUnmapMemory(m_device, stagingMemory);
     }
 
-    // GPU-local image.
     VkImageCreateInfo imageInfo{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
     imageInfo.format = VK_FORMAT_R8_UNORM;
     imageInfo.extent = {atlasWidth, atlasHeight, 1};
     imageInfo.mipLevels = 1;
-    imageInfo.arrayLayers = 1;
+    imageInfo.arrayLayers = kFontCount;
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    VkCheck(vkCreateImage(m_device, &imageInfo, nullptr, &outImage), "vkCreateImage(fontAtlas)");
+    VkCheck(vkCreateImage(m_device, &imageInfo, nullptr, &m_fontAtlasImage), "vkCreateImage(fontAtlasArray)");
 
     VkMemoryRequirements imageMemReq{};
-    vkGetImageMemoryRequirements(m_device, outImage, &imageMemReq);
+    vkGetImageMemoryRequirements(m_device, m_fontAtlasImage, &imageMemReq);
     VkMemoryAllocateInfo imageAllocInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
     imageAllocInfo.allocationSize = imageMemReq.size;
     imageAllocInfo.memoryTypeIndex =
         FindMemoryType(imageMemReq.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    VkCheck(vkAllocateMemory(m_device, &imageAllocInfo, nullptr, &outMemory),
-            "vkAllocateMemory(fontAtlas)");
-    vkBindImageMemory(m_device, outImage, outMemory, 0);
+    VkCheck(vkAllocateMemory(m_device, &imageAllocInfo, nullptr, &m_fontAtlasImageMemory),
+            "vkAllocateMemory(fontAtlasArray)");
+    vkBindImageMemory(m_device, m_fontAtlasImage, m_fontAtlasImageMemory, 0);
 
-    // One-shot command buffer: upload + layout transitions, synchronous (submit + wait).
-    // No existing transfer-queue/upload infrastructure to reuse -- new machinery, unlike
-    // the persistently-mapped host-visible buffers used everywhere else so far.
+    // One-shot command buffer: upload every layer, synchronous (submit + wait).
     VkCommandBufferAllocateInfo cmdAllocInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
     cmdAllocInfo.commandPool = m_commandPool;
     cmdAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -767,24 +756,29 @@ void VulkanRenderer::UploadFontAtlasTexture(const GlyphAtlas& atlas, VkImage& ou
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     vkBeginCommandBuffer(uploadCmd, &beginInfo);
 
+    const VkImageSubresourceRange allLayers{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, kFontCount};
+
     VkImageMemoryBarrier toTransferDst{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
     toTransferDst.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     toTransferDst.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     toTransferDst.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     toTransferDst.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    toTransferDst.image = outImage;
-    toTransferDst.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    toTransferDst.image = m_fontAtlasImage;
+    toTransferDst.subresourceRange = allLayers;
     toTransferDst.srcAccessMask = 0;
     toTransferDst.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     vkCmdPipelineBarrier(uploadCmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
                           nullptr, 0, nullptr, 1, &toTransferDst);
 
-    VkBufferImageCopy copyRegion{};
-    copyRegion.bufferOffset = 0;
-    copyRegion.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
-    copyRegion.imageExtent = {atlasWidth, atlasHeight, 1};
-    vkCmdCopyBufferToImage(uploadCmd, stagingBuffer, outImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                            1, &copyRegion);
+    std::vector<VkBufferImageCopy> copyRegions(kFontCount);
+    for (int layer = 0; layer < kFontCount; ++layer) {
+        VkBufferImageCopy& region = copyRegions[layer];
+        region.bufferOffset = layer * layerSize;
+        region.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, static_cast<uint32_t>(layer), 1};
+        region.imageExtent = {atlasWidth, atlasHeight, 1};
+    }
+    vkCmdCopyBufferToImage(uploadCmd, stagingBuffer, m_fontAtlasImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                            static_cast<uint32_t>(copyRegions.size()), copyRegions.data());
 
     VkImageMemoryBarrier toShaderRead = toTransferDst;
     toShaderRead.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
@@ -807,12 +801,12 @@ void VulkanRenderer::UploadFontAtlasTexture(const GlyphAtlas& atlas, VkImage& ou
     vkFreeMemory(m_device, stagingMemory, nullptr);
 
     VkImageViewCreateInfo viewInfo{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
-    viewInfo.image = outImage;
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.image = m_fontAtlasImage;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
     viewInfo.format = VK_FORMAT_R8_UNORM;
-    viewInfo.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-    VkCheck(vkCreateImageView(m_device, &viewInfo, nullptr, &outView),
-            "vkCreateImageView(fontAtlas)");
+    viewInfo.subresourceRange = allLayers;
+    VkCheck(vkCreateImageView(m_device, &viewInfo, nullptr, &m_fontAtlasImageView),
+            "vkCreateImageView(fontAtlasArray)");
 
     VkSamplerCreateInfo samplerInfo{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
     samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -821,31 +815,29 @@ void VulkanRenderer::UploadFontAtlasTexture(const GlyphAtlas& atlas, VkImage& ou
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.maxLod = 0.0f; // single mip level, no mip range to clamp
-    VkCheck(vkCreateSampler(m_device, &samplerInfo, nullptr, &outSampler),
-            "vkCreateSampler(fontAtlas)");
+    VkCheck(vkCreateSampler(m_device, &samplerInfo, nullptr, &m_fontAtlasSampler),
+            "vkCreateSampler(fontAtlasArray)");
 
-    // Static writes for imageBinding (SAMPLED_IMAGE) and samplerBinding (SAMPLER) --
-    // separate, matching the shader's separate Texture2D/SamplerState declarations (see
-    // CreateDescriptorSetLayoutAndPool). Neither changes again, so these ride along
-    // unmodified in every vkCmdBindDescriptorSets call for the set's lifetime.
+    // Static writes for the font array (binding 2, SAMPLED_IMAGE) and its sampler (binding 3).
+    // Neither changes again, so they ride along unmodified for the set's lifetime.
     VkDescriptorImageInfo imageDescInfo{};
-    imageDescInfo.imageView = outView;
+    imageDescInfo.imageView = m_fontAtlasImageView;
     imageDescInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     VkDescriptorImageInfo samplerDescInfo{};
-    samplerDescInfo.sampler = outSampler;
+    samplerDescInfo.sampler = m_fontAtlasSampler;
 
     VkWriteDescriptorSet writes[2]{};
     writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writes[0].dstSet = m_descriptorSet;
-    writes[0].dstBinding = imageBinding;
+    writes[0].dstBinding = 2;
     writes[0].descriptorCount = 1;
     writes[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     writes[0].pImageInfo = &imageDescInfo;
 
     writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writes[1].dstSet = m_descriptorSet;
-    writes[1].dstBinding = samplerBinding;
+    writes[1].dstBinding = 3;
     writes[1].descriptorCount = 1;
     writes[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
     writes[1].pImageInfo = &samplerDescInfo;
@@ -1361,15 +1353,6 @@ void VulkanRenderer::Shutdown() {
     m_fontAtlasImage = VK_NULL_HANDLE;
     m_fontAtlasImageMemory = VK_NULL_HANDLE;
     m_fontAtlasSampler = VK_NULL_HANDLE;
-
-    if (m_fontAtlasImageView2) vkDestroyImageView(m_device, m_fontAtlasImageView2, nullptr);
-    if (m_fontAtlasImage2) vkDestroyImage(m_device, m_fontAtlasImage2, nullptr);
-    if (m_fontAtlasImageMemory2) vkFreeMemory(m_device, m_fontAtlasImageMemory2, nullptr);
-    if (m_fontAtlasSampler2) vkDestroySampler(m_device, m_fontAtlasSampler2, nullptr);
-    m_fontAtlasImageView2 = VK_NULL_HANDLE;
-    m_fontAtlasImage2 = VK_NULL_HANDLE;
-    m_fontAtlasImageMemory2 = VK_NULL_HANDLE;
-    m_fontAtlasSampler2 = VK_NULL_HANDLE;
 
     if (m_backdropScratchImageView) vkDestroyImageView(m_device, m_backdropScratchImageView, nullptr);
     if (m_backdropScratchImage) vkDestroyImage(m_device, m_backdropScratchImage, nullptr);

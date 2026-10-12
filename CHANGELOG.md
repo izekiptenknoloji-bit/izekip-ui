@@ -21,6 +21,14 @@ untransformed widgets behave as before.
   (no bold font asset ships with IzekipUI).
 - Installer: "Yapay Zeka Yardımı" option that installs `share/doc/IzekipUI/AI_GUIDE.md`,
   a teaching text for AI coding assistants.
+- CSS `font-family` names for open-licensed stand-ins of the classic web fonts (SIL OFL,
+  shipped in `share/IzekipUI/fonts`): `arial`/`helvetica` -> Arimo, `serif`/`times`/`times new
+  roman`/`georgia` -> Tinos, `courier`/`courier new` -> Cousine. All five faces share one
+  `Texture2DArray` in both backends; a missing stand-in file falls back to Inter.
+- Device-loss recovery for D3D11 and Vulkan (`DEVICE_REMOVED` / `VK_ERROR_DEVICE_LOST`):
+  the device and every GPU resource are rebuilt; drawing is skipped while lost.
+- GPU tests (`IZEKIP_TEST_GPU=ON`): recovery under simulated device loss, and a font-family
+  sample window.
 
 ### Fixed
 - Backdrop blur scratch texture format now matches the backbuffer (`CopySubresourceRegion`

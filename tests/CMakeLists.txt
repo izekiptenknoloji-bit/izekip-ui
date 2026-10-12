@@ -16,25 +16,32 @@ add_test(NAME InteractionTests COMMAND IzekipUIInteractionTests)
 # default test run stays headless (CI, build servers).
 option(IZEKIP_TEST_GPU "Run GPU/display-dependent tests (needs a window and a GPU driver)" OFF)
 if(IZEKIP_TEST_GPU)
-    add_executable(IzekipUIRendererRecoveryTest RendererRecoveryTest.cpp)
-    target_link_libraries(IzekipUIRendererRecoveryTest PRIVATE IzekipUI)
-    add_test(NAME RendererRecoveryTest
-        COMMAND IzekipUIRendererRecoveryTest
-        WORKING_DIRECTORY "$<TARGET_FILE_DIR:IzekipUIRendererRecoveryTest>")
-
-    set(IZEKIP_RECOVERY_ASSETS
+    set(IZEKIP_GPU_TEST_ASSETS
         "${CMAKE_SOURCE_DIR}/third_party/fonts/Inter.ttf"
-        "${CMAKE_SOURCE_DIR}/third_party/fonts/SpaceMono-Regular.ttf")
+        "${CMAKE_SOURCE_DIR}/third_party/fonts/SpaceMono-Regular.ttf"
+        "${CMAKE_SOURCE_DIR}/third_party/fonts/Arimo-Regular.ttf"
+        "${CMAKE_SOURCE_DIR}/third_party/fonts/Tinos-Regular.ttf"
+        "${CMAKE_SOURCE_DIR}/third_party/fonts/Cousine-Regular.ttf")
     if(IZEKIP_RENDER_BACKEND STREQUAL "D3D11")
-        list(APPEND IZEKIP_RECOVERY_ASSETS "${CMAKE_SOURCE_DIR}/src/Renderer/Shaders/RectShader.hlsl")
+        list(APPEND IZEKIP_GPU_TEST_ASSETS "${CMAKE_SOURCE_DIR}/src/Renderer/Shaders/RectShader.hlsl")
     else()
-        list(APPEND IZEKIP_RECOVERY_ASSETS
+        list(APPEND IZEKIP_GPU_TEST_ASSETS
             "${CMAKE_BINARY_DIR}/generated/Shaders/RectShader.vert.spv"
             "${CMAKE_BINARY_DIR}/generated/Shaders/RectShader.frag.spv")
     endif()
-    add_custom_command(TARGET IzekipUIRendererRecoveryTest POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${IZEKIP_RECOVERY_ASSETS}
-            "$<TARGET_FILE_DIR:IzekipUIRendererRecoveryTest>")
+
+    # Each GPU test runs from its own output folder, where the runtime assets are copied.
+    function(izekip_add_gpu_test NAME SOURCE)
+        add_executable(${NAME} ${SOURCE})
+        target_link_libraries(${NAME} PRIVATE IzekipUI)
+        add_test(NAME ${NAME} COMMAND ${NAME} WORKING_DIRECTORY "$<TARGET_FILE_DIR:${NAME}>")
+        add_custom_command(TARGET ${NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${IZEKIP_GPU_TEST_ASSETS}
+                "$<TARGET_FILE_DIR:${NAME}>")
+    endfunction()
+
+    izekip_add_gpu_test(IzekipUIRendererRecoveryTest RendererRecoveryTest.cpp)
+    izekip_add_gpu_test(IzekipUIFontFamilyTest FontFamilyTest.cpp)
 endif()
 
 # Headless, files-only (--no-system) install -> uninstall round trip of the real installer

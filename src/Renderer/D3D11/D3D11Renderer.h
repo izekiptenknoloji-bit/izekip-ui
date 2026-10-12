@@ -74,9 +74,6 @@ private:
     Microsoft::WRL::ComPtr<ID3D11Texture2D> m_fontAtlasTexture;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_fontAtlasSRV;
     Microsoft::WRL::ComPtr<ID3D11SamplerState> m_fontAtlasSampler;
-    Microsoft::WRL::ComPtr<ID3D11Texture2D> m_fontAtlasTexture2;
-    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_fontAtlasSRV2;
-    Microsoft::WRL::ComPtr<ID3D11SamplerState> m_fontAtlasSampler2;
 
     Microsoft::WRL::ComPtr<ID3D11VertexShader> m_vertexShader;
     Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pixelShader;

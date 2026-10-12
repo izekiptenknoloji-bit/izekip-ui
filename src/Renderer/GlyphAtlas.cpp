@@ -1,6 +1,7 @@
 #include "Renderer/GlyphAtlas.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
 #include <fstream>
 #include <stdexcept>
@@ -199,6 +200,67 @@ GlyphAtlas& GlyphAtlas::GetMonospaceDefault() {
     if (!built) {
         atlas.Build("SpaceMono-Regular.ttf");
         built = true;
+    }
+    return atlas;
+}
+
+GlyphAtlas& GlyphAtlas::ForFont(FontId id) {
+    switch (id) {
+        case FontId::Monospace: return GetMonospaceDefault();
+        case FontId::Arial: return GetArialDefault();
+        case FontId::Serif: return GetSerifDefault();
+        case FontId::Courier: return GetCourierDefault();
+        case FontId::Proportional: break;
+    }
+    return GetDefault();
+}
+
+// The classic-web-font stand-ins are optional at runtime: if the file is missing the face falls
+// back to Inter, so a damaged install degrades the typography instead of stopping the app.
+namespace {
+bool TryBuild(GlyphAtlas& atlas, const char* fileName) {
+    try {
+        atlas.Build(fileName);
+        return true;
+    } catch (const std::exception& error) {
+        std::fprintf(stderr, "IzekipUI: %s (falling back to Inter)\n", error.what());
+        return false;
+    }
+}
+} // namespace
+
+GlyphAtlas& GlyphAtlas::GetArialDefault() {
+    static GlyphAtlas atlas;
+    static bool built = false;
+    if (!built) {
+        built = true;
+        if (!TryBuild(atlas, "Arimo-Regular.ttf")) {
+            return GetDefault();
+        }
+    }
+    return atlas;
+}
+
+GlyphAtlas& GlyphAtlas::GetSerifDefault() {
+    static GlyphAtlas atlas;
+    static bool built = false;
+    if (!built) {
+        built = true;
+        if (!TryBuild(atlas, "Tinos-Regular.ttf")) {
+            return GetDefault();
+        }
+    }
+    return atlas;
+}
+
+GlyphAtlas& GlyphAtlas::GetCourierDefault() {
+    static GlyphAtlas atlas;
+    static bool built = false;
+    if (!built) {
+        built = true;
+        if (!TryBuild(atlas, "Cousine-Regular.ttf")) {
+            return GetDefault();
+        }
     }
     return atlas;
 }

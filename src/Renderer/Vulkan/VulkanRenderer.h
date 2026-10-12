@@ -74,9 +74,6 @@ private:
     void CreateQuadVertexBuffer();
     void CreateUniformRingBuffers();
     void CreateFontAtlasTexture();
-    void UploadFontAtlasTexture(const GlyphAtlas& atlas, VkImage& outImage, VkDeviceMemory& outMemory,
-                                 VkImageView& outView, VkSampler& outSampler, uint32_t imageBinding,
-                                 uint32_t samplerBinding);
     void CreateBackdropScratchImage(); // viewport-sized, GENERAL layout (see .cpp for why)
     void DestroySwapchainAndDependents();
     void RecreateSwapchain(); // DestroySwapchainAndDependents + Create{Swapchain,ImageViews,Framebuffers}
@@ -136,10 +133,6 @@ private:
     VkImageView m_fontAtlasImageView = VK_NULL_HANDLE;
     VkSampler m_fontAtlasSampler = VK_NULL_HANDLE;
 
-    VkImage m_fontAtlasImage2 = VK_NULL_HANDLE;
-    VkDeviceMemory m_fontAtlasImageMemory2 = VK_NULL_HANDLE;
-    VkImageView m_fontAtlasImageView2 = VK_NULL_HANDLE;
-    VkSampler m_fontAtlasSampler2 = VK_NULL_HANDLE;
 
     // backdrop-filter scratch image: a GPU-to-GPU copy of whatever's been painted to the
     // swapchain image so far, sampled by DrawBackdropBlurRect's blur shader. Viewport-sized,

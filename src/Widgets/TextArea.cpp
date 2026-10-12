@@ -1,6 +1,7 @@
 #include "Widgets/TextArea.h"
 
 #include "Renderer/GlyphAtlas.h"
+#include "Widgets/FontSelection.h"
 
 namespace IzekipUI::Widgets {
 
@@ -16,10 +17,7 @@ TextArea::TextArea() : Widget("TextArea") {
 }
 
 Render::GlyphAtlas& TextArea::GetAtlas() const {
-    if (m_style.fontFamily && *m_style.fontFamily == CssFontFamily::Monospace) {
-        return Render::GlyphAtlas::GetMonospaceDefault();
-    }
-    return Render::GlyphAtlas::GetDefault();
+    return Render::GlyphAtlas::ForFont(FontSelect::ResolveFontId(m_style.fontFamily, Render::FontId::Proportional));
 }
 
 void TextArea::OnCharInput(char32_t codepoint) {
@@ -57,10 +55,7 @@ void TextArea::OnPaint(Render::IRenderer& renderer) {
     const float lineHeight = atlas.GetLineHeight() * scale;
     const BoxEdges padding = m_style.padding.value_or(BoxEdges{});
     const Rect visualRect = GetVisualRect();
-    const Render::FontId fontId =
-        m_style.fontFamily && *m_style.fontFamily == CssFontFamily::Monospace
-            ? Render::FontId::Monospace
-            : Render::FontId::Proportional;
+    const Render::FontId fontId = FontSelect::ResolveFontId(m_style.fontFamily, Render::FontId::Proportional);
 
     const auto& lines = m_buffer.Lines();
     renderer.SetWorldTransform(GetWorldTransform());
