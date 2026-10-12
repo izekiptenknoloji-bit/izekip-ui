@@ -76,7 +76,7 @@ cmake --build . --config Release
 ## Starting a New Project
 
 **Easiest (Recommended):** 
-1. Download `IzekipUI-SDK-1.2.0-win64.zip` from [GitHub Releases](https://github.com/izekiptenknoloji-bit/izekip-ui/releases)
+1. Download `IzekipUI-SDK-1.3.0-win64.zip` from [GitHub Releases](https://github.com/izekiptenknoloji-bit/izekip-ui/releases)
 2. Extract the zip
 3. Run `IzekipUISetup.exe` (a GUI installer written with İzekip UI itself)
 4. In a new terminal: `cssfr create myapp` → `cd myapp` → `cmake -B build` → `cmake --build build`

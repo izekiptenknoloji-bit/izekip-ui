@@ -6,7 +6,7 @@
 # together, per COMPATIBILITY.md's release checklist.
 
 PROJECT_NAME           = "IzekipUI"
-PROJECT_NUMBER         = "1.2.0"
+PROJECT_NUMBER         = "1.3.0"
 PROJECT_BRIEF          = "A C++ GUI library with real CSS styling and D3D11/Vulkan rendering"
 PROJECT_LOGO           = docs/nativecss-logo.svg
 
