@@ -23,10 +23,16 @@ void GlyphAtlas::Build(const std::string& ttfPath, float bakedPixelHeight) {
     if (!file) {
         throw std::runtime_error("GlyphAtlas: could not open font file: " + ttfPath);
     }
+    constexpr std::streamsize kMaxFontFileBytes = 16 * 1024 * 1024;
     const std::streamsize size = file.tellg();
+    if (size <= 0 || size > kMaxFontFileBytes) {
+        throw std::runtime_error("GlyphAtlas: font file size out of range: " + ttfPath);
+    }
     file.seekg(0);
     m_fontFileData.resize(static_cast<size_t>(size));
-    file.read(reinterpret_cast<char*>(m_fontFileData.data()), size);
+    if (!file.read(reinterpret_cast<char*>(m_fontFileData.data()), size)) {
+        throw std::runtime_error("GlyphAtlas: could not read font file: " + ttfPath);
+    }
 
     auto* info = new stbtt_fontinfo();
     if (!stbtt_InitFont(info, m_fontFileData.data(),
@@ -81,6 +87,10 @@ void GlyphAtlas::Build(const std::string& ttfPath, float bakedPixelHeight) {
             return; // e.g. space has no visible outline
         }
 
+        if (static_cast<uint32_t>(w) > kAtlasWidth) {
+            stbtt_FreeSDF(sdf, nullptr);
+            return; // wider than a whole atlas row: cannot be packed, the glyph stays empty
+        }
         if (cursorX + static_cast<uint32_t>(w) > kAtlasWidth) {
             shelfY += shelfHeight + 1;
             shelfHeight = 0;

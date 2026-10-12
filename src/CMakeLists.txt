@@ -84,3 +84,11 @@ elseif(IZEKIP_RENDER_BACKEND STREQUAL "VULKAN")
         "${IZEKIP_SHADER_OUT_DIR}/RectShader.frag.spv")
     add_dependencies(IzekipUI IzekipUIShaders)
 endif()
+
+# Warnings are errors for the library itself. Vendored third_party code is linked, not compiled
+# here, so it is not affected.
+if(MSVC)
+    target_compile_options(IzekipUI PRIVATE /W4 /WX)
+else()
+    target_compile_options(IzekipUI PRIVATE -Wall -Wextra -Wpedantic -Wshadow -Werror)
+endif()

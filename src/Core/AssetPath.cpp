@@ -30,7 +30,9 @@ std::filesystem::path ExecutablePath() {
 }
 
 std::filesystem::path ResolveAssetPath(const std::string& name) {
-    const std::filesystem::path relative(name);
+    // Names are UTF-8. A narrow std::string path would be read in the ANSI code page on Windows,
+    // which breaks non-ASCII directory names such as a Turkish user profile.
+    const std::filesystem::path relative(std::u8string(reinterpret_cast<const char8_t*>(name.data()), name.size()));
     if (relative.is_absolute()) {
         return relative;
     }

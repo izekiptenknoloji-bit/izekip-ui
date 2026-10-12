@@ -1,0 +1,52 @@
+# Written without being run: this repository's CI has not been exercised on GitHub yet.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  windows-msvc:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Configure (D3D11, warnings are errors)
+        run: cmake -S . -B build -DIZEKIP_TEST_GPU=OFF
+      - name: Build
+        run: cmake --build build --config Release
+      - name: Headless tests
+        working-directory: build
+        run: ctest -C Release --output-on-failure
+
+  linux-sanitizers:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: GLFW and graphics build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev
+      - name: Vulkan SDK (provides dxc for shader compilation)
+        uses: humbletim/setup-vulkan-sdk@v1.2.1
+        with:
+          vulkan-query-version: 1.4.309.0
+          vulkan-components: Vulkan-Headers,Vulkan-Loader,Vulkan-Tools
+          vulkan-use-cache: true
+      - name: Configure (Vulkan, AddressSanitizer + UBSan)
+        run: >
+          cmake -S . -B build -DIZEKIP_RENDER_BACKEND=VULKAN -DIZEKIP_TEST_GPU=OFF
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+      - name: Build
+        run: cmake --build build
+      - name: Headless tests under sanitizers
+        working-directory: build
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: ctest --output-on-failure

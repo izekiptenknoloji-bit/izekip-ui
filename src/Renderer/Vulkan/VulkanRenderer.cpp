@@ -1070,6 +1070,10 @@ void VulkanRenderer::BeginFrame() {
         MarkDeviceLost();
         return;
     }
+    if (waitResult != VK_SUCCESS) {
+        m_frameSkipped = true;
+        return;
+    }
 
     const VkResult acquireResult = vkAcquireNextImageKHR(
         m_device, m_swapchain, UINT64_MAX, m_imageAvailableSemaphore, VK_NULL_HANDLE, &m_currentImageIndex);
@@ -1087,13 +1091,28 @@ void VulkanRenderer::BeginFrame() {
         m_frameSkipped = true;
         return; // fence was never reset, so it stays signaled for the next BeginFrame's wait
     }
+    if (acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR) {
+        // Unknown failure: the image index is stale, so this frame must not be recorded.
+        m_frameSkipped = true;
+        return;
+    }
     m_frameSkipped = false;
 
-    vkResetFences(m_device, 1, &m_inFlightFence);
-    vkResetCommandBuffer(m_commandBuffer, 0);
-
+    // The fence is reset last: if recording fails, the fence stays signaled and the next
+    // BeginFrame's wait returns instead of blocking forever on a submit that never happens.
+    if (vkResetCommandBuffer(m_commandBuffer, 0) != VK_SUCCESS) {
+        m_frameSkipped = true;
+        return;
+    }
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-    vkBeginCommandBuffer(m_commandBuffer, &beginInfo);
+    if (vkBeginCommandBuffer(m_commandBuffer, &beginInfo) != VK_SUCCESS) {
+        m_frameSkipped = true;
+        return;
+    }
+    if (vkResetFences(m_device, 1, &m_inFlightFence) != VK_SUCCESS) {
+        MarkDeviceLost();
+        return;
+    }
 
     VkClearValue clearValue{};
     clearValue.color = {{0.1f, 0.1f, 0.1f, 1.0f}};
@@ -1164,12 +1183,15 @@ void VulkanRenderer::Present() {
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
     const VkResult submitResult = vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFence);
-    if (submitResult == VK_ERROR_DEVICE_LOST) {
+    if (submitResult != VK_SUCCESS) {
+        // A failed submit leaves the image-available semaphore in an unknown state, so the
+        // device is rebuilt rather than trying to continue this frame.
+        std::fprintf(stderr, "IzekipUI: vkQueueSubmit failed (%d); rebuilding the Vulkan device\n",
+                     static_cast<int>(submitResult));
         MarkDeviceLost();
         TryRecoverDevice();
         return;
     }
-    VkCheck(submitResult, "vkQueueSubmit");
 
     VkPresentInfoKHR presentInfo{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
     presentInfo.waitSemaphoreCount = 1;

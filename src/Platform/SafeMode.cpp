@@ -13,19 +13,36 @@ namespace {
 bool g_active = false;
 bool g_healthReported = false;
 
+// Empty string when the variable is unset. MSVC's getenv is deprecated, so use _dupenv_s there.
+std::string EnvironmentValue(const char* name) {
+#if defined(_WIN32)
+    char* value = nullptr;
+    size_t length = 0;
+    if (_dupenv_s(&value, &length, name) != 0 || value == nullptr) {
+        return {};
+    }
+    std::string result(value);
+    std::free(value);
+    return result;
+#else
+    const char* value = std::getenv(name);
+    return value ? std::string(value) : std::string();
+#endif
+}
+
 std::filesystem::path DefaultStateDirectory() {
 #if defined(_WIN32)
-    const char* base = std::getenv("LOCALAPPDATA");
-    if (!base || !*base) {
+    const std::string base = EnvironmentValue("LOCALAPPDATA");
+    if (base.empty()) {
         return {};
     }
     return std::filesystem::path(base) / "IzekipUI" / "state";
 #else
-    if (const char* xdg = std::getenv("XDG_STATE_HOME"); xdg && *xdg) {
+    if (const std::string xdg = EnvironmentValue("XDG_STATE_HOME"); !xdg.empty()) {
         return std::filesystem::path(xdg) / "IzekipUI";
     }
-    const char* home = std::getenv("HOME");
-    if (!home || !*home) {
+    const std::string home = EnvironmentValue("HOME");
+    if (home.empty()) {
         return {};
     }
     return std::filesystem::path(home) / ".local" / "state" / "IzekipUI";
@@ -91,7 +108,7 @@ void MarkHealthyIn(const std::filesystem::path& stateDirectory, const std::strin
 }
 
 bool BeginLaunch(const std::string& appId) {
-    if (const char* forced = std::getenv("IZEKIP_SAFE_MODE"); forced && forced[0] == '1') {
+    if (EnvironmentValue("IZEKIP_SAFE_MODE") == "1") {
         g_active = true;
         return true;
     }

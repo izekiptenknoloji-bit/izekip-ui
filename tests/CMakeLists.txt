@@ -57,3 +57,9 @@ endif()
 add_executable(IzekipUISafeModeTests SafeModeTests.cpp)
 target_link_libraries(IzekipUISafeModeTests PRIVATE IzekipUI)
 add_test(NAME SafeModeTests COMMAND IzekipUISafeModeTests)
+
+add_executable(IzekipUIGlyphAtlasTests GlyphAtlasTests.cpp)
+target_link_libraries(IzekipUIGlyphAtlasTests PRIVATE IzekipUI)
+target_compile_definitions(IzekipUIGlyphAtlasTests PRIVATE
+    IZEKIP_TEST_FONT_DIR="${CMAKE_SOURCE_DIR}/third_party/fonts")
+add_test(NAME GlyphAtlasTests COMMAND IzekipUIGlyphAtlasTests)

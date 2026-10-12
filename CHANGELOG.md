@@ -16,6 +16,16 @@ All notable changes to İzekip UI are documented here. Format follows
 
 ### Changed
 - D3D11 falls back to WARP when the hardware device cannot be created.
+- The `IzekipUI` library is built with warnings as errors (`-Wall -Wextra -Wpedantic -Wshadow
+  -Werror`, MSVC `/W4 /WX`).
+- Vulkan: an unknown acquire, submit, or command-recording result skips the frame or rebuilds
+  the device instead of recording with a stale image index or throwing.
+
+### Fixed
+- Glyphs wider than the atlas row are skipped instead of overrunning the atlas buffer; font
+  files are size-checked before reading.
+- Windows: asset paths containing non-ASCII directory names (for example a Turkish user
+  profile) are opened as UTF-8 instead of the ANSI code page.
 
 ## [1.3.0] - 2026-10-12
 
