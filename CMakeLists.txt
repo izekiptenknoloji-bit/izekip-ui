@@ -90,4 +90,5 @@ endif()
 # -- an earlier version of this file had this include too early).
 if(PROJECT_IS_TOP_LEVEL)
     include(cmake/Install.cmake)
+    include(cmake/Packaging.cmake) # Linux .deb via CPack (no-op elsewhere)
 endif()
