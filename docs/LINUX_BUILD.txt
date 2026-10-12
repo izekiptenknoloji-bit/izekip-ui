@@ -1,0 +1,80 @@
+İZEKİP UI - LINUX (PARDUS / DEBIAN) DERLEME VE ÇALIŞTIRMA
+=====================================================
+
+Her blok bir terminalde sırayla çalıştırılır. Aynı terminal açık kalmalı.
+
+
+1) KAYNAK KODU ÇEKME (ilk seferde)
+-----------------------------------
+git clone --recurse-submodules https://github.com/izekiptenknoloji-bit/izekip-ui.git
+cd izekip-ui
+
+Zaten klonlanmış bir klasörde güncelleme için:
+cd izekip-ui
+git pull
+git submodule update --init --recursive
+
+
+2) GEREKLİ PAKETLER (apt)
+-----------------------------------
+sudo apt update
+sudo apt install -y build-essential cmake git libgl-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libwayland-dev libxkbcommon-dev mesa-vulkan-drivers vulkan-tools
+
+
+3) LUNARG VULKAN SDK (dxc derleyicisi için, ZORUNLU)
+-----------------------------------
+Adım 1: Tarayıcıdan https://vulkan.lunarg.com/sdk/home#linux sayfasını açın,
+        "x86_64" tar.xz dosyasını indirin (Downloads klasörüne).
+
+Adım 2: Aşağıdakileri çalıştırın (dosya adı sürüme göre değişir, * ile eşleşir):
+
+cd ~/Downloads
+tar xf vulkansdk-linux-x86_64-*.tar.xz -C "$HOME"
+source "$HOME"/*/setup-env.sh
+echo "VULKAN_SDK=$VULKAN_SDK"
+
+"VULKAN_SDK=" satırında bir yol görmelisiniz (örn. /home/kullanici/1.3.xxx.x/x86_64).
+Boş ise bu adımı tekrarlayın.
+
+Not: "source setup-env.sh" yalnızca O terminalde geçerlidir. Yeni terminal
+açarsanız bu satırı yeniden çalıştırın.
+
+
+4) DERLEME
+-----------------------------------
+cd ~/izekip-ui
+cmake -S . -B build-linux -DCMAKE_BUILD_TYPE=Release -DIZEKIP_RENDER_BACKEND=VULKAN -DIZEKIP_BUILD_TESTS=ON
+cmake --build build-linux -j"$(nproc)"
+
+
+5) TESTLER
+-----------------------------------
+ctest --test-dir build-linux --output-on-failure
+
+
+6) ÖRNEKLERİ ÇALIŞTIRMA (masaüstü oturumu gerekir, VM ekranında çalıştırın)
+-----------------------------------
+./build-linux/examples/01_basic_panel_button/IzekipUIExample01
+./build-linux/examples/02_text_document/IzekipUIExample02
+./build-linux/examples/03_notepad/IzekipUIExample03
+./build-linux/examples/04_glassmorphism/IzekipUIExample04
+
+
+7) VULKAN SÜRÜCÜSÜ KONTROLÜ (pencere açılmazsa)
+-----------------------------------
+vulkaninfo --summary
+
+Çıktıda en az bir "deviceName" satırı olmalı (llvmpipe, Intel, AMD veya NVIDIA).
+Hiç cihaz yoksa çıktının tamamını kaydedin.
+
+
+SORUN GİDERME
+-----------------------------------
+- "Could NOT find Vulkan" ya da dxc ile ilgili hata:
+  3. adımı yapın ve aynı terminalde "source setup-env.sh" çalıştırın.
+
+- "Could not find X11/Wayland/GL" benzeri hata:
+  2. adımdaki paketlerin kurulduğundan emin olun.
+
+- Hata çıktısının ilk "error:" satırını ve birkaç satır üstünü kopyalayıp
+  geliştiriciye iletin.
