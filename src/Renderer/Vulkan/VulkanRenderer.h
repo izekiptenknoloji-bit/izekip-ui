@@ -3,8 +3,10 @@
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
+#include "Platform/SafeMode.h"
 #include "Renderer/IRenderer.h"
 
 struct GLFWwindow;
@@ -44,6 +46,8 @@ private:
     // Creates the instance, surface, device, pipelines and every GPU resource for the current
     // size. Used by Initialize and by device-loss recovery.
     void CreateDeviceResources();
+    // Picks the first queue family with graphics + present on a device of the wanted class.
+    bool SelectPhysicalDevice(const std::vector<VkPhysicalDevice>& devices, bool softwareOnly, bool anyType);
     // Full teardown and rebuild after VK_ERROR_DEVICE_LOST. Failure keeps m_deviceLost set so
     // the next Present() retries instead of throwing into the host application.
     void TryRecoverDevice();
@@ -93,6 +97,8 @@ private:
     GLFWwindow* m_glfwWindow = nullptr;
     bool m_deviceLost = false;
     bool m_overflowReported = false;
+    bool m_safeMode = false;
+    std::string m_appId;
     VkInstance m_instance = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;

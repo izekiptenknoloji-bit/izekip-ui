@@ -10,7 +10,9 @@ All notable changes to İzekip UI are documented here. Format follows
 - Crash-loop safe mode (`Platform/SafeMode.h`). Each renderer start is counted per application
   in the user state directory; after the first presented frame the count is cleared. Three
   consecutive launches without a presented frame make the next launch use the WARP software
-  rasterizer (D3D11). `IZEKIP_SAFE_MODE=1` forces it. Vulkan safe mode is not implemented yet.
+  rasterizer (D3D11) or a software Vulkan device (CPU device type, e.g. Mesa lavapipe). Without
+  a software device the hardware device is used and a message says so. `IZEKIP_SAFE_MODE=1`
+  forces it.
 
 ### Changed
 - D3D11 falls back to WARP when the hardware device cannot be created.

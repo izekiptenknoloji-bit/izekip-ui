@@ -72,6 +72,9 @@ bool VulkanRenderer::Initialize(const RendererCreateInfo& info) {
     m_width = info.initialWidth;
     m_height = info.initialHeight;
     m_glfwWindow = static_cast<GLFWwindow*>(info.glfwWindow);
+    m_appId = ExecutablePath().stem().string();
+    Platform::SafeMode::BeginLaunch(m_appId);
+    m_safeMode = Platform::SafeMode::IsActive();
     CreateDeviceResources();
     return true;
 }
@@ -155,16 +158,14 @@ void VulkanRenderer::CreateSurface(GLFWwindow* window) {
     VkCheck(glfwCreateWindowSurface(m_instance, window, nullptr, &m_surface), "glfwCreateWindowSurface");
 }
 
-void VulkanRenderer::PickPhysicalDeviceAndQueueFamily() {
-    uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
-    if (deviceCount == 0) {
-        throw std::runtime_error("No Vulkan-capable physical devices found");
-    }
-    std::vector<VkPhysicalDevice> devices(deviceCount);
-    vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
-
+bool VulkanRenderer::SelectPhysicalDevice(const std::vector<VkPhysicalDevice>& devices, bool softwareOnly, bool anyType) {
     for (VkPhysicalDevice device : devices) {
+        VkPhysicalDeviceProperties props{};
+        vkGetPhysicalDeviceProperties(device, &props);
+        if (!anyType && softwareOnly != (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU)) {
+            continue;
+        }
+
         uint32_t queueFamilyCount = 0;
         vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
         std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
@@ -177,12 +178,34 @@ void VulkanRenderer::PickPhysicalDeviceAndQueueFamily() {
             if (hasGraphics && hasPresent) {
                 m_physicalDevice = device;
                 m_queueFamilyIndex = i;
-                VkPhysicalDeviceProperties props{};
-                vkGetPhysicalDeviceProperties(device, &props);
                 m_minUboAlignment = props.limits.minUniformBufferOffsetAlignment;
-                return;
+                return true;
             }
         }
+    }
+    return false;
+}
+
+void VulkanRenderer::PickPhysicalDeviceAndQueueFamily() {
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
+    if (deviceCount == 0) {
+        throw std::runtime_error("No Vulkan-capable physical devices found");
+    }
+    std::vector<VkPhysicalDevice> devices(deviceCount);
+    vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
+
+    // Safe mode prefers a software ICD (CPU device type, e.g. Mesa lavapipe or SwiftShader): it
+    // does not depend on the vendor GPU driver that is the usual crash source.
+    if (m_safeMode) {
+        if (SelectPhysicalDevice(devices, true, false)) {
+            return;
+        }
+        std::fprintf(stderr, "IzekipUI: safe mode requested but no software Vulkan device is installed; "
+                             "using the hardware device\n");
+    }
+    if (SelectPhysicalDevice(devices, false, true)) {
+        return;
     }
 
     throw std::runtime_error(
@@ -1160,6 +1183,9 @@ void VulkanRenderer::Present() {
         MarkDeviceLost();
         TryRecoverDevice();
         return;
+    }
+    if (presentResult == VK_SUCCESS) {
+        Platform::SafeMode::MarkHealthy(m_appId); // first presented frame ends the crash-loop count
     }
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
         try {
