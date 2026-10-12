@@ -76,7 +76,15 @@ bool VulkanRenderer::Initialize(const RendererCreateInfo& info) {
     m_appId = ExecutablePath().stem().string();
     Platform::SafeMode::BeginLaunch(m_appId);
     m_safeMode = Platform::SafeMode::IsActive();
-    CreateDeviceResources();
+    // No usable Vulkan device (missing driver, no ICD) throws from inside device setup. Report it
+    // as a failed Initialize so the caller can exit cleanly, instead of letting the exception escape.
+    try {
+        CreateDeviceResources();
+    } catch (const std::exception& error) {
+        std::fprintf(stderr, "IzekipUI: Vulkan could not start: %s\n", error.what());
+        Shutdown(); // releases whatever was created before the failure
+        return false;
+    }
     return true;
 }
 

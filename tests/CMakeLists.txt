@@ -42,6 +42,9 @@ if(IZEKIP_TEST_GPU)
 
     izekip_add_gpu_test(IzekipUIRendererRecoveryTest RendererRecoveryTest.cpp)
     izekip_add_gpu_test(IzekipUIFontFamilyTest FontFamilyTest.cpp)
+    if(IZEKIP_RENDER_BACKEND STREQUAL "VULKAN")
+        izekip_add_gpu_test(IzekipUIRendererInitFailureTest RendererInitFailureTest.cpp)
+    endif()
 endif()
 
 # Headless, files-only (--no-system) install -> uninstall round trip of the real installer
