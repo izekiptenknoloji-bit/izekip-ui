@@ -1,0 +1,238 @@
+<title>İzekip Linux Kurulumu</title>
+<style>
+/* Layout: one column of numbered steps, each a command block with its own copy button. */
+:root {
+  --bg: #f6f5f1;
+  --surface: #ffffff;
+  --fg: #1d1d1b;
+  --muted: #6a6862;
+  --line: #dcd9d0;
+  --accent: #1f6f5c;
+  --code-bg: #1e2320;
+  --code-fg: #e6ece8;
+  --ok: #1f6f5c;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14160f;
+    --surface: #1d2019;
+    --fg: #ecebe4;
+    --muted: #a3a197;
+    --line: #34372d;
+    --accent: #7fd1b4;
+    --code-bg: #0c0e0b;
+    --code-fg: #d9e6dd;
+    --ok: #7fd1b4;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14160f;
+  --surface: #1d2019;
+  --fg: #ecebe4;
+  --muted: #a3a197;
+  --line: #34372d;
+  --accent: #7fd1b4;
+  --code-bg: #0c0e0b;
+  --code-fg: #d9e6dd;
+  --ok: #7fd1b4;
+  color-scheme: dark;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  line-height: 1.55;
+}
+.wrap {
+  max-width: 760px;
+  margin: 0 auto;
+  padding-inline: 16px;
+  padding-block: 32px 56px;
+}
+header h1 {
+  margin: 0 0 6px;
+  font-size: 1.9rem;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+header p {
+  margin: 0;
+  color: var(--muted);
+}
+.intro {
+  margin: 20px 0 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.step {
+  margin-top: 28px;
+}
+.step h2 {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.step h2 .n {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.step p {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+.block {
+  position: relative;
+  border-radius: 8px;
+  background: var(--code-bg);
+  color: var(--code-fg);
+}
+.block pre {
+  margin: 0;
+  padding: 14px 16px;
+  padding-right: 96px;
+  overflow-x: auto;
+  font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.88rem;
+  white-space: pre;
+}
+.copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 6px 10px;
+  border: 1px solid #3c4239;
+  border-radius: 6px;
+  background: #262b23;
+  color: var(--code-fg);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.copy:hover { background: #313829; }
+.copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.copy.done { color: var(--ok); }
+.note {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.note b { color: var(--fg); font-weight: 600; }
+.hint {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+@media (max-width: 480px) {
+  header h1 { font-size: 1.5rem; }
+  .block pre { font-size: 0.82rem; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>İzekip UI: Linux kurulumu</h1>
+    <p>Pardus / Debian üzerinde derleme ve örnekleri çalıştırma. Her komutu kopyalayıp terminale yapıştırın.</p>
+  </header>
+
+  <div class="intro">
+    Her bloktaki komutlar sırayla çalıştırılır ve aynı terminal açık kalmalıdır. Bir adım hata verirse
+    ilk <b>error:</b> satırını ve birkaç üst satırı geliştiriciye iletin.
+  </div>
+
+  <section class="step">
+    <h2><span class="n">1</span>Kaynak kodu çekin</h2>
+    <p>Daha önce klonlamadıysanız:</p>
+    <div class="block"><pre>git clone --recurse-submodules https://github.com/izekiptenknoloji-bit/izekip-ui.git
+cd izekip-ui</pre><button class="copy" type="button">Kopyala</button></div>
+    <p class="note">Zaten klonlanmış bir klasörde güncelleme için:</p>
+    <div class="block"><pre>cd izekip-ui
+git pull
+git submodule update --init --recursive</pre><button class="copy" type="button">Kopyala</button></div>
+  </section>
+
+  <section class="step">
+    <h2><span class="n">2</span>Gerekli paketleri kurun</h2>
+    <div class="block"><pre>sudo apt update
+sudo apt install -y build-essential cmake git libgl-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libwayland-dev libxkbcommon-dev mesa-vulkan-drivers vulkan-tools</pre><button class="copy" type="button">Kopyala</button></div>
+  </section>
+
+  <section class="step">
+    <h2><span class="n">3</span>LunarG Vulkan SDK (zorunlu)</h2>
+    <p>Shader derleyicisi (dxc) bu SDK'nın içinde gelir. Önce
+      <a href="https://vulkan.lunarg.com/sdk/home#linux" target="_blank" rel="noopener">vulkan.lunarg.com</a>
+      adresinden <b>x86_64 tar.xz</b> dosyasını indirin, ardından:</p>
+    <div class="block"><pre>cd ~/Downloads
+tar xf vulkansdk-linux-x86_64-*.tar.xz -C "$HOME"
+source "$HOME"/*/setup-env.sh
+echo "VULKAN_SDK=$VULKAN_SDK"</pre><button class="copy" type="button">Kopyala</button></div>
+    <p class="hint">Son satırda bir yol görmelisiniz. Boşsa adımı tekrarlayın. Yeni bir terminal açarsanız bu satırı yeniden çalıştırın.</p>
+  </section>
+
+  <section class="step">
+    <h2><span class="n">4</span>Derleme</h2>
+    <div class="block"><pre>cd ~/izekip-ui
+cmake -S . -B build-linux -DCMAKE_BUILD_TYPE=Release -DIZEKIP_RENDER_BACKEND=VULKAN -DIZEKIP_BUILD_TESTS=ON
+cmake --build build-linux -j"$(nproc)"</pre><button class="copy" type="button">Kopyala</button></div>
+  </section>
+
+  <section class="step">
+    <h2><span class="n">5</span>Testler</h2>
+    <div class="block"><pre>ctest --test-dir build-linux --output-on-failure</pre><button class="copy" type="button">Kopyala</button></div>
+  </section>
+
+  <section class="step">
+    <h2><span class="n">6</span>Örnekleri çalıştırın</h2>
+    <p>Örnekler bir pencere açar. Masaüstü oturumu olan bir ekrandan çalıştırın (SSH olmaz).</p>
+    <div class="block"><pre>./build-linux/examples/01_basic_panel_button/IzekipUIExample01
+./build-linux/examples/02_text_document/IzekipUIExample02
+./build-linux/examples/03_notepad/IzekipUIExample03
+./build-linux/examples/04_glassmorphism/IzekipUIExample04</pre><button class="copy" type="button">Kopyala</button></div>
+  </section>
+
+  <section class="step">
+    <h2><span class="n">7</span>Pencere açılmazsa: Vulkan sürücüsü</h2>
+    <div class="block"><pre>vulkaninfo --summary</pre><button class="copy" type="button">Kopyala</button></div>
+    <p class="hint">Çıktıda en az bir <b>deviceName</b> satırı olmalı. Hiç yoksa çıktının tamamını kaydedin.</p>
+  </section>
+</div>
+
+<script>
+// Copy buttons: the clipboard API runs inside the click handler; if the viewer refuses it, the
+// block's text is selected so Ctrl+C still works.
+document.querySelectorAll(".copy").forEach(function (button) {
+  button.addEventListener("click", function () {
+    var pre = button.parentElement.querySelector("pre");
+    var text = pre.innerText;
+    var done = function () {
+      button.textContent = "Kopyalandı";
+      button.classList.add("done");
+      setTimeout(function () {
+        button.textContent = "Kopyala";
+        button.classList.remove("done");
+      }, 1600);
+    };
+    var fallback = function () {
+      var range = document.createRange();
+      range.selectNodeContents(pre);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      button.textContent = "Seçildi, Ctrl+C";
+      setTimeout(function () { button.textContent = "Kopyala"; }, 2000);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else {
+      fallback();
+    }
+  });
+});
+</script>
