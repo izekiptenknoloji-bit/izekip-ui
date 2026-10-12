@@ -11,6 +11,8 @@
 
 #include "Renderer/GlyphAtlas.h"
 #include "Core/AssetPath.h"
+#include "Platform/SafeMode.h"
+#include <cstdio>
 #include "Renderer/RectDrawData.h"
 
 using Microsoft::WRL::ComPtr;
@@ -46,6 +48,8 @@ bool D3D11Renderer::Initialize(const RendererCreateInfo& info) {
     m_width = info.initialWidth;
     m_height = info.initialHeight;
     m_hwnd = static_cast<HWND>(info.nativeWindowHandle);
+    m_appId = ExecutablePath().stem().string();
+    Platform::SafeMode::BeginLaunch(m_appId);
     CreateDeviceResources();
     return true;
 }
@@ -72,12 +76,25 @@ void D3D11Renderer::CreateDeviceResources() {
 
     D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
 
-    ThrowIfFailed(
-        D3D11CreateDeviceAndSwapChain(
-            nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, deviceFlags, &featureLevel, 1,
-            D3D11_SDK_VERSION, &swapChainDesc, m_swapChain.GetAddressOf(), m_device.GetAddressOf(),
-            nullptr, m_context.GetAddressOf()),
-        "D3D11CreateDeviceAndSwapChain failed");
+    // Safe mode (and any hardware failure) uses WARP, the software rasterizer that ships with
+    // Windows, so the application still starts when the GPU driver is broken.
+    auto createWith = [&](D3D_DRIVER_TYPE driverType) {
+        return D3D11CreateDeviceAndSwapChain(
+            nullptr, driverType, nullptr, deviceFlags, &featureLevel, 1, D3D11_SDK_VERSION,
+            &swapChainDesc, m_swapChain.GetAddressOf(), m_device.GetAddressOf(), nullptr,
+            m_context.GetAddressOf());
+    };
+    const bool safeMode = Platform::SafeMode::IsActive();
+    if (safeMode) {
+        std::fprintf(stderr, "IzekipUI: safe mode -- software rendering (WARP) after repeated failed launches\n");
+    }
+    HRESULT hr = createWith(safeMode ? D3D_DRIVER_TYPE_WARP : D3D_DRIVER_TYPE_HARDWARE);
+    if (FAILED(hr) && !safeMode) {
+        std::fprintf(stderr, "IzekipUI: hardware D3D11 device unavailable (0x%08lx); using WARP\n",
+                     static_cast<unsigned long>(hr));
+        hr = createWith(D3D_DRIVER_TYPE_WARP);
+    }
+    ThrowIfFailed(hr, "D3D11CreateDeviceAndSwapChain failed");
 
     CreateRenderTarget();
     CreateQuadGeometry();
@@ -409,7 +426,9 @@ void D3D11Renderer::Present() {
         return;
     }
     const HRESULT hr = m_swapChain->Present(1, 0);
-    if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
+    if (SUCCEEDED(hr)) {
+        Platform::SafeMode::MarkHealthy(m_appId); // first presented frame ends the crash-loop count
+    } else if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
         m_deviceLost = true;
         TryRecoverDevice();
     }

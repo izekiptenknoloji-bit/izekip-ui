@@ -9,6 +9,8 @@
 #include <d3d11.h>
 
 #include "Renderer/IRenderer.h"
+#include "Platform/SafeMode.h"
+#include <string>
 
 namespace IzekipUI::Render {
 
@@ -77,6 +79,7 @@ private:
 
     Transform2D m_worldTransform;
     HWND m_hwnd = nullptr;
+    std::string m_appId;
     bool m_deviceLost = false;
 
     Microsoft::WRL::ComPtr<ID3D11Texture2D> m_fontAtlasTexture;

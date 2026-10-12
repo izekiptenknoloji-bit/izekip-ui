@@ -7,6 +7,7 @@ set(IZEKIP_SOURCES
     Core/TextBuffer.cpp
     Core/Utf8.cpp
     Core/AssetPath.cpp
+    Platform/SafeMode.cpp
     Core/InteractionController.cpp
     Widgets/Panel.cpp
     Widgets/Button.cpp

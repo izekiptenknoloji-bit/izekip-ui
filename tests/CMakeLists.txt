@@ -53,3 +53,7 @@ if(TARGET IzekipUISetup)
             "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/installer_roundtrip"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/InstallerRoundTrip.cmake")
 endif()
+
+add_executable(IzekipUISafeModeTests SafeModeTests.cpp)
+target_link_libraries(IzekipUISafeModeTests PRIVATE IzekipUI)
+add_test(NAME SafeModeTests COMMAND IzekipUISafeModeTests)
