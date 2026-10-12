@@ -44,7 +44,12 @@ std::string ReadShaderSource() {
 bool D3D11Renderer::Initialize(const RendererCreateInfo& info) {
     m_width = info.initialWidth;
     m_height = info.initialHeight;
+    m_hwnd = static_cast<HWND>(info.nativeWindowHandle);
+    CreateDeviceResources();
+    return true;
+}
 
+void D3D11Renderer::CreateDeviceResources() {
     DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
     swapChainDesc.BufferDesc.Width = m_width;
     swapChainDesc.BufferDesc.Height = m_height;
@@ -55,7 +60,7 @@ bool D3D11Renderer::Initialize(const RendererCreateInfo& info) {
     swapChainDesc.SampleDesc.Quality = 0;
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swapChainDesc.BufferCount = 2;
-    swapChainDesc.OutputWindow = static_cast<HWND>(info.nativeWindowHandle);
+    swapChainDesc.OutputWindow = m_hwnd;
     swapChainDesc.Windowed = TRUE;
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
@@ -79,8 +84,18 @@ bool D3D11Renderer::Initialize(const RendererCreateInfo& info) {
     CreateBlendState();
     CreateFontAtlasTexture();
     CreateBackdropScratchTexture();
+}
 
-    return true;
+void D3D11Renderer::TryRecoverDevice() {
+    Shutdown();
+    try {
+        CreateDeviceResources();
+        m_deviceLost = false;
+    } catch (const std::exception&) {
+        // Driver still resetting or no adapter yet: stay in the lost state, skip drawing,
+        // and retry on the next Present(). Throwing here would crash the host application.
+        Shutdown();
+    }
 }
 
 void D3D11Renderer::Shutdown() {
@@ -126,12 +141,22 @@ void D3D11Renderer::Resize(uint32_t width, uint32_t height) {
     }
     m_width = width;
     m_height = height;
+    if (m_deviceLost) {
+        return; // recovery rebuilds the swapchain at the new size
+    }
 
     ReleaseRenderTarget();
-    ThrowIfFailed(m_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0),
-                  "ResizeBuffers failed");
-    CreateRenderTarget();
-    CreateBackdropScratchTexture(); // viewport-sized, must be rebuilt alongside the render target
+    const HRESULT hr = m_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+    if (FAILED(hr)) {
+        m_deviceLost = true;
+        return;
+    }
+    try {
+        CreateRenderTarget();
+        CreateBackdropScratchTexture(); // viewport-sized, must be rebuilt alongside the render target
+    } catch (const std::exception&) {
+        m_deviceLost = true;
+    }
 }
 
 void D3D11Renderer::CreateQuadGeometry() {
@@ -312,6 +337,9 @@ void D3D11Renderer::CreateBackdropScratchTexture() {
 }
 
 void D3D11Renderer::BeginFrame() {
+    if (m_deviceLost) {
+        return;
+    }
     D3D11_VIEWPORT viewport = {};
     viewport.Width = static_cast<float>(m_width);
     viewport.Height = static_cast<float>(m_height);
@@ -355,10 +383,21 @@ void D3D11Renderer::EndFrame() {
 }
 
 void D3D11Renderer::Present() {
-    m_swapChain->Present(1, 0);
+    if (m_deviceLost) {
+        TryRecoverDevice();
+        return;
+    }
+    const HRESULT hr = m_swapChain->Present(1, 0);
+    if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
+        m_deviceLost = true;
+        TryRecoverDevice();
+    }
 }
 
 void D3D11Renderer::DrawRect(const Rect& rect, const RectPaint& paint) {
+    if (m_deviceLost) {
+        return;
+    }
     const RectDrawData data =
         ComputeRectDrawData(rect, paint, static_cast<float>(m_width), static_cast<float>(m_height),
                             m_worldTransform);
@@ -377,6 +416,9 @@ void D3D11Renderer::DrawRect(const Rect& rect, const RectPaint& paint) {
 
 void D3D11Renderer::DrawTextQuad(const Rect& rect, const UVRect& atlasUV, const Color& color,
                                  float glyphScale, FontId fontId) {
+    if (m_deviceLost) {
+        return;
+    }
     const RectDrawData data = ComputeTextQuadDrawData(rect, atlasUV, color, glyphScale, fontId,
                                                        static_cast<float>(m_width),
                                                        static_cast<float>(m_height), m_worldTransform);
@@ -394,6 +436,9 @@ void D3D11Renderer::DrawTextQuad(const Rect& rect, const UVRect& atlasUV, const 
 }
 
 void D3D11Renderer::DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPaint& paint) {
+    if (m_deviceLost) {
+        return;
+    }
     // Copy region: the element's own bounds padded by the (unclamped) blur radius, so the
     // shader's convolution -- clamped to kMaxBackdropBlurRadiusPx in ComputeBackdropBlurDrawData --
     // always finds real previously-drawn pixels within the copied region, never garbage

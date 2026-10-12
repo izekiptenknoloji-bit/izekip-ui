@@ -36,6 +36,13 @@ public:
     RendererBackend GetBackend() const override { return RendererBackend::D3D11; }
 
 private:
+    // Creates the device, swapchain and every GPU resource at m_width x m_height on m_hwnd.
+    // Used by Initialize and by device-loss recovery.
+    void CreateDeviceResources();
+    // Rebuilds everything after DXGI reports the device removed or reset. Failure keeps
+    // m_deviceLost set so the next Present() retries instead of crashing the host app.
+    void TryRecoverDevice();
+
     void CreateRenderTarget();
     void ReleaseRenderTarget();
     void CreateQuadGeometry();
@@ -59,6 +66,8 @@ private:
     Microsoft::WRL::ComPtr<ID3D11SamplerState> m_backdropSampler;
 
     Transform2D m_worldTransform;
+    HWND m_hwnd = nullptr;
+    bool m_deviceLost = false;
 
     Microsoft::WRL::ComPtr<ID3D11Texture2D> m_fontAtlasTexture;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_fontAtlasSRV;
