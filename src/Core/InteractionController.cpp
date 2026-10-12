@@ -79,6 +79,14 @@ void InteractionController::HandleRelease(std::vector<Widget*>& clicksToFire) {
 }
 
 bool InteractionController::Update() {
+    // A structural change may have destroyed widgets the controller points at: forget them first.
+    if (m_treeGeneration != WidgetTreeGeneration()) {
+        m_treeGeneration = WidgetTreeGeneration();
+        m_hovered = nullptr;
+        m_clickTarget = nullptr;
+        m_focused = nullptr;
+        m_restyleRequested = true;
+    }
     bool changed = m_restyleRequested;
     m_restyleRequested = false;
 

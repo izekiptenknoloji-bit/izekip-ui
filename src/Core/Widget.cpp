@@ -21,10 +21,49 @@ Widget::~Widget() {
     }
 }
 
-void Widget::AddChild(std::shared_ptr<Widget> child) {
+namespace {
+std::uint64_t g_treeGeneration = 0;
+}
+
+std::uint64_t WidgetTreeGeneration() {
+    return g_treeGeneration;
+}
+
+bool Widget::AddChild(std::shared_ptr<Widget> child) {
+    if (!child || child->m_parent != nullptr || child.get() == this) {
+        Platform::Diagnostics::Increment(Platform::Diagnostics::Counter::WidgetRejected);
+        return false;
+    }
+    for (const Widget* ancestor = this; ancestor != nullptr; ancestor = ancestor->m_parent) {
+        if (ancestor == child.get()) {
+            Platform::Diagnostics::Increment(Platform::Diagnostics::Counter::WidgetRejected);
+            return false; // would make the child its own ancestor
+        }
+    }
+    if (Platform::Diagnostics::Get(Platform::Diagnostics::Counter::LiveWidgets) >= kMaxWidgets) {
+        Platform::Diagnostics::Increment(Platform::Diagnostics::Counter::WidgetRejected);
+        return false;
+    }
+
     child->m_parent = this;
     YGNodeInsertChild(m_yogaNode, child->m_yogaNode, YGNodeGetChildCount(m_yogaNode));
     m_children.push_back(std::move(child));
+    ++g_treeGeneration;
+    return true;
+}
+
+std::shared_ptr<Widget> Widget::RemoveChild(const Widget* child) {
+    const auto found = std::find_if(m_children.begin(), m_children.end(),
+                                    [child](const std::shared_ptr<Widget>& c) { return c.get() == child; });
+    if (found == m_children.end()) {
+        return nullptr;
+    }
+    std::shared_ptr<Widget> removed = *found;
+    YGNodeRemoveChild(m_yogaNode, removed->m_yogaNode);
+    removed->m_parent = nullptr;
+    m_children.erase(found);
+    ++g_treeGeneration;
+    return removed;
 }
 
 bool Widget::HasClass(const std::string& className) const {

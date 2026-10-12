@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -48,7 +50,13 @@ public:
     Widget(const Widget&) = delete;
     Widget& operator=(const Widget&) = delete;
 
-    void AddChild(std::shared_ptr<Widget> child);
+    // Refused (returns false) when the child is null, already has a parent, would create a cycle,
+    // or the live-widget limit is reached. Counted in Diagnostics (Counter::WidgetRejected).
+    static constexpr std::size_t kMaxWidgets = 10000;
+    bool AddChild(std::shared_ptr<Widget> child);
+    // Detaches a direct child and returns it (nullptr when it is not a child). Layout and the
+    // interaction state are updated; the caller decides when the child is destroyed.
+    std::shared_ptr<Widget> RemoveChild(const Widget* child);
     const std::vector<std::shared_ptr<Widget>>& GetChildren() const { return m_children; }
     Widget* GetParent() const { return m_parent; }
 
@@ -225,6 +233,10 @@ protected:
     };
     std::optional<CssAnimationState> m_cssAnimation;
 };
+
+// Increases whenever any widget tree is structurally changed (AddChild/RemoveChild succeed). Caches
+// that mirror the tree (the lexbor shadow DOM) and hold raw widget pointers compare against it.
+std::uint64_t WidgetTreeGeneration();
 
 // Clears IsHovered()/IsActive() across the whole subtree -- used before re-marking the
 // new hover/active ancestor chain each time the hit-tested widget changes.

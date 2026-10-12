@@ -1128,6 +1128,10 @@ void StyleApplier::ApplyToSingleWidget(LexborBridge& bridge, const StyleSheet& s
 
 void StyleApplier::Apply(LexborBridge& bridge, const StyleSheet& sheet, Widget& root) {
     Platform::Diagnostics::Increment(Platform::Diagnostics::Counter::StyleApplies);
+    // The shadow DOM mirrors the widget tree's structure, so a changed tree needs a new shadow tree.
+    if (bridge.IsBuilt() && bridge.BuiltGeneration() != WidgetTreeGeneration()) {
+        bridge.Build(root);
+    }
     ApplyToSingleWidget(bridge, sheet, root);
     for (const auto& child : root.GetChildren()) {
         Apply(bridge, sheet, *child);

@@ -815,6 +815,47 @@ void TestRebuildingBridgeKeepsSelectorMatching() {
     std::cout << "TestRebuildingBridgeKeepsSelectorMatching passed\n";
 }
 
+void TestAddChildRefusesInvalidAttachments() {
+    auto parent = std::make_shared<Widget>("Panel");
+    auto other = std::make_shared<Widget>("Panel");
+    auto child = std::make_shared<Widget>("Panel");
+    assert(parent->AddChild(child));
+    assert(!other->AddChild(child));                 // already has a parent
+    assert(!parent->AddChild(nullptr));              // null child
+    assert(!child->AddChild(parent));                // would make the parent its own descendant
+    assert(!parent->AddChild(parent));               // self
+    assert(parent->GetChildren().size() == 1);
+    std::cout << "TestAddChildRefusesInvalidAttachments passed\n";
+}
+
+void TestRemoveChildRestylesWithoutTheRemovedWidget() {
+    auto root = std::make_shared<Widget>("Panel");
+    auto keep = std::make_shared<Widget>("Panel");
+    auto drop = std::make_shared<Widget>("Panel");
+    drop->AddClass("gone");
+    keep->AddClass("keep");
+    root->AddChild(keep);
+    root->AddChild(drop);
+
+    StyleSheet sheet = StyleSheet::LoadFromString(".gone { opacity: 0.3; } .keep { opacity: 0.8; }");
+    LexborBridge bridge;
+    bridge.Build(*root);
+    StyleApplier::Apply(bridge, sheet, *root);
+    assert(drop->GetStyle().opacity.has_value());
+
+    auto detached = root->RemoveChild(drop.get());
+    assert(detached == drop);
+    assert(drop->GetParent() == nullptr);
+    assert(root->GetChildren().size() == 1);
+    assert(root->RemoveChild(drop.get()) == nullptr); // second removal finds nothing
+
+    // The bridge is stale now; Apply rebuilds it from the current tree before matching.
+    StyleApplier::Apply(bridge, sheet, *root);
+    assert(keep->GetStyle().opacity.has_value());
+    assert(std::abs(*keep->GetStyle().opacity - 0.8f) < 0.001f);
+    std::cout << "TestRemoveChildRestylesWithoutTheRemovedWidget passed\n";
+}
+
 int main() {
     TestTypeClassIdSelectorMatching();
     TestCommaSeparatedSelectorGroup();
@@ -846,6 +887,8 @@ int main() {
     TestScaleRotateParsingAndTransformMath();
     TestFontFamilyNamesMapToBundledFaces();
     TestRebuildingBridgeKeepsSelectorMatching();
+    TestAddChildRefusesInvalidAttachments();
+    TestRemoveChildRestylesWithoutTheRemovedWidget();
     TestDisplayResetsWhenHidingClassRemoved();
     TestHiddenChildSkippedByHitTest();
     TestEmptyClassListRemovesAttribute();

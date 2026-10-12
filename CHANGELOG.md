@@ -29,7 +29,14 @@ All notable changes to İzekip UI are documented here. Format follows
   for 600 healthy frames. Degraded mode skips the backdrop blur. GPU out-of-memory results enter
   the same mode and do not trigger a device rebuild. Counted as `OutOfMemory` in Diagnostics.
 
+- `Widget::RemoveChild` detaches a direct child and returns it. `Widget::kMaxWidgets` (10 000)
+  limits live widgets: `AddChild` refuses past it. `WidgetTreeGeneration()` changes with every
+  structural edit; the lexbor shadow tree and the interaction controller follow it.
+
 ### Changed
+- `Widget::AddChild` returns `bool` (was `void`). It refuses a null child, a child that already
+  has a parent, a cycle, or a child past the live-widget limit; refusals are counted as
+  `WidgetRejected` in Diagnostics.
 - `LexborBridge`: widget-to-shadow lookup is a hash map (was a linear scan on every restyle);
   a second `Build` replaces the previous shadow tree instead of leaking it; lexbor allocation
   failures leave a widget without a shadow element; stylesheet offsets are clamped.

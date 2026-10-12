@@ -13,6 +13,7 @@ enum class Counter {
     DeviceRecoveries,   // successful device rebuilds after a loss or a failed submit
     TextRejected,       // text edits or input refused because a text limit was reached
     OutOfMemory,        // frames that ended with std::bad_alloc or a GPU out-of-memory result
+    WidgetRejected,     // AddChild refused: invalid child, cycle, or live-widget limit
     Count
 };
 

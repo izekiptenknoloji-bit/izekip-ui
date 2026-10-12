@@ -101,6 +101,7 @@ void LexborBridge::Build(Widget& root) {
     }
 
     BuildRecursive(root, nullptr);
+    m_builtGeneration = WidgetTreeGeneration();
 }
 
 void LexborBridge::BuildRecursive(Widget& widget, lxb_dom_element* parentShadowElement) {

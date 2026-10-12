@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -43,6 +44,11 @@ public:
     // structure to match.
     void Build(Widget& root);
 
+    // True once Build has produced a shadow tree. Its structure reflects the widget tree at
+    // BuiltGeneration(); StyleApplier::Apply rebuilds it when the tree has changed since.
+    bool IsBuilt() const { return m_document != nullptr; }
+    std::uint64_t BuiltGeneration() const { return m_builtGeneration; }
+
     // Reflects widget.IsHovered()/IsActive() onto the shadow element's "hover"/"active"
     // attributes -- lexbor's selector matcher checks for exactly these attributes when
     // evaluating :hover/:active (lxb_dom_element_attr_by_id(..., LXB_DOM_ATTR_HOVER)).
@@ -60,6 +66,7 @@ private:
 
     lxb_dom_document* m_document = nullptr;
     lxb_selectors* m_selectors = nullptr;
+    std::uint64_t m_builtGeneration = 0;
     std::unordered_map<const Widget*, lxb_dom_element*> m_widgetToShadow;
 };
 

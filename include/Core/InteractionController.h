@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <vector>
 
 #include "Core/Widget.h"
@@ -60,6 +61,7 @@ private:
     Widget* m_hovered = nullptr;
     Widget* m_clickTarget = nullptr;
     Widget* m_focused = nullptr;
+    std::uint64_t m_treeGeneration = 0;
     bool m_activeState = false;
     bool m_restyleRequested = false;
 };
