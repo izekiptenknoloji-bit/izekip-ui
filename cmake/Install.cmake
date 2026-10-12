@@ -83,7 +83,15 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/third_party/yoga/yoga/"
 install(FILES
     "${CMAKE_SOURCE_DIR}/third_party/fonts/Inter.ttf"
     "${CMAKE_SOURCE_DIR}/third_party/fonts/SpaceMono-Regular.ttf"
+    "${CMAKE_SOURCE_DIR}/third_party/fonts/Arimo-Regular.ttf"
+    "${CMAKE_SOURCE_DIR}/third_party/fonts/Tinos-Regular.ttf"
+    "${CMAKE_SOURCE_DIR}/third_party/fonts/Cousine-Regular.ttf"
     DESTINATION share/IzekipUI/fonts
+)
+
+install(FILES
+    "${CMAKE_SOURCE_DIR}/third_party/fonts/OFL-Arimo-Tinos-Cousine.txt"
+    DESTINATION share/doc/IzekipUI
 )
 
 if(IZEKIP_RENDER_BACKEND STREQUAL "VULKAN")
