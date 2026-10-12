@@ -39,6 +39,15 @@ public:
     RendererBackend GetBackend() const override { return RendererBackend::Vulkan; }
 
 private:
+    // Creates the instance, surface, device, pipelines and every GPU resource for the current
+    // size. Used by Initialize and by device-loss recovery.
+    void CreateDeviceResources();
+    // Full teardown and rebuild after VK_ERROR_DEVICE_LOST. Failure keeps m_deviceLost set so
+    // the next Present() retries instead of throwing into the host application.
+    void TryRecoverDevice();
+    void MarkDeviceLost();
+    void DestroyInstanceAndSurface();
+
     void CreateInstance();
     void CreateDebugMessenger();
     void CreateSurface(GLFWwindow* window);
@@ -80,6 +89,8 @@ private:
     void BindFrameDrawState();
 
     Transform2D m_worldTransform;
+    GLFWwindow* m_glfwWindow = nullptr;
+    bool m_deviceLost = false;
     VkInstance m_instance = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;

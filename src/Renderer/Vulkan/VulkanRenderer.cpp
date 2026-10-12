@@ -68,12 +68,17 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBits
 bool VulkanRenderer::Initialize(const RendererCreateInfo& info) {
     m_width = info.initialWidth;
     m_height = info.initialHeight;
+    m_glfwWindow = static_cast<GLFWwindow*>(info.glfwWindow);
+    CreateDeviceResources();
+    return true;
+}
 
+void VulkanRenderer::CreateDeviceResources() {
     CreateInstance();
 #ifdef _DEBUG
     CreateDebugMessenger();
 #endif
-    CreateSurface(static_cast<GLFWwindow*>(info.glfwWindow));
+    CreateSurface(m_glfwWindow);
     PickPhysicalDeviceAndQueueFamily();
     CreateLogicalDeviceAndQueue();
     CreateSwapchain(m_width, m_height);
@@ -90,8 +95,6 @@ bool VulkanRenderer::Initialize(const RendererCreateInfo& info) {
     CreateUniformRingBuffers();
     CreateFontAtlasTexture();
     CreateBackdropScratchImage();
-
-    return true;
 }
 
 void VulkanRenderer::CreateInstance() {
@@ -1019,16 +1022,41 @@ void VulkanRenderer::Resize(uint32_t width, uint32_t height) {
     }
     m_width = width;
     m_height = height;
-    RecreateSwapchain();
+    if (m_deviceLost) {
+        return; // recovery builds the swapchain at the new size
+    }
+    try {
+        RecreateSwapchain();
+    } catch (const std::exception&) {
+        MarkDeviceLost();
+    }
 }
 
 void VulkanRenderer::BeginFrame() {
-    vkWaitForFences(m_device, 1, &m_inFlightFence, VK_TRUE, UINT64_MAX);
+    if (m_deviceLost) {
+        m_frameSkipped = true;
+        return;
+    }
+
+    const VkResult waitResult = vkWaitForFences(m_device, 1, &m_inFlightFence, VK_TRUE, UINT64_MAX);
+    if (waitResult == VK_ERROR_DEVICE_LOST) {
+        MarkDeviceLost();
+        return;
+    }
 
     const VkResult acquireResult = vkAcquireNextImageKHR(
         m_device, m_swapchain, UINT64_MAX, m_imageAvailableSemaphore, VK_NULL_HANDLE, &m_currentImageIndex);
+    if (acquireResult == VK_ERROR_DEVICE_LOST) {
+        MarkDeviceLost();
+        return;
+    }
     if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
-        RecreateSwapchain();
+        try {
+            RecreateSwapchain();
+        } catch (const std::exception&) {
+            MarkDeviceLost();
+            return;
+        }
         m_frameSkipped = true;
         return; // fence was never reset, so it stays signaled for the next BeginFrame's wait
     }
@@ -1088,6 +1116,10 @@ void VulkanRenderer::EndFrame() {
 }
 
 void VulkanRenderer::Present() {
+    if (m_deviceLost) {
+        TryRecoverDevice();
+        return;
+    }
     if (m_frameSkipped) {
         return;
     }
@@ -1104,7 +1136,13 @@ void VulkanRenderer::Present() {
     submitInfo.pCommandBuffers = &m_commandBuffer;
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
-    VkCheck(vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFence), "vkQueueSubmit");
+    const VkResult submitResult = vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_inFlightFence);
+    if (submitResult == VK_ERROR_DEVICE_LOST) {
+        MarkDeviceLost();
+        TryRecoverDevice();
+        return;
+    }
+    VkCheck(submitResult, "vkQueueSubmit");
 
     VkPresentInfoKHR presentInfo{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
     presentInfo.waitSemaphoreCount = 1;
@@ -1114,8 +1152,36 @@ void VulkanRenderer::Present() {
     presentInfo.pImageIndices = &m_currentImageIndex;
     const VkResult presentResult = vkQueuePresentKHR(m_graphicsQueue, &presentInfo);
 
+    if (presentResult == VK_ERROR_DEVICE_LOST) {
+        MarkDeviceLost();
+        TryRecoverDevice();
+        return;
+    }
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
-        RecreateSwapchain();
+        try {
+            RecreateSwapchain();
+        } catch (const std::exception&) {
+            MarkDeviceLost();
+            TryRecoverDevice();
+        }
+    }
+}
+
+void VulkanRenderer::MarkDeviceLost() {
+    m_deviceLost = true;
+    m_frameSkipped = true;
+}
+
+void VulkanRenderer::TryRecoverDevice() {
+    Shutdown();
+    try {
+        CreateDeviceResources();
+        m_deviceLost = false;
+        m_frameSkipped = false;
+    } catch (const std::exception&) {
+        // Driver still resetting or device not yet available: stay lost, skip drawing, and
+        // retry on the next Present(). Throwing here would crash the host application.
+        Shutdown();
     }
 }
 
@@ -1280,6 +1346,7 @@ void VulkanRenderer::DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPa
 
 void VulkanRenderer::Shutdown() {
     if (m_device == VK_NULL_HANDLE) {
+        DestroyInstanceAndSurface(); // a recovery attempt may have failed before the device existed
         return;
     }
     vkDeviceWaitIdle(m_device);
@@ -1322,15 +1389,21 @@ void VulkanRenderer::Shutdown() {
     vkDestroyDevice(m_device, nullptr);
     m_device = VK_NULL_HANDLE;
 
-    if (m_surface) vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
+    DestroyInstanceAndSurface();
+}
 
-    if (m_debugMessenger) {
+void VulkanRenderer::DestroyInstanceAndSurface() {
+    if (m_surface) vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
+    m_surface = VK_NULL_HANDLE;
+
+    if (m_debugMessenger && m_instance) {
         auto destroyFn = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
             vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT"));
         if (destroyFn) {
             destroyFn(m_instance, m_debugMessenger, nullptr);
         }
     }
+    m_debugMessenger = VK_NULL_HANDLE;
 
     if (m_instance) vkDestroyInstance(m_instance, nullptr);
     m_instance = VK_NULL_HANDLE;
