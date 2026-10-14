@@ -73,11 +73,17 @@ cbuffer PSConstants : register(b0) {
 [[vk::binding(3, 0)]] SamplerState fontAtlasSampler : register(s0);
 [[vk::binding(6, 0)]] Texture2D backdropTex : register(t2);
 [[vk::binding(7, 0)]] SamplerState backdropSampler : register(s2);
+// Set 1, not set 0: the image is per-draw state. Each image has its own descriptor set, bound
+// per draw (see VulkanRenderer::DrawImage), so the shared set 0 never changes after creation.
+[[vk::binding(0, 1)]] Texture2D imageTex : register(t3);
+[[vk::binding(1, 1)]] SamplerState imageSampler : register(s3);
 #else
 Texture2DArray fontAtlasArray : register(t0);
 SamplerState fontAtlasSampler : register(s0);
 Texture2D backdropTex : register(t2);
 SamplerState backdropSampler : register(s2);
+Texture2D imageTex : register(t3);
+SamplerState imageSampler : register(s3);
 #endif
 
 float sdRoundBox(float2 p, float2 halfSize, float radius) {
@@ -154,6 +160,14 @@ float4 PSMain(VSOutput input) : SV_TARGET {
         float elemDist = sdRoundBox(layoutPos - elemCenter, elemHalfSize, cornerRadius);
         float alpha = saturate(1.0 - smoothstep(0.0, 1.0, elemDist + 0.5)); // ~1px AA ramp
         return float4(c * alpha, alpha); // premultiplied
+    }
+
+    if (textParams.x > 1.5) {
+        // Image quad (mode 2): the texture is straight-alpha RGBA. Output is premultiplied, like
+        // every other path, so the blend state stays ONE/INV_SRC_ALPHA.
+        float4 texel = imageTex.Sample(imageSampler, input.atlasUV);
+        float a = texel.a * fillColorStart.a;
+        return float4(texel.rgb * a, a);
     }
 
     if (textParams.x > 0.5) {

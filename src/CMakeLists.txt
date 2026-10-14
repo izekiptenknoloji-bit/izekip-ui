@@ -27,6 +27,7 @@ set(IZEKIP_SOURCES
     CSS/LexborBridge.cpp
     Renderer/RectDrawData.cpp
     Renderer/GlyphAtlas.cpp
+    Renderer/ImageDecoder.cpp
 )
 
 if(IZEKIP_RENDER_BACKEND STREQUAL "D3D11")

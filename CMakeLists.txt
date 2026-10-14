@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(IzekipUI VERSION 1.3.0 LANGUAGES CXX)
+project(IzekipUI VERSION 1.4.0 LANGUAGES CXX)
 
 # Public (consumer-visible) version header -- see COMPATIBILITY.md for what "1.0.0" means
 # for this library (source-level compatibility, Tier-1 headers only) and the release

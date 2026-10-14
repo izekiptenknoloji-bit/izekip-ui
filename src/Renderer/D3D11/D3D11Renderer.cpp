@@ -15,6 +15,7 @@
 #include "Platform/SafeMode.h"
 #include <cstdio>
 #include "Renderer/RectDrawData.h"
+#include "Renderer/ImageDecoder.h"
 
 using Microsoft::WRL::ComPtr;
 using namespace IzekipUI::Render::detail;
@@ -103,6 +104,7 @@ void D3D11Renderer::CreateDeviceResources() {
     CreateBlendState();
     CreateFontAtlasTexture();
     CreateBackdropScratchTexture();
+    CreateImageSampler();
 }
 
 void D3D11Renderer::TryRecoverDevice() {
@@ -130,6 +132,9 @@ void D3D11Renderer::Shutdown() {
     m_backdropScratchTexture.Reset();
     m_backdropScratchSRV.Reset();
     m_backdropSampler.Reset();
+    // The cached image textures belong to this device; the next draw reloads them.
+    m_imageCache.Clear();
+    m_imageSampler.Reset();
     m_inputLayout.Reset();
     m_vertexShader.Reset();
     m_pixelShader.Reset();
@@ -534,12 +539,92 @@ void D3D11Renderer::DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPai
     m_context->Draw(6, 0);
 }
 
+void D3D11Renderer::CreateImageSampler() {
+    if (m_imageSampler) {
+        return;
+    }
+    D3D11_SAMPLER_DESC samplerDesc = {};
+    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+    ThrowIfFailed(m_device->CreateSamplerState(&samplerDesc, m_imageSampler.GetAddressOf()),
+                  "CreateSamplerState(image) failed");
+}
+
+D3D11Renderer::ImageTexture* D3D11Renderer::FindOrLoadImage(const std::string& path) {
+    if (ImageTexture* cached = m_imageCache.Find(path)) {
+        return cached;
+    }
+    if (m_imageCache.IsFailed(path)) {
+        return nullptr;
+    }
+
+    DecodedImage decoded;
+    if (!DecodeImageFile(path, decoded)) {
+        m_imageCache.MarkFailed(path);
+        return nullptr;
+    }
+
+    // Immutable: the pixels are copied into the texture here and never change afterwards.
+    D3D11_TEXTURE2D_DESC texDesc = {};
+    texDesc.Width = static_cast<UINT>(decoded.width);
+    texDesc.Height = static_cast<UINT>(decoded.height);
+    texDesc.MipLevels = 1;
+    texDesc.ArraySize = 1;
+    texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // straight alpha, as the decoder produces it
+    texDesc.SampleDesc.Count = 1;
+    texDesc.Usage = D3D11_USAGE_IMMUTABLE;
+    texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    D3D11_SUBRESOURCE_DATA initData = {};
+    initData.pSysMem = decoded.rgba.data();
+    initData.SysMemPitch = static_cast<UINT>(decoded.width) * 4;
+
+    ImageTexture image;
+    if (FAILED(m_device->CreateTexture2D(&texDesc, &initData, image.texture.GetAddressOf())) ||
+        FAILED(m_device->CreateShaderResourceView(image.texture.Get(), nullptr, image.srv.GetAddressOf()))) {
+        // Marked failed so a GPU that is out of memory is not retried every frame. The record
+        // is dropped on device recovery, which is when a retry can succeed.
+        m_imageCache.MarkFailed(path);
+        return nullptr;
+    }
+
+    const std::size_t bytes = decoded.rgba.size();
+    if (!m_imageCache.Insert(path, std::move(image), bytes)) {
+        return nullptr;
+    }
+    return m_imageCache.Find(path);
+}
+
 void D3D11Renderer::DrawImage(const std::string& imagePath, const Rect& rect, float opacity) {
-    // TODO: Load PNG from imagePath, create D3D11 texture, draw as quad.
-    // For now, silent no-op to unblock Image widget integration.
-    (void)imagePath;
-    (void)rect;
-    (void)opacity;
+    if (m_deviceLost || imagePath.empty()) {
+        return;
+    }
+    if (Platform::Diagnostics::IsDegraded()) {
+        return; // degraded mode: no new decodes or uploads, same as the backdrop blur
+    }
+    ImageTexture* image = FindOrLoadImage(imagePath);
+    if (!image) {
+        return; // unreadable file: silent, as IRenderer::DrawImage documents
+    }
+
+    const RectDrawData data = ComputeImageDrawData(rect, opacity, static_cast<float>(m_width),
+                                                    static_cast<float>(m_height), m_worldTransform);
+    if (!UploadConstants(data)) {
+        return;
+    }
+
+    // Slot 3 is the image texture, matching RectShader.hlsl. It is set per draw because only
+    // image quads read it; the other draws leave it alone.
+    ID3D11ShaderResourceView* srv = image->srv.Get();
+    m_context->PSSetShaderResources(3, 1, &srv);
+    ID3D11SamplerState* sampler = m_imageSampler.Get();
+    m_context->PSSetSamplers(3, 1, &sampler);
+
+    m_context->Draw(6, 0);
 }
 
 } // namespace IzekipUI::Render

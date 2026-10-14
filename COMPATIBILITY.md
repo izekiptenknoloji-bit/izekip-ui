@@ -92,6 +92,8 @@ include/CSS/CssTokenizer.h          -- internal to StyleApplier.cpp's own value-
 include/Core/Interpolate.h          -- internal to Widget.cpp only; never named in a Tier-1 signature
 include/Renderer/RectDrawData.h     -- shared D3D11/Vulkan backend plumbing, not consumer-facing
 include/Renderer/GlyphAtlas.h       -- internal to Label.cpp/TextArea.cpp
+include/Widgets/Image.h             -- since 1.4.0; Tier 2 until its API is settled, then promote to Tier 1
+                                       (the decoder, src/Renderer/ImageDecoder.h, is internal and has no public header)
 generated/Renderer/RenderBackendConfig.h  -- internal to RHI.cpp only; not committed to git
 src/Renderer/D3D11/*, src/Renderer/Vulkan/*  -- already PRIVATE include scope, unreachable anyway
 ```

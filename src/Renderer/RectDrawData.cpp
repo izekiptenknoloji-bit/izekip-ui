@@ -142,6 +142,22 @@ RectDrawData ComputeTextQuadDrawData(const Rect& rect, const UVRect& atlasUV, co
     return data;
 }
 
+RectDrawData ComputeImageDrawData(const Rect& rect, float opacity, float viewportWidth,
+                                   float viewportHeight, const Transform2D& world) {
+    RectDrawData data;
+    data.vs = VSConstants{rect.x,        rect.y,        rect.width, rect.height,
+                           viewportWidth, viewportHeight, 0.0f,       0.0f,
+                           0.0f,          0.0f,           1.0f,       1.0f};
+
+    // The tint is white, so the texture's own colors show through; fillColorStart.a is the fade.
+    PSConstants& ps = data.ps;
+    ps.fillColorStart = Float4{1.0f, 1.0f, 1.0f, opacity};
+    ps.textParams = Float4{2.0f, 0.0f, 0.0f, 0.0f};
+
+    ApplyWorldTransform(data, world);
+    return data;
+}
+
 RectDrawData ComputeBackdropBlurDrawData(const Rect& rect, const BackdropBlurPaint& paint,
                                           float viewportWidth, float viewportHeight,
                                           const Transform2D& world) {

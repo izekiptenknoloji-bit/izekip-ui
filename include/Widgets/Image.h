@@ -27,9 +27,16 @@ public:
     void OnPaint(Render::IRenderer& renderer) override;
 
 private:
+    // Reads the file header once per path and remembers a failure too, so a missing file is
+    // not probed again every frame. Returns false when the image cannot be read.
+    bool ProbeImageSize(int& width, int& height) const;
+
     std::string m_imagePath;
     bool m_preserveAspect = true;
-    mutable std::optional<Rect> m_cachedImageDims;
+    mutable bool m_probed = false;
+    mutable bool m_probeOk = false;
+    mutable int m_imageWidth = 0;
+    mutable int m_imageHeight = 0;
 };
 
 } // namespace IzekipUI::Widgets

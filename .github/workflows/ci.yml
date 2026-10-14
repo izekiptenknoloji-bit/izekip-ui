@@ -1,4 +1,5 @@
-# Written without being run: this repository's CI has not been exercised on GitHub yet.
+# Runs on every push and pull request. Headless tests only: GPU tests need a display and a driver,
+# so they are off here (IZEKIP_TEST_GPU=OFF). Local GPU runs cover them.
 name: ci
 
 on:

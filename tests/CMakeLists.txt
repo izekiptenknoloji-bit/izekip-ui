@@ -42,6 +42,7 @@ if(IZEKIP_TEST_GPU)
 
     izekip_add_gpu_test(IzekipUIRendererRecoveryTest RendererRecoveryTest.cpp)
     izekip_add_gpu_test(IzekipUIFontFamilyTest FontFamilyTest.cpp)
+    izekip_add_gpu_test(IzekipUIImageRendererTest ImageRendererTests.cpp)
     if(IZEKIP_RENDER_BACKEND STREQUAL "VULKAN")
         izekip_add_gpu_test(IzekipUIRendererInitFailureTest RendererInitFailureTest.cpp)
     endif()
@@ -82,3 +83,18 @@ add_test(NAME DiagnosticsTests COMMAND IzekipUIDiagnosticsTests)
 add_executable(IzekipUIFrameTests FrameTests.cpp)
 target_link_libraries(IzekipUIFrameTests PRIVATE IzekipUI)
 add_test(NAME FrameTests COMMAND IzekipUIFrameTests)
+
+add_executable(IzekipUIImageDecoderTests ImageDecoderTests.cpp)
+target_link_libraries(IzekipUIImageDecoderTests PRIVATE IzekipUI)
+# The decoder is internal (src/, not include/), so the test reaches it directly.
+target_include_directories(IzekipUIImageDecoderTests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+add_test(NAME ImageDecoderTests COMMAND IzekipUIImageDecoderTests)
+
+add_executable(IzekipUIImageCacheTests ImageCacheTests.cpp)
+target_link_libraries(IzekipUIImageCacheTests PRIVATE IzekipUI)
+target_include_directories(IzekipUIImageCacheTests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+add_test(NAME ImageCacheTests COMMAND IzekipUIImageCacheTests)
+
+add_executable(IzekipUIImageWidgetTests ImageWidgetTests.cpp)
+target_link_libraries(IzekipUIImageWidgetTests PRIVATE IzekipUI)
+add_test(NAME ImageWidgetTests COMMAND IzekipUIImageWidgetTests)

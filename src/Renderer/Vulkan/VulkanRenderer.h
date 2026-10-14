@@ -8,6 +8,7 @@
 
 #include "Platform/SafeMode.h"
 #include "Renderer/IRenderer.h"
+#include "Renderer/ImageCache.h"
 
 struct GLFWwindow;
 
@@ -81,6 +82,25 @@ private:
     void CreateUniformRingBuffers();
     void CreateFontAtlasTexture();
     void CreateBackdropScratchImage(); // viewport-sized, GENERAL layout (see .cpp for why)
+
+    // Image draws. Each decoded image is one sampled texture with its own descriptor set (set 1);
+    // the set is written once, at upload, and never changed. Evicted or replaced images, and
+    // their sets, are kept until the frame that may still use them has finished (see
+    // FlushRetiredImages), because the command buffer records the set by handle.
+    struct VulkanImage {
+        VkImage image = VK_NULL_HANDLE;
+        VkDeviceMemory memory = VK_NULL_HANDLE;
+        VkImageView view = VK_NULL_HANDLE;
+        VkDescriptorSet set = VK_NULL_HANDLE;
+    };
+    void CreateImageDescriptorResources(); // set 1 layout, pool and sampler (before the pipeline)
+    void CreateImagePlaceholder();         // 1x1 texture bound whenever no image is being drawn
+    void DestroyImageResources();
+    VulkanImage* FindOrLoadImage(const std::string& path);
+    // Uploads RGBA8 pixels and writes a new set. False on failure; `out` is then left empty.
+    bool UploadImage(const std::vector<uint8_t>& rgba, uint32_t width, uint32_t height, VulkanImage& out);
+    void DestroyImage(VulkanImage& image); // frees the set too: the GPU must be done with it
+    void FlushRetiredImages();             // called in BeginFrame after the in-flight fence wait
     void DestroySwapchainAndDependents();
     void RecreateSwapchain(); // DestroySwapchainAndDependents + Create{Swapchain,ImageViews,Framebuffers}
 
@@ -120,6 +140,12 @@ private:
     VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_imageSetLayout = VK_NULL_HANDLE;
+    VkDescriptorPool m_imageDescriptorPool = VK_NULL_HANDLE;
+    VkSampler m_imageSampler = VK_NULL_HANDLE;
+    VulkanImage m_placeholderImage;
+    ImageCache<VulkanImage> m_imageCache;
+    std::vector<VulkanImage> m_retiredImages;
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkPipeline m_pipeline = VK_NULL_HANDLE;
 

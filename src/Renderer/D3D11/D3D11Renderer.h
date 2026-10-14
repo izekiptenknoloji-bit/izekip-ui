@@ -9,6 +9,7 @@
 #include <d3d11.h>
 
 #include "Renderer/IRenderer.h"
+#include "Renderer/ImageCache.h"
 #include "Platform/SafeMode.h"
 #include <string>
 
@@ -62,6 +63,16 @@ private:
     void CreateBlendState();
     void CreateFontAtlasTexture();
     void CreateBackdropScratchTexture();
+    void CreateImageSampler();
+
+    // One decoded image uploaded as an immutable RGBA8 texture. Owned by m_imageCache.
+    struct ImageTexture {
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
+    };
+    // Returns the cached texture for `path`, decoding and uploading it on first use. nullptr
+    // when the file cannot be decoded or the upload fails.
+    ImageTexture* FindOrLoadImage(const std::string& path);
 
     Microsoft::WRL::ComPtr<ID3D11Device> m_device;
     Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_context;
@@ -85,6 +96,10 @@ private:
     Microsoft::WRL::ComPtr<ID3D11Texture2D> m_fontAtlasTexture;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_fontAtlasSRV;
     Microsoft::WRL::ComPtr<ID3D11SamplerState> m_fontAtlasSampler;
+
+    // Images are cached per path (LRU, bounded by ImageCache limits); see DrawImage.
+    ImageCache<ImageTexture> m_imageCache;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState> m_imageSampler;
 
     Microsoft::WRL::ComPtr<ID3D11VertexShader> m_vertexShader;
     Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pixelShader;

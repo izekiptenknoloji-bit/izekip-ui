@@ -6,7 +6,16 @@ All notable changes to İzekip UI are documented here. Format follows
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-14
+
 ### Added
+- `Widgets::Image` draws image files on D3D11 and Vulkan. Supported formats are whatever
+  stb_image reads (PNG, JPEG, BMP, GIF and others). Files over 32 MiB or with a side longer than
+  4096 px are refused. Decoded textures are cached per path: at most 32 images and 64 MiB, least
+  recently used first. An unreadable file draws nothing; its path is remembered so it is not
+  retried every frame. Device loss clears the cache and the next draw reloads what it needs.
+  Path resolution accepts UTF-8 names, as the other asset paths do.
+
 - Crash-loop safe mode (`Platform/SafeMode.h`). Each renderer start is counted per application
   in the user state directory; after the first presented frame the count is cleared. Three
   consecutive launches without a presented frame make the next launch use the WARP software
@@ -47,8 +56,8 @@ All notable changes to İzekip UI are documented here. Format follows
   a second `Build` replaces the previous shadow tree instead of leaking it; lexbor allocation
   failures leave a widget without a shadow element; stylesheet offsets are clamped.
 - `GlyphAtlas::Build` replaces the previous font state (no leak on a second call).
-
-### Changed
+- `Image` honors `SetPreserveAspect` (default true). The image is fitted inside its box with its
+  aspect ratio kept, centered. It used to be stretched to fill the box regardless of the flag.
 - D3D11 falls back to WARP when the hardware device cannot be created.
 - The `IzekipUI` library is built with warnings as errors (`-Wall -Wextra -Wpedantic -Wshadow
   -Werror`, MSVC `/W4 /WX`).

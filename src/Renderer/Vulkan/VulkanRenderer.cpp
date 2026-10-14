@@ -16,9 +16,16 @@
 #include <vector>
 
 #include "Renderer/GlyphAtlas.h"
+#include "Renderer/ImageDecoder.h"
 #include "Renderer/RectDrawData.h"
 
 using namespace IzekipUI::Render::detail;
+
+namespace {
+// One image set per live cache entry, plus headroom for images retired within a frame and the
+// placeholder. If the pool runs out, the image is skipped for that frame; nothing else breaks.
+constexpr uint32_t kImageSetCapacity = 64;
+} // namespace
 
 namespace IzekipUI::Render {
 
@@ -102,6 +109,7 @@ void VulkanRenderer::CreateDeviceResources() {
     CreateRenderPassResume();
     CreateFramebuffers();
     CreateDescriptorSetLayoutAndPool();
+    CreateImageDescriptorResources(); // the pipeline layout needs the image set layout
     CreatePipeline();
     CreateCommandPoolAndBuffer();
     CreateSyncObjects();
@@ -110,6 +118,7 @@ void VulkanRenderer::CreateDeviceResources() {
     CreateUniformRingBuffers();
     CreateFontAtlasTexture();
     CreateBackdropScratchImage();
+    CreateImagePlaceholder(); // uploads through the command pool, so it comes after that
 }
 
 void VulkanRenderer::CreateInstance() {
@@ -553,8 +562,10 @@ void VulkanRenderer::CreatePipeline() {
     dynamicState.pDynamicStates = dynamicStates;
 
     VkPipelineLayoutCreateInfo layoutInfo{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-    layoutInfo.setLayoutCount = 1;
-    layoutInfo.pSetLayouts = &m_descriptorSetLayout;
+    // Set 0: shared UBOs and atlases (static). Set 1: the current image (see VulkanImage).
+    const VkDescriptorSetLayout setLayouts[] = {m_descriptorSetLayout, m_imageSetLayout};
+    layoutInfo.setLayoutCount = 2;
+    layoutInfo.pSetLayouts = setLayouts;
     VkCheck(vkCreatePipelineLayout(m_device, &layoutInfo, nullptr, &m_pipelineLayout),
             "vkCreatePipelineLayout");
 
@@ -1084,6 +1095,8 @@ void VulkanRenderer::BeginFrame() {
         m_frameSkipped = true;
         return;
     }
+    // The previous frame has finished, so no command buffer can still reference retired images.
+    FlushRetiredImages();
 
     const VkResult acquireResult = vkAcquireNextImageKHR(
         m_device, m_swapchain, UINT64_MAX, m_imageAvailableSemaphore, VK_NULL_HANDLE, &m_currentImageIndex);
@@ -1157,6 +1170,11 @@ void VulkanRenderer::BindFrameDrawState() {
     vkCmdSetScissor(m_commandBuffer, 0, 1, &scissor);
 
     vkCmdBindPipeline(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+
+    // Set 1 must be valid for every draw, because the shader statically uses it. Draws that show
+    // no image get the placeholder; DrawImage rebinds the image's own set for its one draw.
+    vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 1, 1,
+                             &m_placeholderImage.set, 0, nullptr);
 
     VkBuffer vertexBuffers[] = {m_quadVertexBuffer};
     VkDeviceSize offsets[] = {0};
@@ -1425,6 +1443,7 @@ void VulkanRenderer::Shutdown() {
         return;
     }
     vkDeviceWaitIdle(m_device);
+    DestroyImageResources(); // after the wait: nothing can still reference these images
 
     // Every handle is reset to VK_NULL_HANDLE after destruction: recovery rebuilds the device and
     // several Create* paths test "already created?" by null-checking these members.
@@ -1507,12 +1526,305 @@ void VulkanRenderer::DestroyInstanceAndSurface() {
     m_instance = VK_NULL_HANDLE;
 }
 
+void VulkanRenderer::CreateImageDescriptorResources() {
+    VkDescriptorSetLayoutBinding bindings[2]{};
+    bindings[0].binding = 0; // SAMPLED_IMAGE: RectShader.hlsl imageTex, set 1
+    bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    bindings[0].descriptorCount = 1;
+    bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindings[1].binding = 1; // SAMPLER: RectShader.hlsl imageSampler, set 1
+    bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    bindings[1].descriptorCount = 1;
+    bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorSetLayoutCreateInfo layoutInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+    layoutInfo.bindingCount = 2;
+    layoutInfo.pBindings = bindings;
+    VkCheck(vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_imageSetLayout),
+            "vkCreateDescriptorSetLayout(image)");
+
+    // FREE_DESCRIPTOR_SET_BIT: an evicted image's set is returned to the pool once its frame is done.
+    VkDescriptorPoolSize poolSizes[2]{};
+    poolSizes[0] = {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, kImageSetCapacity};
+    poolSizes[1] = {VK_DESCRIPTOR_TYPE_SAMPLER, kImageSetCapacity};
+    VkDescriptorPoolCreateInfo poolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+    poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+    poolInfo.maxSets = kImageSetCapacity;
+    poolInfo.poolSizeCount = 2;
+    poolInfo.pPoolSizes = poolSizes;
+    VkCheck(vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_imageDescriptorPool),
+            "vkCreateDescriptorPool(image)");
+
+    // Clamp-to-edge and linear, as the backdrop sampler: a drawn image must not wrap or bleed.
+    VkSamplerCreateInfo samplerInfo{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.maxLod = 0.0f;
+    VkCheck(vkCreateSampler(m_device, &samplerInfo, nullptr, &m_imageSampler), "vkCreateSampler(image)");
+}
+
+void VulkanRenderer::CreateImagePlaceholder() {
+    const std::vector<uint8_t> white = {255, 255, 255, 255};
+    if (!UploadImage(white, 1, 1, m_placeholderImage)) {
+        throw std::runtime_error("Vulkan: could not create the placeholder image texture");
+    }
+}
+
+void VulkanRenderer::DestroyImageResources() {
+    // Called after vkDeviceWaitIdle: no command buffer can still reference these images.
+    std::vector<VulkanImage> released;
+    m_imageCache.Clear(&released);
+    for (VulkanImage& image : released) {
+        DestroyImage(image);
+    }
+    FlushRetiredImages();
+    DestroyImage(m_placeholderImage); // frees its set before the pool goes
+
+    if (m_imageSampler) vkDestroySampler(m_device, m_imageSampler, nullptr);
+    if (m_imageDescriptorPool) vkDestroyDescriptorPool(m_device, m_imageDescriptorPool, nullptr);
+    if (m_imageSetLayout) vkDestroyDescriptorSetLayout(m_device, m_imageSetLayout, nullptr);
+    m_imageSampler = VK_NULL_HANDLE;
+    m_imageDescriptorPool = VK_NULL_HANDLE;
+    m_imageSetLayout = VK_NULL_HANDLE;
+}
+
+void VulkanRenderer::DestroyImage(VulkanImage& image) {
+    // Null-safe, so a partly created image can be passed in as it is.
+    if (image.set != VK_NULL_HANDLE) vkFreeDescriptorSets(m_device, m_imageDescriptorPool, 1, &image.set);
+    if (image.view != VK_NULL_HANDLE) vkDestroyImageView(m_device, image.view, nullptr);
+    if (image.image != VK_NULL_HANDLE) vkDestroyImage(m_device, image.image, nullptr);
+    if (image.memory != VK_NULL_HANDLE) vkFreeMemory(m_device, image.memory, nullptr);
+    image = VulkanImage{};
+}
+
+void VulkanRenderer::FlushRetiredImages() {
+    for (VulkanImage& image : m_retiredImages) {
+        DestroyImage(image);
+    }
+    m_retiredImages.clear();
+}
+
+bool VulkanRenderer::UploadImage(const std::vector<uint8_t>& rgba, uint32_t width, uint32_t height,
+                                 VulkanImage& out) {
+    out = VulkanImage{};
+    const VkDeviceSize byteCount = rgba.size();
+
+    // Staging buffer: host-visible, holds the whole RGBA payload for one copy. The guard frees it
+    // on every exit, including a throw from VkCheck partway through.
+    struct StagingBuffer {
+        VkDevice device;
+        VkBuffer buffer = VK_NULL_HANDLE;
+        VkDeviceMemory memory = VK_NULL_HANDLE;
+        ~StagingBuffer() {
+            if (buffer != VK_NULL_HANDLE) vkDestroyBuffer(device, buffer, nullptr);
+            if (memory != VK_NULL_HANDLE) vkFreeMemory(device, memory, nullptr);
+        }
+    } stagingGuard{m_device};
+    VkBuffer& staging = stagingGuard.buffer;
+    VkDeviceMemory& stagingMemory = stagingGuard.memory;
+    VkBufferCreateInfo bufferInfo{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+    bufferInfo.size = byteCount;
+    bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    VkCheck(vkCreateBuffer(m_device, &bufferInfo, nullptr, &staging), "vkCreateBuffer(imageStaging)");
+
+    VkMemoryRequirements stagingReq{};
+    vkGetBufferMemoryRequirements(m_device, staging, &stagingReq);
+    VkMemoryAllocateInfo stagingAlloc{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+    stagingAlloc.allocationSize = stagingReq.size;
+    stagingAlloc.memoryTypeIndex = FindMemoryType(
+        stagingReq.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    VkCheck(vkAllocateMemory(m_device, &stagingAlloc, nullptr, &stagingMemory), "vkAllocateMemory(imageStaging)");
+    vkBindBufferMemory(m_device, staging, stagingMemory, 0);
+
+    void* mapped = nullptr;
+    vkMapMemory(m_device, stagingMemory, 0, byteCount, 0, &mapped);
+    std::memcpy(mapped, rgba.data(), static_cast<size_t>(byteCount));
+    vkUnmapMemory(m_device, stagingMemory);
+
+    // Device-local image, sampled in the fragment shader.
+    VkImageCreateInfo imageInfo{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
+    imageInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageInfo.extent = {width, height, 1};
+    imageInfo.mipLevels = 1;
+    imageInfo.arrayLayers = 1;
+    imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM; // straight alpha, as the decoder produces it
+    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    VkCheck(vkCreateImage(m_device, &imageInfo, nullptr, &out.image), "vkCreateImage(image)");
+
+    VkMemoryRequirements imageReq{};
+    vkGetImageMemoryRequirements(m_device, out.image, &imageReq);
+    VkMemoryAllocateInfo imageAlloc{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+    imageAlloc.allocationSize = imageReq.size;
+    imageAlloc.memoryTypeIndex = FindMemoryType(imageReq.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    VkCheck(vkAllocateMemory(m_device, &imageAlloc, nullptr, &out.memory), "vkAllocateMemory(image)");
+    vkBindImageMemory(m_device, out.image, out.memory, 0);
+
+    // One-time command buffer: copy, then hand the image to the fragment shader. The queue is
+    // drained before returning, so the staging buffer can be freed here. This runs in the middle
+    // of a frame's recording (DrawImage). That is safe because the frame's own command buffer is
+    // not submitted yet, and the wait only happens on the first draw of a new image.
+    VkCommandBufferAllocateInfo cmdAlloc{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+    cmdAlloc.commandPool = m_commandPool;
+    cmdAlloc.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmdAlloc.commandBufferCount = 1;
+    VkCommandBuffer uploadCmd = VK_NULL_HANDLE;
+    VkCheck(vkAllocateCommandBuffers(m_device, &cmdAlloc, &uploadCmd), "vkAllocateCommandBuffers(image)");
+
+    VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(uploadCmd, &beginInfo);
+
+    VkImageSubresourceRange whole{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+
+    VkImageMemoryBarrier toTransferDst{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+    toTransferDst.srcAccessMask = 0;
+    toTransferDst.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    toTransferDst.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    toTransferDst.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    toTransferDst.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    toTransferDst.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    toTransferDst.image = out.image;
+    toTransferDst.subresourceRange = whole;
+    vkCmdPipelineBarrier(uploadCmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+                         nullptr, 0, nullptr, 1, &toTransferDst);
+
+    VkBufferImageCopy region{};
+    region.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+    region.imageExtent = {width, height, 1};
+    vkCmdCopyBufferToImage(uploadCmd, staging, out.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+    VkImageMemoryBarrier toShaderRead = toTransferDst;
+    toShaderRead.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    toShaderRead.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    toShaderRead.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    toShaderRead.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    vkCmdPipelineBarrier(uploadCmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0,
+                         nullptr, 0, nullptr, 1, &toShaderRead);
+
+    vkEndCommandBuffer(uploadCmd);
+    VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &uploadCmd;
+    VkCheck(vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE), "vkQueueSubmit(image)");
+    vkQueueWaitIdle(m_graphicsQueue);
+
+    vkFreeCommandBuffers(m_device, m_commandPool, 1, &uploadCmd);
+    // The staging buffer is freed by stagingGuard when this function returns.
+
+    VkImageViewCreateInfo viewInfo{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
+    viewInfo.image = out.image;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    viewInfo.subresourceRange = whole;
+    VkCheck(vkCreateImageView(m_device, &viewInfo, nullptr, &out.view), "vkCreateImageView(image)");
+
+    // Written once, here. The set is never rewritten, which is what makes recording it by handle safe.
+    VkDescriptorSetAllocateInfo setAlloc{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+    setAlloc.descriptorPool = m_imageDescriptorPool;
+    setAlloc.descriptorSetCount = 1;
+    setAlloc.pSetLayouts = &m_imageSetLayout;
+    VkCheck(vkAllocateDescriptorSets(m_device, &setAlloc, &out.set), "vkAllocateDescriptorSets(image)");
+
+    VkDescriptorImageInfo imageDescInfo{};
+    imageDescInfo.imageView = out.view;
+    imageDescInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    VkDescriptorImageInfo samplerDescInfo{};
+    samplerDescInfo.sampler = m_imageSampler;
+
+    VkWriteDescriptorSet writes[2]{};
+    writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[0].dstSet = out.set;
+    writes[0].dstBinding = 0;
+    writes[0].descriptorCount = 1;
+    writes[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    writes[0].pImageInfo = &imageDescInfo;
+    writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[1].dstSet = out.set;
+    writes[1].dstBinding = 1;
+    writes[1].descriptorCount = 1;
+    writes[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    writes[1].pImageInfo = &samplerDescInfo;
+    vkUpdateDescriptorSets(m_device, 2, writes, 0, nullptr);
+    return true;
+}
+
+VulkanRenderer::VulkanImage* VulkanRenderer::FindOrLoadImage(const std::string& path) {
+    if (VulkanImage* cached = m_imageCache.Find(path)) {
+        return cached;
+    }
+    if (m_imageCache.IsFailed(path)) {
+        return nullptr;
+    }
+
+    DecodedImage decoded;
+    if (!DecodeImageFile(path, decoded)) {
+        m_imageCache.MarkFailed(path);
+        return nullptr;
+    }
+
+    VulkanImage image;
+    bool uploaded = false;
+    try {
+        uploaded = UploadImage(decoded.rgba, static_cast<uint32_t>(decoded.width),
+                               static_cast<uint32_t>(decoded.height), image);
+    } catch (const std::exception&) {
+        // A Vulkan error must not reach the host application from a draw call.
+        uploaded = false;
+    }
+    if (!uploaded) {
+        // Marked failed, so a broken upload is not repeated every frame. Device recovery clears it.
+        DestroyImage(image);
+        m_imageCache.MarkFailed(path);
+        return nullptr;
+    }
+
+    // The decoder's size limit makes this exactly the cache budget at most, so Insert cannot refuse.
+    std::vector<VulkanImage> released;
+    m_imageCache.Insert(path, std::move(image), decoded.rgba.size(), &released);
+    m_retiredImages.insert(m_retiredImages.end(), released.begin(), released.end());
+    return m_imageCache.Find(path);
+}
+
 void VulkanRenderer::DrawImage(const std::string& imagePath, const Rect& rect, float opacity) {
-    // TODO: Load PNG from imagePath, create Vulkan image + texture, draw as quad.
-    // For now, silent no-op to unblock Image widget integration.
-    (void)imagePath;
-    (void)rect;
-    (void)opacity;
+    if (m_frameSkipped || imagePath.empty()) {
+        return;
+    }
+    if (Platform::Diagnostics::IsDegraded()) {
+        return; // degraded mode: no new decodes or uploads, same as the backdrop blur
+    }
+    if (m_currentDrawSlot >= kMaxDrawsPerFrame) {
+        ReportDrawOverflow("images");
+        return;
+    }
+    VulkanImage* image = FindOrLoadImage(imagePath);
+    if (!image) {
+        return; // unreadable file: silent, as IRenderer::DrawImage documents
+    }
+
+    const RectDrawData data = ComputeImageDrawData(rect, opacity, static_cast<float>(m_width),
+                                                    static_cast<float>(m_height), m_worldTransform);
+    const VkDeviceSize vsOffset = m_currentDrawSlot * m_vsStride;
+    const VkDeviceSize psOffset = m_currentDrawSlot * m_psStride;
+    std::memcpy(static_cast<char*>(m_vsUniformMapped) + vsOffset, &data.vs, sizeof(data.vs));
+    std::memcpy(static_cast<char*>(m_psUniformMapped) + psOffset, &data.ps, sizeof(data.ps));
+
+    const uint32_t dynamicOffsets[] = {static_cast<uint32_t>(vsOffset), static_cast<uint32_t>(psOffset)};
+    vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1,
+                             &m_descriptorSet, 2, dynamicOffsets);
+    vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 1, 1,
+                             &image->set, 0, nullptr);
+
+    vkCmdDraw(m_commandBuffer, 6, 1, 0, 0);
+
+    ++m_currentDrawSlot;
 }
 
 } // namespace IzekipUI::Render

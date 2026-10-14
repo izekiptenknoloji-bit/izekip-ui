@@ -189,7 +189,7 @@ Button.primary:hover {
 - **`src/Renderer/D3D11/`** — DirectX 11 backend implementation
 - **`src/Renderer/Vulkan/`** — Vulkan backend implementation
 - **`include/Widgets/`** — Built-in widgets (Panel, Button, Label)
-- **`third_party/`** — Vendored dependencies (GLFW, Yoga, lexbor, stb_truetype)
+- **`third_party/`** — Vendored dependencies (GLFW, Yoga, lexbor, stb_truetype, stb_image)
 
 ## Roadmap
 

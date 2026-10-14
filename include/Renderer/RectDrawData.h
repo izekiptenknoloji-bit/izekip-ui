@@ -68,6 +68,12 @@ RectDrawData ComputeTextQuadDrawData(const Rect& rect, const UVRect& atlasUV, co
                                       float glyphScale, FontId fontId, float viewportWidth,
                                       float viewportHeight, const Transform2D& world);
 
+// Structural analog of ComputeTextQuadDrawData for a whole image quad. The shader samples the
+// image's own RGBA texture over the full quad (atlasUV = 0..1) and multiplies its alpha by
+// opacity. textParams.x = 2 selects this mode; 1 is glyphs, 0 is rects.
+RectDrawData ComputeImageDrawData(const Rect& rect, float opacity, float viewportWidth,
+                                   float viewportHeight, const Transform2D& world);
+
 // Structural analog of ComputeRectDrawData for a backdrop-blur quad. The quad bounds are
 // padded by the blur kernel radius (same "compact support" reasoning as the shadow
 // padding in ComputeRectDrawData) so the convolution has real source pixels to sample at
