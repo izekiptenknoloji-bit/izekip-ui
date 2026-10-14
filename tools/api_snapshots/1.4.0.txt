@@ -1,0 +1,499 @@
+include/CSS/LexborBridge.h:IzekipUI::Css::LexborBridge [class]	class LexborBridge
+include/CSS/LexborBridge.h:IzekipUI::Css::LexborBridge::AppliedSheet/0/004a0b7a	const StyleSheet* AppliedSheet() const
+include/CSS/LexborBridge.h:IzekipUI::Css::LexborBridge::Build/1/d9af92ba	void Build(Widget& root)
+include/CSS/LexborBridge.h:IzekipUI::Css::LexborBridge::BuiltGeneration/0/004a0b7a	std::uint64_t BuiltGeneration() const
+include/CSS/LexborBridge.h:IzekipUI::Css::LexborBridge::IsBuilt/0/004a0b7a	bool IsBuilt() const
+include/CSS/LexborBridge.h:IzekipUI::Css::LexborBridge::LexborBridge/0/3eb41622	LexborBridge()
+include/CSS/LexborBridge.h:IzekipUI::Css::LexborBridge::LexborBridge/1/c01c92de	LexborBridge(const LexborBridge&) = delete
+include/CSS/LexborBridge.h:IzekipUI::Css::LexborBridge::MatchedDeclarationsFor/2/37bd4c8c	std::vector<MatchedDeclaration> MatchedDeclarationsFor(const StyleSheet& sheet, Widget& widget)
+include/CSS/LexborBridge.h:IzekipUI::Css::LexborBridge::SetAppliedSheet/1/352206f2	void SetAppliedSheet(const StyleSheet* sheet)
+include/CSS/LexborBridge.h:IzekipUI::Css::LexborBridge::SyncPseudoState/1/5fa25c0b	void SyncPseudoState(Widget& widget)
+include/CSS/LexborBridge.h:IzekipUI::Css::LexborBridge::operator=/1/c01c92de	LexborBridge& operator=(const LexborBridge&) = delete
+include/CSS/LexborBridge.h:IzekipUI::Css::LexborBridge::~LexborBridge/0/3eb41622	~LexborBridge()
+include/CSS/LexborBridge.h:IzekipUI::Css::MatchedDeclaration [struct]	struct MatchedDeclaration
+include/CSS/LexborBridge.h:IzekipUI::Css::MatchedDeclaration::propertyName	std::string propertyName
+include/CSS/LexborBridge.h:IzekipUI::Css::MatchedDeclaration::rawValueText	std::string rawValueText
+include/CSS/LexborBridge.h:IzekipUI::Css::MatchedDeclaration::sourceOrder	int sourceOrder = 0
+include/CSS/LexborBridge.h:IzekipUI::Css::MatchedDeclaration::specificity	unsigned specificity = 0
+include/CSS/LexborBridge.h:IzekipUI::Css::StyleSheet	class StyleSheet
+include/CSS/LexborBridge.h:lxb_dom_document	struct lxb_dom_document
+include/CSS/LexborBridge.h:lxb_dom_element	struct lxb_dom_element
+include/CSS/LexborBridge.h:lxb_selectors	struct lxb_selectors
+include/CSS/StyleApplier.h:IzekipUI::Css::StyleApplier [class]	class StyleApplier
+include/CSS/StyleApplier.h:IzekipUI::Css::StyleApplier::Apply/3/5638d896	static void Apply(LexborBridge& bridge, const StyleSheet& sheet, Widget& root)
+include/CSS/StyleSheet.h:IzekipUI::Css::KeyframesDefinition [struct]	struct KeyframesDefinition
+include/CSS/StyleSheet.h:IzekipUI::Css::KeyframesDefinition::frames	std::vector<RawKeyframe> frames
+include/CSS/StyleSheet.h:IzekipUI::Css::KeyframesDefinition::name	std::string name
+include/CSS/StyleSheet.h:IzekipUI::Css::RawKeyframe [struct]	struct RawKeyframe
+include/CSS/StyleSheet.h:IzekipUI::Css::RawKeyframe::declarations	std::vector<RawKeyframeDeclaration> declarations
+include/CSS/StyleSheet.h:IzekipUI::Css::RawKeyframe::offset	float offset = 0.0f
+include/CSS/StyleSheet.h:IzekipUI::Css::RawKeyframeDeclaration [struct]	struct RawKeyframeDeclaration
+include/CSS/StyleSheet.h:IzekipUI::Css::RawKeyframeDeclaration::propertyName	std::string propertyName
+include/CSS/StyleSheet.h:IzekipUI::Css::RawKeyframeDeclaration::value	std::string value
+include/CSS/StyleSheet.h:IzekipUI::Css::StyleSheet [class]	class StyleSheet
+include/CSS/StyleSheet.h:IzekipUI::Css::StyleSheet::GetKeyframes/0/004a0b7a	const std::vector<KeyframesDefinition>& GetKeyframes() const
+include/CSS/StyleSheet.h:IzekipUI::Css::StyleSheet::GetRaw/0/004a0b7a	lxb_css_stylesheet* GetRaw() const
+include/CSS/StyleSheet.h:IzekipUI::Css::StyleSheet::GetSourceText/0/004a0b7a	const std::string& GetSourceText() const
+include/CSS/StyleSheet.h:IzekipUI::Css::StyleSheet::LoadFromFile/1/67915eb5	static StyleSheet LoadFromFile(const std::filesystem::path& path)
+include/CSS/StyleSheet.h:IzekipUI::Css::StyleSheet::LoadFromString/1/b89a5130	static StyleSheet LoadFromString(std::string_view css)
+include/CSS/StyleSheet.h:IzekipUI::Css::StyleSheet::PrefersReducedMotion/0/004a0b7a	bool PrefersReducedMotion() const
+include/CSS/StyleSheet.h:IzekipUI::Css::StyleSheet::RuleCount/0/004a0b7a	size_t RuleCount() const
+include/CSS/StyleSheet.h:IzekipUI::Css::StyleSheet::SetPrefersReducedMotion/1/8b804edb	void SetPrefersReducedMotion(bool value)
+include/CSS/StyleSheet.h:IzekipUI::Css::StyleSheet::StyleSheet/1/03361401	StyleSheet(StyleSheet&& other) noexcept
+include/CSS/StyleSheet.h:IzekipUI::Css::StyleSheet::StyleSheet/1/d12b1dbc	StyleSheet(const StyleSheet&) = delete
+include/CSS/StyleSheet.h:IzekipUI::Css::StyleSheet::operator=/1/03361401	StyleSheet& operator=(StyleSheet&& other) noexcept
+include/CSS/StyleSheet.h:IzekipUI::Css::StyleSheet::operator=/1/d12b1dbc	StyleSheet& operator=(const StyleSheet&) = delete
+include/CSS/StyleSheet.h:IzekipUI::Css::StyleSheet::~StyleSheet/0/3eb41622	~StyleSheet()
+include/CSS/StyleSheet.h:lxb_css_parser	struct lxb_css_parser
+include/CSS/StyleSheet.h:lxb_css_stylesheet	struct lxb_css_stylesheet
+include/Core/Color.h:IzekipUI::Color [struct]	struct Color
+include/Core/Color.h:IzekipUI::Color::FromHex/1/e4542c46	static Color FromHex(std::string_view hex)
+include/Core/Color.h:IzekipUI::Color::a	float a = 1.0f
+include/Core/Color.h:IzekipUI::Color::b	float b = 0.0f
+include/Core/Color.h:IzekipUI::Color::g	float g = 0.0f
+include/Core/Color.h:IzekipUI::Color::operator!=/1/715eb7a1	bool operator!=(const Color& other) const
+include/Core/Color.h:IzekipUI::Color::operator==/1/715eb7a1	bool operator==(const Color& other) const
+include/Core/Color.h:IzekipUI::Color::r	float r = 0.0f
+include/Core/Easing.h:IzekipUI::CubicBezier [struct]	struct CubicBezier
+include/Core/Easing.h:IzekipUI::CubicBezier::Evaluate/1/90ec1aef	float Evaluate(float x) const
+include/Core/Easing.h:IzekipUI::CubicBezier::x1	float x1 = 0.0f
+include/Core/Easing.h:IzekipUI::CubicBezier::x2	float x2 = 1.0f
+include/Core/Easing.h:IzekipUI::CubicBezier::y1	float y1 = 0.0f
+include/Core/Easing.h:IzekipUI::CubicBezier::y2	float y2 = 1.0f
+include/Core/Easing.h:IzekipUI::TryGetNamedEasing/2/7524b017	bool TryGetNamedEasing(std::string_view keyword, CubicBezier& out)
+include/Core/InteractionController.h:IzekipUI::InteractionController [class]	class InteractionController
+include/Core/InteractionController.h:IzekipUI::InteractionController::GetFocused/0/004a0b7a	Widget* GetFocused() const
+include/Core/InteractionController.h:IzekipUI::InteractionController::GetHovered/0/004a0b7a	Widget* GetHovered() const
+include/Core/InteractionController.h:IzekipUI::InteractionController::InteractionController/1/d9af92ba	explicit InteractionController(Widget& root)
+include/Core/InteractionController.h:IzekipUI::InteractionController::OnMouseButton/1/d303511a	void OnMouseButton(bool pressed)
+include/Core/InteractionController.h:IzekipUI::InteractionController::OnMouseMove/2/0a1922b2	void OnMouseMove(float x, float y)
+include/Core/InteractionController.h:IzekipUI::InteractionController::RequestRestyle/0/3eb41622	void RequestRestyle()
+include/Core/InteractionController.h:IzekipUI::InteractionController::SetFocus/1/2fb373fb	void SetFocus(Widget* widget)
+include/Core/InteractionController.h:IzekipUI::InteractionController::Update/0/3eb41622	bool Update()
+include/Core/Rect.h:IzekipUI::BoxEdges [struct]	struct BoxEdges
+include/Core/Rect.h:IzekipUI::BoxEdges::bottom	float bottom = 0.0f
+include/Core/Rect.h:IzekipUI::BoxEdges::left	float left = 0.0f
+include/Core/Rect.h:IzekipUI::BoxEdges::operator!=/1/01a727f3	bool operator!=(const BoxEdges& other) const
+include/Core/Rect.h:IzekipUI::BoxEdges::operator==/1/01a727f3	bool operator==(const BoxEdges& other) const
+include/Core/Rect.h:IzekipUI::BoxEdges::right	float right = 0.0f
+include/Core/Rect.h:IzekipUI::BoxEdges::top	float top = 0.0f
+include/Core/Rect.h:IzekipUI::Rect [struct]	struct Rect
+include/Core/Rect.h:IzekipUI::Rect::height	float height = 0.0f
+include/Core/Rect.h:IzekipUI::Rect::width	float width = 0.0f
+include/Core/Rect.h:IzekipUI::Rect::x	float x = 0.0f
+include/Core/Rect.h:IzekipUI::Rect::y	float y = 0.0f
+include/Core/StyleProperties.h:IzekipUI::AlignItems [enum]	enum class AlignItems
+include/Core/StyleProperties.h:IzekipUI::AlignItems::Center	present
+include/Core/StyleProperties.h:IzekipUI::AlignItems::FlexEnd	present
+include/Core/StyleProperties.h:IzekipUI::AlignItems::FlexStart	present
+include/Core/StyleProperties.h:IzekipUI::AlignItems::Stretch	present
+include/Core/StyleProperties.h:IzekipUI::BackdropFilter [struct]	struct BackdropFilter
+include/Core/StyleProperties.h:IzekipUI::BackdropFilter::blurRadiusPx	std::optional<float> blurRadiusPx
+include/Core/StyleProperties.h:IzekipUI::BackdropFilter::brightness	std::optional<float> brightness
+include/Core/StyleProperties.h:IzekipUI::BackdropFilter::contrast	std::optional<float> contrast
+include/Core/StyleProperties.h:IzekipUI::BackdropFilter::grayscale	std::optional<float> grayscale
+include/Core/StyleProperties.h:IzekipUI::BackdropFilter::hueRotateRadians	std::optional<float> hueRotateRadians
+include/Core/StyleProperties.h:IzekipUI::BackdropFilter::operator!=/1/6ab1ef2e	bool operator!=(const BackdropFilter& other) const
+include/Core/StyleProperties.h:IzekipUI::BackdropFilter::operator==/1/6ab1ef2e	bool operator==(const BackdropFilter& other) const
+include/Core/StyleProperties.h:IzekipUI::BackdropFilter::saturate	std::optional<float> saturate
+include/Core/StyleProperties.h:IzekipUI::BoxShadow [struct]	struct BoxShadow
+include/Core/StyleProperties.h:IzekipUI::BoxShadow::blurRadius	float blurRadius = 0.0f
+include/Core/StyleProperties.h:IzekipUI::BoxShadow::color	Color color
+include/Core/StyleProperties.h:IzekipUI::BoxShadow::inset	bool inset = false
+include/Core/StyleProperties.h:IzekipUI::BoxShadow::offsetX	float offsetX = 0.0f
+include/Core/StyleProperties.h:IzekipUI::BoxShadow::offsetY	float offsetY = 0.0f
+include/Core/StyleProperties.h:IzekipUI::BoxShadow::operator!=/1/993272ee	bool operator!=(const BoxShadow& other) const
+include/Core/StyleProperties.h:IzekipUI::BoxShadow::operator==/1/993272ee	bool operator==(const BoxShadow& other) const
+include/Core/StyleProperties.h:IzekipUI::BoxShadow::spreadRadius	float spreadRadius = 0.0f
+include/Core/StyleProperties.h:IzekipUI::CssAnimation [struct]	struct CssAnimation
+include/Core/StyleProperties.h:IzekipUI::CssAnimation::durationSeconds	float durationSeconds = 0.0f
+include/Core/StyleProperties.h:IzekipUI::CssAnimation::easing	CubicBezier easing
+include/Core/StyleProperties.h:IzekipUI::CssAnimation::forwards	bool forwards = false
+include/Core/StyleProperties.h:IzekipUI::CssAnimation::name	std::string name
+include/Core/StyleProperties.h:IzekipUI::CssAnimation::operator!=/1/1d54e23b	bool operator!=(const CssAnimation& other) const
+include/Core/StyleProperties.h:IzekipUI::CssAnimation::operator==/1/1d54e23b	bool operator==(const CssAnimation& other) const
+include/Core/StyleProperties.h:IzekipUI::CssCursor [enum]	enum class CssCursor
+include/Core/StyleProperties.h:IzekipUI::CssCursor::Crosshair	present
+include/Core/StyleProperties.h:IzekipUI::CssCursor::Default	present
+include/Core/StyleProperties.h:IzekipUI::CssCursor::NotAllowed	present
+include/Core/StyleProperties.h:IzekipUI::CssCursor::Pointer	present
+include/Core/StyleProperties.h:IzekipUI::CssCursor::Text	present
+include/Core/StyleProperties.h:IzekipUI::CssFontFamily [enum]	enum class CssFontFamily
+include/Core/StyleProperties.h:IzekipUI::CssFontFamily::Arial	present
+include/Core/StyleProperties.h:IzekipUI::CssFontFamily::Courier	present
+include/Core/StyleProperties.h:IzekipUI::CssFontFamily::Monospace	present
+include/Core/StyleProperties.h:IzekipUI::CssFontFamily::Proportional	present
+include/Core/StyleProperties.h:IzekipUI::CssFontFamily::Serif	present
+include/Core/StyleProperties.h:IzekipUI::Display [enum]	enum class Display
+include/Core/StyleProperties.h:IzekipUI::Display::Flex	present
+include/Core/StyleProperties.h:IzekipUI::Display::None	present
+include/Core/StyleProperties.h:IzekipUI::FlexDirection [enum]	enum class FlexDirection
+include/Core/StyleProperties.h:IzekipUI::FlexDirection::Column	present
+include/Core/StyleProperties.h:IzekipUI::FlexDirection::ColumnReverse	present
+include/Core/StyleProperties.h:IzekipUI::FlexDirection::Row	present
+include/Core/StyleProperties.h:IzekipUI::FlexDirection::RowReverse	present
+include/Core/StyleProperties.h:IzekipUI::GradientDirection [enum]	enum class GradientDirection
+include/Core/StyleProperties.h:IzekipUI::GradientDirection::ToBottom	present
+include/Core/StyleProperties.h:IzekipUI::GradientDirection::ToLeft	present
+include/Core/StyleProperties.h:IzekipUI::GradientDirection::ToRight	present
+include/Core/StyleProperties.h:IzekipUI::GradientDirection::ToTop	present
+include/Core/StyleProperties.h:IzekipUI::GradientStop [struct]	struct GradientStop
+include/Core/StyleProperties.h:IzekipUI::GradientStop::color	Color color
+include/Core/StyleProperties.h:IzekipUI::GradientStop::operator!=/1/500f247a	bool operator!=(const GradientStop& other) const
+include/Core/StyleProperties.h:IzekipUI::GradientStop::operator==/1/500f247a	bool operator==(const GradientStop& other) const
+include/Core/StyleProperties.h:IzekipUI::GradientStop::percentPosition	std::optional<float> percentPosition
+include/Core/StyleProperties.h:IzekipUI::JustifyContent [enum]	enum class JustifyContent
+include/Core/StyleProperties.h:IzekipUI::JustifyContent::Center	present
+include/Core/StyleProperties.h:IzekipUI::JustifyContent::FlexEnd	present
+include/Core/StyleProperties.h:IzekipUI::JustifyContent::FlexStart	present
+include/Core/StyleProperties.h:IzekipUI::JustifyContent::SpaceAround	present
+include/Core/StyleProperties.h:IzekipUI::JustifyContent::SpaceBetween	present
+include/Core/StyleProperties.h:IzekipUI::Length [struct]	struct Length
+include/Core/StyleProperties.h:IzekipUI::Length::isPercent	bool isPercent = false
+include/Core/StyleProperties.h:IzekipUI::Length::isViewportHeight	bool isViewportHeight = false
+include/Core/StyleProperties.h:IzekipUI::Length::operator!=/1/924fdae8	bool operator!=(const Length& other) const
+include/Core/StyleProperties.h:IzekipUI::Length::operator==/1/924fdae8	bool operator==(const Length& other) const
+include/Core/StyleProperties.h:IzekipUI::Length::value	float value = 0.0f
+include/Core/StyleProperties.h:IzekipUI::LinearGradient [struct]	struct LinearGradient
+include/Core/StyleProperties.h:IzekipUI::LinearGradient::direction	GradientDirection direction = GradientDirection::ToRight
+include/Core/StyleProperties.h:IzekipUI::LinearGradient::operator!=/1/028bdd08	bool operator!=(const LinearGradient& other) const
+include/Core/StyleProperties.h:IzekipUI::LinearGradient::operator==/1/028bdd08	bool operator==(const LinearGradient& other) const
+include/Core/StyleProperties.h:IzekipUI::LinearGradient::stops	std::vector<GradientStop> stops
+include/Core/StyleProperties.h:IzekipUI::StyleProperties [struct]	struct StyleProperties
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::MergeFrom/1/9d328d17	void MergeFrom(const StyleProperties& higherPriority)
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::alignItems	std::optional<AlignItems> alignItems
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::animation	std::optional<CssAnimation> animation
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::backdropFilter	std::optional<BackdropFilter> backdropFilter
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::background	std::optional<LinearGradient> background
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::backgroundColor	std::optional<Color> backgroundColor
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::borderColor	std::optional<Color> borderColor
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::borderRadius	std::optional<float> borderRadius
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::borderWidth	std::optional<float> borderWidth
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::boxShadow	std::optional<std::vector<BoxShadow>> boxShadow
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::cursor	std::optional<CssCursor> cursor
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::display	std::optional<Display> display
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::flexDirection	std::optional<FlexDirection> flexDirection
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::fontFamily	std::optional<CssFontFamily> fontFamily
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::fontSize	std::optional<float> fontSize
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::fontWeight	std::optional<int> fontWeight
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::height	std::optional<Length> height
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::justifyContent	std::optional<JustifyContent> justifyContent
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::margin	std::optional<BoxEdges> margin
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::maxHeight	std::optional<Length> maxHeight
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::maxWidth	std::optional<Length> maxWidth
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::minHeight	std::optional<Length> minHeight
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::minWidth	std::optional<Length> minWidth
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::opacity	std::optional<float> opacity
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::padding	std::optional<BoxEdges> padding
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::rotate	std::optional<float> rotate
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::scale	std::optional<float> scale
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::textColor	std::optional<Color> textColor
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::transform	std::optional<Translation> transform
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::transition	std::optional<std::vector<TransitionSpec>> transition
+include/Core/StyleProperties.h:IzekipUI::StyleProperties::width	std::optional<Length> width
+include/Core/StyleProperties.h:IzekipUI::Translation [struct]	struct Translation
+include/Core/StyleProperties.h:IzekipUI::Translation::operator!=/1/7e18f06f	bool operator!=(const Translation& other) const
+include/Core/StyleProperties.h:IzekipUI::Translation::operator==/1/7e18f06f	bool operator==(const Translation& other) const
+include/Core/StyleProperties.h:IzekipUI::Translation::x	float x = 0.0f
+include/Core/StyleProperties.h:IzekipUI::Translation::y	float y = 0.0f
+include/Core/TextBuffer.h:IzekipUI::TextBuffer [class]	class TextBuffer
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::Backspace/0/3eb41622	void Backspace()
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::CharacterCount/0/004a0b7a	std::size_t CharacterCount() const
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::DeleteForward/0/3eb41622	void DeleteForward()
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::GetCursor/0/004a0b7a	Position GetCursor() const
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::GetTextUtf8/0/004a0b7a	std::string GetTextUtf8() const
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::InsertCodepoint/1/2d0c5d26	void InsertCodepoint(char32_t codepoint)
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::InsertNewline/0/3eb41622	void InsertNewline()
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::Lines/0/004a0b7a	const std::vector<std::u32string>& Lines() const
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::MoveDocumentEnd/0/3eb41622	void MoveDocumentEnd()
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::MoveDown/0/3eb41622	void MoveDown()
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::MoveEnd/0/3eb41622	void MoveEnd()
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::MoveHome/0/3eb41622	void MoveHome()
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::MoveLeft/0/3eb41622	void MoveLeft()
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::MoveRight/0/3eb41622	void MoveRight()
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::MoveUp/0/3eb41622	void MoveUp()
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::Position [struct]	struct Position
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::Position::column	size_t column = 0
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::Position::line	size_t line = 0
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::Position::operator!=/1/915a2728	bool operator!=(const Position& other) const
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::Position::operator==/1/915a2728	bool operator==(const Position& other) const
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::SetTextUtf8/1/7c2cf9e7	void SetTextUtf8(const std::string& utf8Text)
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::TextBuffer/0/3eb41622	TextBuffer()
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::kMaxCharacters	static constexpr std::size_t kMaxCharacters = 1000000
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::kMaxInputBytes	static constexpr std::size_t kMaxInputBytes = 4 * 1024 * 1024
+include/Core/TextBuffer.h:IzekipUI::TextBuffer::kMaxLines	static constexpr std::size_t kMaxLines = 50000
+include/Core/Transition.h:IzekipUI::FindCoveringTransition/2/73918e1c	inline const TransitionSpec* FindCoveringTransition(const std::vector<TransitionSpec>& specs, TransitionProperty prop)
+include/Core/Transition.h:IzekipUI::TransitionProperty [enum]	enum class TransitionProperty
+include/Core/Transition.h:IzekipUI::TransitionProperty::All	present
+include/Core/Transition.h:IzekipUI::TransitionProperty::BackgroundColor	present
+include/Core/Transition.h:IzekipUI::TransitionProperty::Height	present
+include/Core/Transition.h:IzekipUI::TransitionProperty::Margin	present
+include/Core/Transition.h:IzekipUI::TransitionProperty::Opacity	present
+include/Core/Transition.h:IzekipUI::TransitionProperty::Transform	present
+include/Core/Transition.h:IzekipUI::TransitionProperty::Width	present
+include/Core/Transition.h:IzekipUI::TransitionSpec [struct]	struct TransitionSpec
+include/Core/Transition.h:IzekipUI::TransitionSpec::CoversProperty/1/5b083306	bool CoversProperty(TransitionProperty prop) const
+include/Core/Transition.h:IzekipUI::TransitionSpec::durationSeconds	float durationSeconds = 0.0f
+include/Core/Transition.h:IzekipUI::TransitionSpec::easing	CubicBezier easing
+include/Core/Transition.h:IzekipUI::TransitionSpec::property	TransitionProperty property = TransitionProperty::All
+include/Core/Widget.h:IzekipUI::AnimationTickResult [struct]	struct AnimationTickResult
+include/Core/Widget.h:IzekipUI::AnimationTickResult::layoutAffected	bool layoutAffected = false
+include/Core/Widget.h:IzekipUI::AnimationTickResult::operator|=/1/3c6e53c8	AnimationTickResult& operator|=(const AnimationTickResult& other)
+include/Core/Widget.h:IzekipUI::AnimationTickResult::stillAnimating	bool stillAnimating = false
+include/Core/Widget.h:IzekipUI::ClearActiveRecursive/1/d9af92ba	void ClearActiveRecursive(Widget& root)
+include/Core/Widget.h:IzekipUI::ClearFocusedRecursive/1/d9af92ba	void ClearFocusedRecursive(Widget& root)
+include/Core/Widget.h:IzekipUI::ClearHoveredRecursive/1/d9af92ba	void ClearHoveredRecursive(Widget& root)
+include/Core/Widget.h:IzekipUI::KeyframeAnimationPoint [struct]	struct KeyframeAnimationPoint
+include/Core/Widget.h:IzekipUI::KeyframeAnimationPoint::offset	float offset = 0.0f
+include/Core/Widget.h:IzekipUI::KeyframeAnimationPoint::opacity	std::optional<float> opacity
+include/Core/Widget.h:IzekipUI::KeyframeAnimationPoint::transform	std::optional<Translation> transform
+include/Core/Widget.h:IzekipUI::Render::IRenderer	class IRenderer
+include/Core/Widget.h:IzekipUI::TickWidgetTreeAnimations/2/383f9d99	AnimationTickResult TickWidgetTreeAnimations(Widget& root, float deltaSeconds)
+include/Core/Widget.h:IzekipUI::Widget [class]	class Widget : public std::enable_shared_from_this<Widget>
+include/Core/Widget.h:IzekipUI::Widget::AddChild/1/10ff1e55	bool AddChild(std::shared_ptr<Widget> child)
+include/Core/Widget.h:IzekipUI::Widget::AddClass/1/9a136888	void AddClass(std::string className)
+include/Core/Widget.h:IzekipUI::Widget::AnimateBackgroundColorTo/3/474c9739	void AnimateBackgroundColorTo(const Color& target, float durationSeconds, const CubicBezier& easing)
+include/Core/Widget.h:IzekipUI::Widget::AnimateHeightTo/3/12f361f5	void AnimateHeightTo(Length target, float durationSeconds, const CubicBezier& easing)
+include/Core/Widget.h:IzekipUI::Widget::AnimateMarginTo/3/03589699	void AnimateMarginTo(const BoxEdges& target, float durationSeconds, const CubicBezier& easing)
+include/Core/Widget.h:IzekipUI::Widget::AnimateOpacityTo/3/4d1e66d1	void AnimateOpacityTo(float target, float durationSeconds, const CubicBezier& easing)
+include/Core/Widget.h:IzekipUI::Widget::AnimateTransformTo/3/a3f00486	void AnimateTransformTo(Translation target, float durationSeconds, const CubicBezier& easing)
+include/Core/Widget.h:IzekipUI::Widget::AnimateWidthTo/3/12f361f5	void AnimateWidthTo(Length target, float durationSeconds, const CubicBezier& easing)
+include/Core/Widget.h:IzekipUI::Widget::ApplyViewportUnits/1/daa6f52b	void ApplyViewportUnits(float viewportHeight)
+include/Core/Widget.h:IzekipUI::Widget::CalculateLayout/2/1a74c767	void CalculateLayout(float availableWidth, float availableHeight)
+include/Core/Widget.h:IzekipUI::Widget::CancelCssAnimation/0/3eb41622	void CancelCssAnimation()
+include/Core/Widget.h:IzekipUI::Widget::ClearStyleDirty/0/3eb41622	void ClearStyleDirty()
+include/Core/Widget.h:IzekipUI::Widget::Click/0/3eb41622	void Click()
+include/Core/Widget.h:IzekipUI::Widget::CssAnimationAffectsOpacity/0/004a0b7a	bool CssAnimationAffectsOpacity() const
+include/Core/Widget.h:IzekipUI::Widget::CssAnimationAffectsTransform/0/004a0b7a	bool CssAnimationAffectsTransform() const
+include/Core/Widget.h:IzekipUI::Widget::GetChildren/0/004a0b7a	const std::vector<std::shared_ptr<Widget>>& GetChildren() const
+include/Core/Widget.h:IzekipUI::Widget::GetClasses/0/004a0b7a	const std::vector<std::string>& GetClasses() const
+include/Core/Widget.h:IzekipUI::Widget::GetEffectiveCursor/0/004a0b7a	CssCursor GetEffectiveCursor() const
+include/Core/Widget.h:IzekipUI::Widget::GetEffectiveOpacity/0/004a0b7a	float GetEffectiveOpacity() const
+include/Core/Widget.h:IzekipUI::Widget::GetId/0/004a0b7a	const std::string& GetId() const
+include/Core/Widget.h:IzekipUI::Widget::GetLocalRect/0/004a0b7a	const Rect& GetLocalRect() const
+include/Core/Widget.h:IzekipUI::Widget::GetParent/0/004a0b7a	Widget* GetParent() const
+include/Core/Widget.h:IzekipUI::Widget::GetStyle/0/004a0b7a	const StyleProperties& GetStyle() const
+include/Core/Widget.h:IzekipUI::Widget::GetStyle/0/3eb41622	StyleProperties& GetStyle()
+include/Core/Widget.h:IzekipUI::Widget::GetTargetStyle/0/004a0b7a	const StyleProperties& GetTargetStyle() const
+include/Core/Widget.h:IzekipUI::Widget::GetTypeName/0/004a0b7a	const std::string& GetTypeName() const
+include/Core/Widget.h:IzekipUI::Widget::GetVisualRect/0/004a0b7a	Rect GetVisualRect() const
+include/Core/Widget.h:IzekipUI::Widget::GetWorldTransform/0/004a0b7a	Transform2D GetWorldTransform() const
+include/Core/Widget.h:IzekipUI::Widget::GetYogaNode/0/004a0b7a	YGNodeRef GetYogaNode() const
+include/Core/Widget.h:IzekipUI::Widget::HasBeenStyled/0/004a0b7a	bool HasBeenStyled() const
+include/Core/Widget.h:IzekipUI::Widget::HasClass/1/a94b74cc	bool HasClass(const std::string& className) const
+include/Core/Widget.h:IzekipUI::Widget::HitTest/2/0a1922b2	Widget* HitTest(float x, float y)
+include/Core/Widget.h:IzekipUI::Widget::IsActive/0/004a0b7a	bool IsActive() const
+include/Core/Widget.h:IzekipUI::Widget::IsClickable/0/004a0b7a	bool IsClickable() const
+include/Core/Widget.h:IzekipUI::Widget::IsDisabled/0/004a0b7a	bool IsDisabled() const
+include/Core/Widget.h:IzekipUI::Widget::IsDisplayed/0/004a0b7a	bool IsDisplayed() const
+include/Core/Widget.h:IzekipUI::Widget::IsEnabled/0/004a0b7a	bool IsEnabled() const
+include/Core/Widget.h:IzekipUI::Widget::IsFocusable/0/004a0b7a	bool IsFocusable() const
+include/Core/Widget.h:IzekipUI::Widget::IsFocused/0/004a0b7a	bool IsFocused() const
+include/Core/Widget.h:IzekipUI::Widget::IsHovered/0/004a0b7a	bool IsHovered() const
+include/Core/Widget.h:IzekipUI::Widget::IsStyleDirty/0/004a0b7a	bool IsStyleDirty() const
+include/Core/Widget.h:IzekipUI::Widget::MarkStyleDirty/0/3eb41622	void MarkStyleDirty()
+include/Core/Widget.h:IzekipUI::Widget::MarkStyled/0/3eb41622	void MarkStyled()
+include/Core/Widget.h:IzekipUI::Widget::OnPaint/1/1aa6a673	virtual void OnPaint(Render::IRenderer& renderer)
+include/Core/Widget.h:IzekipUI::Widget::RemoveChild/1/c22ab748	std::shared_ptr<Widget> RemoveChild(const Widget* child)
+include/Core/Widget.h:IzekipUI::Widget::RemoveClass/1/b431d190	bool RemoveClass(const std::string& className)
+include/Core/Widget.h:IzekipUI::Widget::SetActive/1/9ff2a611	void SetActive(bool active)
+include/Core/Widget.h:IzekipUI::Widget::SetClass/2/846178c6	void SetClass(const std::string& className, bool enabled)
+include/Core/Widget.h:IzekipUI::Widget::SetDisabled/1/6393f48d	void SetDisabled(bool disabled)
+include/Core/Widget.h:IzekipUI::Widget::SetFocusable/1/ec3c7f4b	void SetFocusable(bool focusable)
+include/Core/Widget.h:IzekipUI::Widget::SetFocused/1/c2ee8929	void SetFocused(bool focused)
+include/Core/Widget.h:IzekipUI::Widget::SetHovered/1/35233635	void SetHovered(bool hovered)
+include/Core/Widget.h:IzekipUI::Widget::SetId/1/7cf19655	void SetId(std::string id)
+include/Core/Widget.h:IzekipUI::Widget::SetOnClick/1/33b412f0	void SetOnClick(std::function<void()> onClick)
+include/Core/Widget.h:IzekipUI::Widget::SetTargetStyle/1/05ece0c6	void SetTargetStyle(StyleProperties style)
+include/Core/Widget.h:IzekipUI::Widget::SnapBackgroundColor/1/99c9f12a	void SnapBackgroundColor(const Color& value)
+include/Core/Widget.h:IzekipUI::Widget::SnapHeight/1/218f5807	void SnapHeight(Length value)
+include/Core/Widget.h:IzekipUI::Widget::SnapMargin/1/b0ce5db7	void SnapMargin(const BoxEdges& value)
+include/Core/Widget.h:IzekipUI::Widget::SnapOpacity/1/91c80928	void SnapOpacity(float value)
+include/Core/Widget.h:IzekipUI::Widget::SnapTransform/1/716278b2	void SnapTransform(Translation value)
+include/Core/Widget.h:IzekipUI::Widget::SnapWidth/1/218f5807	void SnapWidth(Length value)
+include/Core/Widget.h:IzekipUI::Widget::StartCssAnimation/2/c47d827e	void StartCssAnimation(const CssAnimation& animation, std::vector<KeyframeAnimationPoint> points)
+include/Core/Widget.h:IzekipUI::Widget::TickAnimations/1/e44ba76d	AnimationTickResult TickAnimations(float deltaSeconds)
+include/Core/Widget.h:IzekipUI::Widget::ToggleClass/1/b431d190	bool ToggleClass(const std::string& className)
+include/Core/Widget.h:IzekipUI::Widget::Widget/1/4fff1b84	Widget(const Widget&) = delete
+include/Core/Widget.h:IzekipUI::Widget::Widget/1/7a6bd6f1	explicit Widget(std::string typeName)
+include/Core/Widget.h:IzekipUI::Widget::kMaxWidgets	static constexpr std::size_t kMaxWidgets = 10000
+include/Core/Widget.h:IzekipUI::Widget::operator=/1/4fff1b84	Widget& operator=(const Widget&) = delete
+include/Core/Widget.h:IzekipUI::Widget::~Widget/0/3eb41622	virtual ~Widget()
+include/Core/Widget.h:IzekipUI::WidgetTreeGeneration/0/3eb41622	std::uint64_t WidgetTreeGeneration()
+include/Platform/Window.h:GLFWcursor	struct GLFWcursor
+include/Platform/Window.h:GLFWwindow	struct GLFWwindow
+include/Platform/Window.h:IzekipUI::Platform::CursorShape [enum]	enum class CursorShape
+include/Platform/Window.h:IzekipUI::Platform::CursorShape::Arrow	present
+include/Platform/Window.h:IzekipUI::Platform::CursorShape::Crosshair	present
+include/Platform/Window.h:IzekipUI::Platform::CursorShape::IBeam	present
+include/Platform/Window.h:IzekipUI::Platform::CursorShape::NotAllowed	present
+include/Platform/Window.h:IzekipUI::Platform::CursorShape::Pointer	present
+include/Platform/Window.h:IzekipUI::Platform::Key [enum]	enum class Key
+include/Platform/Window.h:IzekipUI::Platform::Key::Backspace	present
+include/Platform/Window.h:IzekipUI::Platform::Key::Delete	present
+include/Platform/Window.h:IzekipUI::Platform::Key::Down	present
+include/Platform/Window.h:IzekipUI::Platform::Key::End	present
+include/Platform/Window.h:IzekipUI::Platform::Key::Enter	present
+include/Platform/Window.h:IzekipUI::Platform::Key::Escape	present
+include/Platform/Window.h:IzekipUI::Platform::Key::Home	present
+include/Platform/Window.h:IzekipUI::Platform::Key::Left	present
+include/Platform/Window.h:IzekipUI::Platform::Key::Right	present
+include/Platform/Window.h:IzekipUI::Platform::Key::Tab	present
+include/Platform/Window.h:IzekipUI::Platform::Key::Unknown	present
+include/Platform/Window.h:IzekipUI::Platform::Key::Up	present
+include/Platform/Window.h:IzekipUI::Platform::KeyAction [enum]	enum class KeyAction
+include/Platform/Window.h:IzekipUI::Platform::KeyAction::Press	present
+include/Platform/Window.h:IzekipUI::Platform::KeyAction::Release	present
+include/Platform/Window.h:IzekipUI::Platform::KeyAction::Repeat	present
+include/Platform/Window.h:IzekipUI::Platform::MouseAction [enum]	enum class MouseAction
+include/Platform/Window.h:IzekipUI::Platform::MouseAction::Press	present
+include/Platform/Window.h:IzekipUI::Platform::MouseAction::Release	present
+include/Platform/Window.h:IzekipUI::Platform::MouseButton [enum]	enum class MouseButton
+include/Platform/Window.h:IzekipUI::Platform::MouseButton::Left	present
+include/Platform/Window.h:IzekipUI::Platform::MouseButton::Middle	present
+include/Platform/Window.h:IzekipUI::Platform::MouseButton::Other	present
+include/Platform/Window.h:IzekipUI::Platform::MouseButton::Right	present
+include/Platform/Window.h:IzekipUI::Platform::Window [class]	class Window
+include/Platform/Window.h:IzekipUI::Platform::Window::CharCallback	using CharCallback = std::function<void(char32_t codepoint)>
+include/Platform/Window.h:IzekipUI::Platform::Window::CursorPosCallback	using CursorPosCallback = std::function<void(double x, double y)>
+include/Platform/Window.h:IzekipUI::Platform::Window::GetGLFWHandle/0/004a0b7a	void* GetGLFWHandle() const
+include/Platform/Window.h:IzekipUI::Platform::Window::GetHeight/0/004a0b7a	uint32_t GetHeight() const
+include/Platform/Window.h:IzekipUI::Platform::Window::GetNativeHandle/0/004a0b7a	void* GetNativeHandle() const
+include/Platform/Window.h:IzekipUI::Platform::Window::GetWidth/0/004a0b7a	uint32_t GetWidth() const
+include/Platform/Window.h:IzekipUI::Platform::Window::KeyCallback	using KeyCallback = std::function<void(Key key, KeyAction action)>
+include/Platform/Window.h:IzekipUI::Platform::Window::MouseButtonCallback	using MouseButtonCallback = std::function<void(MouseButton button, MouseAction action)>
+include/Platform/Window.h:IzekipUI::Platform::Window::PollEvents/0/3eb41622	void PollEvents()
+include/Platform/Window.h:IzekipUI::Platform::Window::ResizeCallback	using ResizeCallback = std::function<void(uint32_t width, uint32_t height)>
+include/Platform/Window.h:IzekipUI::Platform::Window::SetCharCallback/1/2658b169	void SetCharCallback(CharCallback callback)
+include/Platform/Window.h:IzekipUI::Platform::Window::SetCursorPosCallback/1/970dc189	void SetCursorPosCallback(CursorPosCallback callback)
+include/Platform/Window.h:IzekipUI::Platform::Window::SetCursorShape/1/b54c5c77	void SetCursorShape(CursorShape shape)
+include/Platform/Window.h:IzekipUI::Platform::Window::SetKeyCallback/1/11cf1469	void SetKeyCallback(KeyCallback callback)
+include/Platform/Window.h:IzekipUI::Platform::Window::SetMouseButtonCallback/1/e3e58fee	void SetMouseButtonCallback(MouseButtonCallback callback)
+include/Platform/Window.h:IzekipUI::Platform::Window::SetResizeCallback/1/2fd3a9ca	void SetResizeCallback(ResizeCallback callback)
+include/Platform/Window.h:IzekipUI::Platform::Window::ShouldClose/0/004a0b7a	bool ShouldClose() const
+include/Platform/Window.h:IzekipUI::Platform::Window::Window/1/9e7d5054	explicit Window(const WindowDesc& desc)
+include/Platform/Window.h:IzekipUI::Platform::Window::Window/1/d411a300	Window(const Window&) = delete
+include/Platform/Window.h:IzekipUI::Platform::Window::operator=/1/d411a300	Window& operator=(const Window&) = delete
+include/Platform/Window.h:IzekipUI::Platform::Window::~Window/0/3eb41622	~Window()
+include/Platform/Window.h:IzekipUI::Platform::WindowDesc [struct]	struct WindowDesc
+include/Platform/Window.h:IzekipUI::Platform::WindowDesc::height	uint32_t height = 720
+include/Platform/Window.h:IzekipUI::Platform::WindowDesc::resizable	bool resizable = true
+include/Platform/Window.h:IzekipUI::Platform::WindowDesc::title	std::string title = "IzekipUI"
+include/Platform/Window.h:IzekipUI::Platform::WindowDesc::width	uint32_t width = 1280
+include/Renderer/IRenderer.h:IzekipUI::Render::BackdropBlurPaint [struct]	struct BackdropBlurPaint
+include/Renderer/IRenderer.h:IzekipUI::Render::BackdropBlurPaint::cornerRadius	float cornerRadius = 0.0f
+include/Renderer/IRenderer.h:IzekipUI::Render::BackdropBlurPaint::filter	BackdropFilterParams filter
+include/Renderer/IRenderer.h:IzekipUI::Render::BackdropFilterParams [struct]	struct BackdropFilterParams
+include/Renderer/IRenderer.h:IzekipUI::Render::BackdropFilterParams::blurRadiusPx	float blurRadiusPx = 0.0f
+include/Renderer/IRenderer.h:IzekipUI::Render::BackdropFilterParams::brightness	float brightness = 1.0f
+include/Renderer/IRenderer.h:IzekipUI::Render::BackdropFilterParams::contrast	float contrast = 1.0f
+include/Renderer/IRenderer.h:IzekipUI::Render::BackdropFilterParams::grayscale	float grayscale = 0.0f
+include/Renderer/IRenderer.h:IzekipUI::Render::BackdropFilterParams::hueRotateRadians	float hueRotateRadians = 0.0f
+include/Renderer/IRenderer.h:IzekipUI::Render::BackdropFilterParams::saturate	float saturate = 1.0f
+include/Renderer/IRenderer.h:IzekipUI::Render::CreateRenderer/1/4eec6dc3	std::unique_ptr<IRenderer> CreateRenderer(RendererBackend backend)
+include/Renderer/IRenderer.h:IzekipUI::Render::FontId [enum]	enum class FontId
+include/Renderer/IRenderer.h:IzekipUI::Render::FontId::Arial	present
+include/Renderer/IRenderer.h:IzekipUI::Render::FontId::Courier	present
+include/Renderer/IRenderer.h:IzekipUI::Render::FontId::Monospace	present
+include/Renderer/IRenderer.h:IzekipUI::Render::FontId::Proportional	present
+include/Renderer/IRenderer.h:IzekipUI::Render::FontId::Serif	present
+include/Renderer/IRenderer.h:IzekipUI::Render::GetCompiledInBackend/0/3eb41622	RendererBackend GetCompiledInBackend()
+include/Renderer/IRenderer.h:IzekipUI::Render::GradientDirection [enum]	enum class GradientDirection
+include/Renderer/IRenderer.h:IzekipUI::Render::GradientDirection::ToBottom	present
+include/Renderer/IRenderer.h:IzekipUI::Render::GradientDirection::ToLeft	present
+include/Renderer/IRenderer.h:IzekipUI::Render::GradientDirection::ToRight	present
+include/Renderer/IRenderer.h:IzekipUI::Render::GradientDirection::ToTop	present
+include/Renderer/IRenderer.h:IzekipUI::Render::GradientStop [struct]	struct GradientStop
+include/Renderer/IRenderer.h:IzekipUI::Render::GradientStop::color	Color color
+include/Renderer/IRenderer.h:IzekipUI::Render::GradientStop::position	float position = 0.0f
+include/Renderer/IRenderer.h:IzekipUI::Render::IRenderer [class]	class IRenderer
+include/Renderer/IRenderer.h:IzekipUI::Render::IRenderer::BeginFrame/0/549e0908	virtual void BeginFrame() = 0
+include/Renderer/IRenderer.h:IzekipUI::Render::IRenderer::DrawBackdropBlurRect/2/d2eae3d2	virtual void DrawBackdropBlurRect(const Rect& rect, const BackdropBlurPaint& paint) = 0
+include/Renderer/IRenderer.h:IzekipUI::Render::IRenderer::DrawImage/3/3a89c10b	virtual void DrawImage(const std::string& imagePath, const Rect& rect, float opacity) = 0
+include/Renderer/IRenderer.h:IzekipUI::Render::IRenderer::DrawRect/2/f1c18951	virtual void DrawRect(const Rect& rect, const RectPaint& paint) = 0
+include/Renderer/IRenderer.h:IzekipUI::Render::IRenderer::DrawTextQuad/5/ec870371	virtual void DrawTextQuad(const Rect& rect, const UVRect& atlasUV, const Color& color, float glyphScale, FontId fontId = FontId::Proportional) = 0
+include/Renderer/IRenderer.h:IzekipUI::Render::IRenderer::EndFrame/0/549e0908	virtual void EndFrame() = 0
+include/Renderer/IRenderer.h:IzekipUI::Render::IRenderer::GetBackend/0/14f79f0e	virtual RendererBackend GetBackend() const = 0
+include/Renderer/IRenderer.h:IzekipUI::Render::IRenderer::Initialize/1/f57afc23	virtual bool Initialize(const RendererCreateInfo& info) = 0
+include/Renderer/IRenderer.h:IzekipUI::Render::IRenderer::IsDeviceLostForTesting/0/004a0b7a	virtual bool IsDeviceLostForTesting() const
+include/Renderer/IRenderer.h:IzekipUI::Render::IRenderer::Present/0/549e0908	virtual void Present() = 0
+include/Renderer/IRenderer.h:IzekipUI::Render::IRenderer::Resize/2/a94d96f6	virtual void Resize(uint32_t width, uint32_t height) = 0
+include/Renderer/IRenderer.h:IzekipUI::Render::IRenderer::SetWorldTransform/1/4979e126	virtual void SetWorldTransform(const Transform2D& transform) = 0
+include/Renderer/IRenderer.h:IzekipUI::Render::IRenderer::Shutdown/0/549e0908	virtual void Shutdown() = 0
+include/Renderer/IRenderer.h:IzekipUI::Render::IRenderer::SimulateDeviceLossForTesting/0/3eb41622	virtual void SimulateDeviceLossForTesting()
+include/Renderer/IRenderer.h:IzekipUI::Render::IRenderer::~IRenderer/0/e331c0df	virtual ~IRenderer() = default
+include/Renderer/IRenderer.h:IzekipUI::Render::RectFill [struct]	struct RectFill
+include/Renderer/IRenderer.h:IzekipUI::Render::RectFill::color	Color color
+include/Renderer/IRenderer.h:IzekipUI::Render::RectFill::gradientDirection	std::optional<GradientDirection> gradientDirection
+include/Renderer/IRenderer.h:IzekipUI::Render::RectFill::gradientStops	std::vector<GradientStop> gradientStops
+include/Renderer/IRenderer.h:IzekipUI::Render::RectPaint [struct]	struct RectPaint
+include/Renderer/IRenderer.h:IzekipUI::Render::RectPaint::cornerRadius	float cornerRadius = 0.0f
+include/Renderer/IRenderer.h:IzekipUI::Render::RectPaint::fill	RectFill fill
+include/Renderer/IRenderer.h:IzekipUI::Render::RectPaint::opacity	float opacity = 1.0f
+include/Renderer/IRenderer.h:IzekipUI::Render::RectPaint::shadow	std::optional<RectShadow> shadow
+include/Renderer/IRenderer.h:IzekipUI::Render::RectShadow [struct]	struct RectShadow
+include/Renderer/IRenderer.h:IzekipUI::Render::RectShadow::blurRadius	float blurRadius = 0.0f
+include/Renderer/IRenderer.h:IzekipUI::Render::RectShadow::color	Color color
+include/Renderer/IRenderer.h:IzekipUI::Render::RectShadow::offsetX	float offsetX = 0.0f
+include/Renderer/IRenderer.h:IzekipUI::Render::RectShadow::offsetY	float offsetY = 0.0f
+include/Renderer/IRenderer.h:IzekipUI::Render::RectShadow::spreadRadius	float spreadRadius = 0.0f
+include/Renderer/IRenderer.h:IzekipUI::Render::RendererBackend [enum]	enum class RendererBackend
+include/Renderer/IRenderer.h:IzekipUI::Render::RendererBackend::D3D11	present
+include/Renderer/IRenderer.h:IzekipUI::Render::RendererBackend::Vulkan	present
+include/Renderer/IRenderer.h:IzekipUI::Render::RendererCreateInfo [struct]	struct RendererCreateInfo
+include/Renderer/IRenderer.h:IzekipUI::Render::RendererCreateInfo::glfwWindow	void* glfwWindow = nullptr
+include/Renderer/IRenderer.h:IzekipUI::Render::RendererCreateInfo::initialHeight	uint32_t initialHeight = 0
+include/Renderer/IRenderer.h:IzekipUI::Render::RendererCreateInfo::initialWidth	uint32_t initialWidth = 0
+include/Renderer/IRenderer.h:IzekipUI::Render::RendererCreateInfo::nativeWindowHandle	void* nativeWindowHandle = nullptr
+include/Renderer/IRenderer.h:IzekipUI::Render::UVRect [struct]	struct UVRect
+include/Renderer/IRenderer.h:IzekipUI::Render::UVRect::u0	float u0 = 0.0f, v0 = 0.0f, u1 = 0.0f, v1 = 0.0f
+include/Renderer/IRenderer.h:IzekipUI::Render::kFontCount	inline constexpr int kFontCount = 5
+include/Widgets/Button.h:IzekipUI::Widgets::Button [class]	class Button : public Widget
+include/Widgets/Button.h:IzekipUI::Widgets::Button::Button/0/3eb41622	Button()
+include/Widgets/Checkbox.h:IzekipUI::Widgets::Checkbox [class]	class Checkbox : public Widget
+include/Widgets/Checkbox.h:IzekipUI::Widgets::Checkbox::Checkbox/1/8e536abf	explicit Checkbox(std::string text = {})
+include/Widgets/Checkbox.h:IzekipUI::Widgets::Checkbox::GetLabel/0/3eb41622	Label& GetLabel()
+include/Widgets/Checkbox.h:IzekipUI::Widgets::Checkbox::IsChecked/0/004a0b7a	bool IsChecked() const
+include/Widgets/Checkbox.h:IzekipUI::Widgets::Checkbox::SetChecked/1/839cda5f	void SetChecked(bool checked)
+include/Widgets/Checkbox.h:IzekipUI::Widgets::Checkbox::SetOnChanged/1/9d849380	void SetOnChanged(std::function<void(bool checked)> onChanged)
+include/Widgets/Checkbox.h:IzekipUI::Widgets::Checkbox::SetText/1/33228509	void SetText(std::string text)
+include/Widgets/Label.h:IzekipUI::Render::GlyphAtlas	class GlyphAtlas
+include/Widgets/Label.h:IzekipUI::Widgets::Label [class]	class Label : public Widget
+include/Widgets/Label.h:IzekipUI::Widgets::Label::GetText/0/004a0b7a	const std::string& GetText() const
+include/Widgets/Label.h:IzekipUI::Widgets::Label::Label/0/3eb41622	Label()
+include/Widgets/Label.h:IzekipUI::Widgets::Label::OnPaint/1/3980786a	void OnPaint(Render::IRenderer& renderer) override
+include/Widgets/Label.h:IzekipUI::Widgets::Label::SetFontFamily/1/7bb09018	void SetFontFamily(Render::FontId fontFamily)
+include/Widgets/Label.h:IzekipUI::Widgets::Label::SetText/1/33228509	void SetText(std::string text)
+include/Widgets/Panel.h:IzekipUI::Widgets::Panel [class]	class Panel : public Widget
+include/Widgets/Panel.h:IzekipUI::Widgets::Panel::Panel/0/3eb41622	Panel()
+include/Widgets/ProgressBar.h:IzekipUI::Widgets::ProgressBar [class]	class ProgressBar : public Widget
+include/Widgets/ProgressBar.h:IzekipUI::Widgets::ProgressBar::GetValue/0/004a0b7a	float GetValue() const
+include/Widgets/ProgressBar.h:IzekipUI::Widgets::ProgressBar::ProgressBar/0/3eb41622	ProgressBar()
+include/Widgets/ProgressBar.h:IzekipUI::Widgets::ProgressBar::SetValue/1/c122e900	void SetValue(float value01)
+include/Widgets/RadioButton.h:IzekipUI::Widgets::RadioButton [class]	class RadioButton : public Widget
+include/Widgets/RadioButton.h:IzekipUI::Widgets::RadioButton::GetLabel/0/3eb41622	Label& GetLabel()
+include/Widgets/RadioButton.h:IzekipUI::Widgets::RadioButton::IsSelected/0/004a0b7a	bool IsSelected() const
+include/Widgets/RadioButton.h:IzekipUI::Widgets::RadioButton::RadioButton/1/8e536abf	explicit RadioButton(std::string text = {})
+include/Widgets/RadioButton.h:IzekipUI::Widgets::RadioButton::SetText/1/33228509	void SetText(std::string text)
+include/Widgets/RadioButton.h:IzekipUI::Widgets::RadioGroup	class RadioGroup
+include/Widgets/RadioButton.h:IzekipUI::Widgets::RadioGroup [class]	class RadioGroup
+include/Widgets/RadioButton.h:IzekipUI::Widgets::RadioGroup::Add/1/0b5115ec	void Add(std::shared_ptr<RadioButton> button)
+include/Widgets/RadioButton.h:IzekipUI::Widgets::RadioGroup::GetButton/1/9faea899	RadioButton* GetButton(int index) const
+include/Widgets/RadioButton.h:IzekipUI::Widgets::RadioGroup::GetCount/0/004a0b7a	int GetCount() const
+include/Widgets/RadioButton.h:IzekipUI::Widgets::RadioGroup::GetSelectedIndex/0/004a0b7a	int GetSelectedIndex() const
+include/Widgets/RadioButton.h:IzekipUI::Widgets::RadioGroup::RadioGroup/0/e331c0df	RadioGroup() = default
+include/Widgets/RadioButton.h:IzekipUI::Widgets::RadioGroup::RadioGroup/1/6bd97063	RadioGroup(const RadioGroup&) = delete
+include/Widgets/RadioButton.h:IzekipUI::Widgets::RadioGroup::Select/1/763b2690	void Select(RadioButton* button)
+include/Widgets/RadioButton.h:IzekipUI::Widgets::RadioGroup::Select/1/a3ac838c	void Select(int index)
+include/Widgets/RadioButton.h:IzekipUI::Widgets::RadioGroup::SetOnChanged/1/163d9fe4	void SetOnChanged(std::function<void(int index)> onChanged)
+include/Widgets/RadioButton.h:IzekipUI::Widgets::RadioGroup::operator=/1/6bd97063	RadioGroup& operator=(const RadioGroup&) = delete
+include/Widgets/RadioButton.h:IzekipUI::Widgets::RadioGroup::~RadioGroup/0/3eb41622	~RadioGroup()
+include/Widgets/TextArea.h:IzekipUI::Render::GlyphAtlas	class GlyphAtlas
+include/Widgets/TextArea.h:IzekipUI::Widgets::TextArea [class]	class TextArea : public Widget
+include/Widgets/TextArea.h:IzekipUI::Widgets::TextArea::FocusAndMoveCursorToEnd/0/3eb41622	void FocusAndMoveCursorToEnd()
+include/Widgets/TextArea.h:IzekipUI::Widgets::TextArea::GetBuffer/0/004a0b7a	const TextBuffer& GetBuffer() const
+include/Widgets/TextArea.h:IzekipUI::Widgets::TextArea::GetBuffer/0/3eb41622	TextBuffer& GetBuffer()
+include/Widgets/TextArea.h:IzekipUI::Widgets::TextArea::OnCharInput/1/2d0c5d26	void OnCharInput(char32_t codepoint)
+include/Widgets/TextArea.h:IzekipUI::Widgets::TextArea::OnPaint/1/3980786a	void OnPaint(Render::IRenderer& renderer) override
+include/Widgets/TextArea.h:IzekipUI::Widgets::TextArea::TextArea/0/3eb41622	TextArea()
+include/Widgets/TextArea.h:IzekipUI::Widgets::TextArea::Tick/1/e44ba76d	void Tick(float deltaSeconds)
